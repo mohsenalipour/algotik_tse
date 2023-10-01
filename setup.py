@@ -4,7 +4,7 @@
 
 from setuptools import setup, find_packages
 
-with open('README.md') as readme_file:
+with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 with open('HISTORY.rst') as history_file:
@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 
 def readme_ok():
-    with open("README.rst", encoding="utf-8") as f:
+    with open("README.md", encoding="utf-8") as f:
         return f.read()
 
 
@@ -54,6 +54,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/mohsenalipour/algotik_tse',
-    version='0.2.0',
+    version='0.2.2',
     zip_safe=False,
 )

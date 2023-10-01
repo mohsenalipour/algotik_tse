@@ -31,6 +31,8 @@
 
 ##### همچین می‌توانید از طریق [این لینک](https://t.me/algotik) به آدرس تلگرامی ما دسترسی داشته باشید
 
+##### الهام گرفته شده از finpy-tse و tsemodule5
+
 </div>
 
 
@@ -56,7 +58,7 @@ pip install algotik-tse
 </div>
 
 ```python
-import algotik-tse as att
+import algotik_tse as att
 ```
 
 <p>&nbsp;</p>
