@@ -2,7 +2,8 @@
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '0.1.21'
+__version__ = '0.1.22'
 
-from algotik_tse.algotik_tse import test_for_me
-from algotik_tse.core.desk import desk_lo
+import algotik_tse.settings
+from algotik_tse.core.search import search_stock
+from algotik_tse.core.stock_detail import stockdetail

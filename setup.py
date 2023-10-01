@@ -21,7 +21,7 @@ def history_ok():
         return n.read()
 
 
-requirements = [ ]
+requirements = ['requests', 'pandas' ]
 
 test_requirements = ['pytest>=3', ]
 
@@ -51,6 +51,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/mohsenalipour/algotik_tse',
-    version='0.1.21',
+    version='0.1.22',
     zip_safe=False,
 )
