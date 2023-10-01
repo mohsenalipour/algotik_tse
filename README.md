@@ -1,9 +1,10 @@
-![PyPI](https://img.shields.io/pypi/v/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
-![test workflow](https://github.com/mohsenalipour/algotik_tse/actions/workflows/ci.yml/badge.svg)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/majiidd/persiantools/master.svg)](https://results.pre-commit.ci/latest/github/majiidd/persiantools/master)
+# AlgoTik-tse
+
+[![PyPI](https://img.shields.io/pypi/v/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mohsenalipour/algotik_tse/master.svg)](https://results.pre-commit.ci/latest/github/mohsenalipour/algotik_tse/master)
 [![codecov](https://codecov.io/gh/majiidd/persiantools/branch/master/graph/badge.svg?token=Q990VL6FGW)](https://codecov.io/gh/majiidd/persiantools)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/persiantools.svg)](https://pypi.org/project/persiantools/)
-[![PyPI - License](https://img.shields.io/pypi/l/persiantools.svg)](https://pypi.org/project/persiantools/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 
 - Jalali (Shamsi) date and datetime (based on python datetime's module)
 
