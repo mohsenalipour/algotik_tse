@@ -1,5 +1,5 @@
 """
-version 1.5
+version 0.2.0
 Main module code by @Python4finance
 New version code by Mohsen Alipour alipour@algotik.ir
 last Edit: 2023-10-01
@@ -21,7 +21,7 @@ you can get historical price data, in customized way with set the function param
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '0.1.5'
+__version__ = '0.2.0'
 
 import algotik_tse.settings
 from algotik_tse.core.search import search_stock
