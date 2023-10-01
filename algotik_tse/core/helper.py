@@ -1,9 +1,14 @@
 from persiantools.jdatetime import JalaliDate
 
 
-def date_fix(start=None, end=None):
+def date_fix(start: str=None, end: str=None) -> (str, str):
     new_start = None
     new_end = None
+    if start is not None and not '-' in start:
+        start = start[:4] + "-" + start[4:6] + "-" + start[6:]
+    if end is not None and not '-' in end:
+        end = end[:4] + "-" + end[4:6] + "-" + end[6:]
+
     if start is not None:
         two_left_char_start = start[:2]
         if two_left_char_start in ["13", "14", "15"]:

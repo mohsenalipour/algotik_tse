@@ -1,158 +1,90 @@
 # AlgoTik-tse
 
+[![downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI](https://img.shields.io/pypi/v/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mohsenalipour/algotik_tse/master.svg)](https://results.pre-commit.ci/latest/github/mohsenalipour/algotik_tse/master)
-[![codecov](https://codecov.io/gh/majiidd/persiantools/branch/master/graph/badge.svg?token=Q990VL6FGW)](https://codecov.io/gh/majiidd/persiantools)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 
-- Jalali (Shamsi) date and datetime (based on python datetime's module)
 
-  - Convert Jalali to Gregorian date/datetime and vice versa
-  - Support comparison and arithmetic operators such as `+`, `-`, `==`, `>=`
-  - Support timezone
+<div dir="rtl" align="right">
 
-- Convert Arabic and Persian characters/digits to each other
-- Convert numbers to words
+##### این ماژول جهت مصارف آموزشی، علمی و تحقیقاتی با زبان برنامه نویسی پایتون توسعه یافته است. سعی شده امکاناتی در این ماژول در نظر گرفته شود، که بتواند نیاز به تمامی اطلاعات سازمان بورس را مرتفع نماید و مانند یک API دریافت اطلاعات کار کند. خروجی تمامی ساب ماژول ها علاوه بر فرمت دیتافریم (Pandas DataFrame) می تواند به صورت json نیز دریافت گردد.
 
-## Install Package
+<p>&nbsp;</p>
 
-```bash
-python -m pip install persiantools
-```
-Persiantools supports Python 3.6+. (_for python 2.7 and 3.5 use [1.5.x](https://github.com/majiidd/persiantools/tree/1.5.x) version_)
+#### ویژگی های ماژول:
 
-## How to use
+قابلیت دسترسی به داده‌های یک سهم با استفاده از نماد يا نام کامل فارسی &emsp; <--- &emsp;  <br />
+قابلیت انجام تعدیل قیمت به صورت یکجا با احتساب انواع افزایش سرمایه و پرداخت سود نقدی &emsp; <--- &emsp;  <br />
+هوشمندی در تشخیص جابجایی یک نماد بین بازارهای مختلف و یکپارچه سازی همه سوابق نمادهای دارای جابجایی &emsp; <---
+&emsp;  <br />
+قابلیت دسترسی به سوابق همه شاخص‌های بازار بورس و هوشمندی در تشخیص اشتباهات املایی و نگارشی عناوین شاخص صنایع بورسی
+&emsp; <--- &emsp;  <br />
+قابلیت دسترسی به سابقه داده‌های درون‌روز یک نماد شامل عمق بازار و ریز معاملات &emsp; <--- &emsp;  <br />
+قابلیت دسترسی و رصد لحظه‌ای دیده‌بان و عمق بازار در ساعت انجام معاملات در بازار &emsp; <--- &emsp;  <br />
+قابلیت تهیه لیست جامعی از مشخصات همه سهم‌های بازار &emsp; <--- &emsp;  <br />
+قابلیت دانلود دسته‌جمعی سابقه قیمت لیستی از سهم‌ها و ساخت پنل قیمت پایانی تعدیل شده برای آنها &emsp; <--- &emsp;  <br />
+قابلیت دسترسی به سابقه ۱۰ ساله قیمت دلار بازار آزاد &emsp; <--- &emsp;  <br />
+خروجی سازگار با دیتافریم پانداز و قابلیت فیلترینگ زمانی مجدد بر اساس تاریخ شمسی &emsp; <--- &emsp;  <br />
+قابلیت ارائه تاریخ شمسی، میلادی و نام ایام هفته برای داده‌های روزانه &emsp; <--- &emsp;  <br />
 
-### Date
+##### همچین می‌توانید از طریق [این لینک](https://t.me/algotik) به آدرس تلگرامی ما دسترسی داشته باشید
 
-```python
->>> from persiantools.jdatetime import JalaliDate
->>> import datetime
+</div>
 
->>> JalaliDate.today()
-JalaliDate(1395, 4, 18, Jomeh)
 
->>> JalaliDate(1369, 7, 1)
-JalaliDate(1369, 7, 1, Yekshanbeh)
+<p>&nbsp;</p>
+<p>&nbsp;</p>
 
->>> JalaliDate(datetime.date(1990, 9, 23))      # Gregorian to Jalali
-JalaliDate(1369, 7, 1, Yekshanbeh)
+<div dir="rtl" align="right">
 
->>> JalaliDate.to_jalali(2013, 9, 16)           # Gregorian to Jalali
-JalaliDate(1392, 6, 25, Doshanbeh)
+# نصب ماژول
 
->>> JalaliDate(1392, 6, 25).to_gregorian()      # Jalali to Gregorian
-datetime.date(2013, 9, 16)
-
->>> JalaliDate.fromtimestamp(578707200)         # Timestamp to Jalali
-JalaliDate(1367, 2, 14, Chaharshanbeh)
-```
-
-### Datetime
+</div>
 
 ```python
->>> from persiantools.jdatetime import JalaliDateTime
->>> import datetime, pytz
-
->>> JalaliDateTime.now()
-JalaliDateTime(1395, 4, 18, 1, 43, 24, 720505)
-
->>> JalaliDateTime.now().to_gregorian()                                     # Jalali to Gregorian
-datetime.datetime(2016, 7, 8, 1, 43, 24, 720505)
-
->>> JalaliDateTime.to_jalali(datetime.datetime(1988, 5, 4, 14, 0, 0, 0))    # Gregorian to Jalali
-JalaliDateTime(1367, 2, 14, 14, 0)
-
->>> JalaliDateTime.fromtimestamp(578723400, pytz.timezone("Asia/Tehran"))   # Timestamp to Jalali
-JalaliDateTime(1367, 2, 14, 8, 0, tzinfo=<DstTzInfo 'Asia/Tehran' +0330+3:30:00 STD>)
-
->>> JalaliDateTime.now(pytz.utc)
-JalaliDateTime(1395, 4, 17, 21, 23, 53, 474618, tzinfo=<UTC>)
+pip install algotik-tse
 ```
 
-### Format
+<p>&nbsp;</p>
 
-Based on python `strftime()` behavior
+<div dir="rtl" align="right">
+
+# فراخوانی ماژول
+
+</div>
 
 ```python
->>> from persiantools.jdatetime import JalaliDate, JalaliDateTime
->>> import pytz
-
->>> JalaliDate(1367, 2, 14).isoformat()
-'1367-02-14'
-
->>> JalaliDate(1395, 3, 1).strftime("%Y/%m/%d")
-'1395/03/01'
-
->>> JalaliDateTime(1369, 7, 1, 14, 0, 10, 0, pytz.utc).strftime("%c")
-'Yekshanbeh 01 Mehr 1369 14:00:10'
-
->>> JalaliDateTime.now(pytz.utc).strftime("%I:%M:%S.%f %p %z %Z")
-'01:49:22.518523 PM +0000 UTC'
+import algotik-tse as att
 ```
 
-### Digits/Characters Tools
+<p>&nbsp;</p>
+
+
+<div dir="rtl" align="right">
+
+# دریافت سابقه اطلاعات روزانه یک نماد
+
+<hr style="border:2px solid gray"> </hr>
+
+### دریافت سابقه قیمت:
+
+</div>
 
 ```python
->>> from persiantools import characters, digits
-
->>> digits.en_to_fa("0987654321")
-'۰۹۸۷۶۵۴۳۲۱'
-
->>> digits.ar_to_fa("٠٩٨٧٦٥٤٣٢١")
-'۰۹۸۷۶۵۴۳۲۱'
-
->>> digits.fa_to_en("۰۹۸۷۶۵۴۳۲۱")
-'0987654321'
-
->>> digits.to_word(9512026)
-'نه میلیون و پانصد و دوازده هزار و بیست و شش'
-
->>> digits.to_word(15.007)
-'پانزده و هفت هزارم'
-
->>> characters.ar_to_fa("كيك")
-'کیک'
-```
-
-### Operators
-
-```python
->>> from persiantools.jdatetime import JalaliDate, JalaliDateTime
->>> import datetime
-
->>> JalaliDate(1367, 2, 14) == JalaliDate(datetime.date(1988, 5, 4))
-True
-
->>> JalaliDateTime(1367, 2, 14, 4, 30) >= JalaliDateTime(1369, 7, 1, 1, 0)
-False
-
->>> JalaliDate(1367, 2, 14) == datetime.date(1988, 5, 4)
-True
-
->>> JalaliDate(1395, 2, 14) + datetime.timedelta(days=38)
-JalaliDate(1395, 3, 21, Jomeh)
-
->>> JalaliDateTime(1395, 12, 30) - JalaliDateTime(1395, 1, 1)
-datetime.timedelta(365)
-```
-
-### Serializing and de-serializing
-
-```python
->>> from persiantools.jdatetime import JalaliDate
->>> import pickle
-
->>> # Serializing
->>> file = open("save.p", "wb")
->>> pickle.dump(JalaliDate(1367, 2, 14), file)
->>> file.close()
-
->>> # de-serializing
->>> file = open("save.p", "rb")
->>> jalali = pickle.load(file)
->>> file.close()
->>> jalali
-JalaliDate(1367, 2, 14, Chaharshanbeh)
+att.stock(
+    stock='شتران',
+    start='1402-01-01',
+    end='1402-07-01',
+    values=0,
+    tse_format=False,
+    auto_adjust=True,
+    output_type="standard",
+    date_format="jalali",
+    progress=True,
+    save_to_file=False,
+    multi_stock_drop=True,
+    adjust_volume=False
+    )
 ```
