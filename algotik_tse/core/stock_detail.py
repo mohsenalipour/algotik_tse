@@ -1,7 +1,6 @@
 import requests
 import warnings
 import pandas as pd
-
 from algotik_tse.settings import Settings
 from algotik_tse.core.search import search_stock
 warnings.simplefilter(action='ignore', category=FutureWarning)
