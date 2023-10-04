@@ -121,16 +121,16 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                 df = pd.DataFrame(data, columns=data.keys(), index=pd.DatetimeIndex(data["<DTYYYYMMDD>"]))
                 df.index.names = ['<DTYYYYMMDD>']
                 df.drop(columns=['<DTYYYYMMDD>'], inplace=True)
-                df = df.iloc[::-1, :]
-                if mvalues != 0:
-                    df = df.iloc[:mvalues]
-                    df = df.iloc[::-1, :]
-                else:
-                    if new_end is None:
-                        df = df[new_start:]
+
+                if mvalues is not None or mstart is not None or mend is not None:
+                    if mvalues != 0:
+                        df = df.iloc[-mvalues:]
                     else:
-                        df = df[new_start:new_end]
-                    df = df.iloc[::-1, :]
+                        if new_end is None:
+                            df = df.loc[new_start:]
+                        else:
+                            df = df.loc[new_start:new_end]
+
                 if mtse_format:
                     return df
                 else:
@@ -197,15 +197,17 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
             try:
                 fopen = requests.get(_price_base_url.format(web_id), headers=settings.headers).content
                 df = pd.read_csv(io.StringIO(fopen.decode("utf-8")), index_col="<DTYYYYMMDD>", parse_dates=True)
-                if mvalues != 0:
-                    df = df.iloc[:mvalues]
-                    df = df.iloc[::-1, :]
-                else:
-                    if new_end is None:
-                        df = df[new_start:]
+                df = df[::-1]
+                if mvalues is not None or mstart is not None or mend is not None:
+                    if mvalues != 0:
+                        df = df.iloc[-mvalues:]
+                        pass
                     else:
-                        df = df[new_start:new_end]
-                    df = df.iloc[::-1, :]
+                        if new_end is None:
+                            df = df.loc[new_start:]
+                        else:
+                            df = df.loc[new_start:new_end]
+
                 if mtse_format:
                     return df
                 else:
@@ -466,15 +468,16 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
             df.index.names = ['<DTYYYYMMDD>']
             df.drop(columns=['<DTYYYYMMDD>'], inplace=True)
 
-            if mvalues != 0:
-                df = df.iloc[:mvalues]
-                df = df.iloc[::-1, :]
-            else:
-                if new_end is None:
-                    df = df[new_start:]
+            df = df[::-1]
+            if mvalues is not None or mstart is not None or mend is not None:
+                if mvalues != 0:
+                    df = df.iloc[-mvalues:]
                 else:
-                    df = df[new_start:new_end]
-                df = df.iloc[::-1, :]
+                    if new_end is None:
+                        df = df.loc[new_start:]
+                    else:
+                        df = df.loc[new_start:new_end]
+
             if mtse_format:
                 return df
             else:
