@@ -2,6 +2,7 @@ import io
 import datetime
 import requests
 import warnings
+import numpy as np
 import pandas as pd
 from persiantools import characters
 from persiantools.jdatetime import JalaliDate
@@ -16,7 +17,8 @@ settings = Settings()
 
 
 def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjust=True, output_type="standard",
-          date_format="jalali", progress=True, save_to_file=False, multi_stock_drop=True, adjust_volume=False):
+          date_format="jalali", progress=True, save_to_file=False, multi_stock_drop=True, adjust_volume=False,
+          return_type=None):
     """
     Get symbol or symbols price history from tsetmc
     :param stock:           stock name in persian, or a list of stock in
@@ -75,9 +77,19 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
     :param adjust_volume:   if True, when output_type='complete' you can get
                                 'Adj Volume' in output.
                             Default value is False.
+    :param return_type:     you can choose between 'simple', 'log' and 'both', or enter ['simple', 'Close', 5] format.
+                            if return_type='simple', you get simple return in 1 day on Adj Close.
+                                with simple return 'returns' in complete mode in output.
+                            if return_type='log', you get log return in 1 day on Adj Close.
+                                with log return 'returns' in complete mode in output.
+                            if return_type='both', you get simple and log return in 1 day on Adj Close.
+                                with both return 'simple_returns' and 'log_returns' in complete mode in output.
+                            if return_type=['simple', 'Close', 5], you get simple return in 5 day on Close.
+                                with this 'returns' in complete mode in output.
 
     :return: pandas dataframe or None
     """
+
     def _get_stock(stock_name, mstart, mend, mvalues, mtse_format, mauto_adjust, moutput_type, mdate_format, ):
         web_id = search_stock(search_txt=stock_name)
         _price_base_url = settings.url_price_history
@@ -149,6 +161,37 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                     df["Weekday_fa"] = df["Weekday_No"].apply(lambda x: settings.fa_weekdays[x])
                     df.drop("Weekday_No", axis=1, inplace=True)
                     df['Ticker'] = stock_name
+
+                    # return type
+                    if return_type is not None:
+                        if isinstance(return_type, str):
+                            if return_type == 'simple':
+                                df['returns'] = df['Adj Close'].pct_change()
+                            elif return_type == 'log':
+                                df['returns'] = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
+                            elif return_type == 'both':
+                                df['simple_returns'] = df['Adj Close'].pct_change()
+                                df['log_returns'] = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
+                            else:
+                                print("return_type should select between 'simple', 'log' or ''both")
+                                return None
+                        elif isinstance(return_type, list) and len(return_type) == 3:
+                            # ['simple', 'Close', 2]
+                            if return_type[0] == 'simple':
+                                df['returns'] = df[return_type[1]].pct_change(return_type[2])
+                            elif return_type[0] == 'log':
+                                df['returns'] = np.log(df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
+                            elif return_type[0] == 'both':
+                                df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
+                                df['log_returns'] = np.log(
+                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
+                            else:
+                                print("return_type[0] should select between 'simple', 'log' or ''both")
+                                return None
+                        else:
+                            print(
+                                "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
+                            return None
 
                     if mauto_adjust:
                         df.drop("Adj Close", axis=1, inplace=True)
@@ -299,6 +342,38 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                         else:
                             print("output_type should select between 'standard' or 'complete'")
                             return None
+
+                    # return type
+                    if return_type is not None:
+                        if isinstance(return_type, str):
+                            if return_type == 'simple':
+                                df['returns'] = df['Adj Close'].pct_change()
+                            elif return_type == 'log':
+                                df['returns'] = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
+                            elif return_type == 'both':
+                                df['simple_returns'] = df['Adj Close'].pct_change()
+                                df['log_returns'] = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
+                            else:
+                                print("return_type should select between 'simple', 'log' or ''both")
+                                return None
+                        elif isinstance(return_type, list) and len(return_type) == 3:
+                            # ['simple', 'Close', 2]
+                            if return_type[0] == 'simple':
+                                df['returns'] = df[return_type[1]].pct_change(return_type[2])
+                            elif return_type[0] == 'log':
+                                df['returns'] = np.log(
+                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
+                            elif return_type[0] == 'both':
+                                df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
+                                df['log_returns'] = np.log(
+                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
+                            else:
+                                print("return_type[0] should select between 'simple', 'log' or ''both")
+                                return None
+                        else:
+                            print(
+                                "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
+                            return None
                     return df
 
             except:
@@ -364,6 +439,13 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                 return df
             else:
                 df = pd.concat(df_dict, axis=1)
+                multi_assets_columns = df.columns
+                reversed_multi_assets_columns = []
+                for column_index in multi_assets_columns:
+                    reversed_multi_assets_columns.append(column_index[::-1])
+                new_index = pd.MultiIndex.from_tuples(reversed_multi_assets_columns)
+                df.columns = new_index
+
                 if multi_stock_drop:
                     df.dropna(inplace=True)
                 if save_to_file and df is not None:
@@ -373,51 +455,51 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                 return df
 
 
-def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_type="standard", date_format="jalali",
+def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_type="standard", date_format="jalali",
              progress=True, save_to_file=False, multi_stock_drop=True):
     """
-    Get symbol or symbols real/legal history from tsetmc
+    Get symbol or symbols retail/institutional history from tsetmc
     :param stock:           stock name in persian, or a list of stock in
                                 persian (['شتران', 'آریا'])
                             Default value is 'شتران'.
-    :param start:           you can choose strat date (from) to get historical real/legal.
+    :param start:           you can choose strat date (from) to get historical RETAIL/institutional.
                             enter date in jalali only in isoformat ('1401-10-01')
                                 and gregorian in isoformat("2022-12-22") or
                                 ("2022") or ("2022-12")
                             Default value is None.
-                            if start=None and end=None, value can apply to real/legal data.
-    :param end:             you can choos end date (to) to get historical real/legal.
+                            if start=None and end=None, value can apply to RETAIL/institutional data.
+    :param end:             you can choos end date (to) to get historical RETAIL/institutional.
                             enter date in jalali only in isoformat ('1401-10-01')
                                 and gregorian in isoformat ("2022-12-22") or
                                 ("2022") or ("2022-12")
                             Default value is None.
-                            if start=None and end=None, 'values' can apply to real/legal data.
+                            if start=None and end=None, 'values' can apply to RETAIL/institutional data.
     :param values:          Specifies the number of price data since today
                             Default value is 225.
                             'values' can be applied when start=None and end=None.
-    :param tse_format:      if True you can get all historical real/legal data in tse .csv format
+    :param tse_format:      if True you can get all historical RETAIL/institutional data in tse .csv format
                             Default value is False.
                             if tse_format=True, ignore output_type, date_format!
     :param output_type:     you can choose between 'standard' and 'complete'.
                             Default value is 'standard'.
-                            if output_type='standard', you get real/legal without per capitas
+                            if output_type='standard', you get RETAIL/institutional without per capitas
                                 or powers in output.
-                            if output_type='complete', you get real/legal with per capitas
+                            if output_type='complete', you get RETAIL/institutional with per capitas
                                 and powers in output
     :param date_format:     you can choose between 'jalali' and 'gregorian' and 'both'.
                             Default value is 'jalali'.
-                            if date_format='jalali', you get historical real/legal with
+                            if date_format='jalali', you get historical RETAIL/institutional with
                                 jalali date index and 'Weekday_fa' in complete mode
                                 in output.
-                            if output_type='gregorian', you get historical real/legal
+                            if output_type='gregorian', you get historical RETAIL/institutional
                                 with gregorian date index and 'Weekday' in complete
                                 mode in output.
-                            if output_type='both', you get historical real/legal with
+                            if output_type='both', you get historical RETAIL/institutional with
                                 gregorian date index and 'J-Date'(jalali date),
                                 'Weekday', 'Weekday_fa' in complete mode in output.
     :param progress:        if True, show progress and report in console.
                             Default value is True.
-    :param save_to_file:    if True, save stock(s) historical real/legal data with customized
+    :param save_to_file:    if True, save stock(s) historical RETAIL/institutional data with customized
                                 columns in .csv format.
                             Default value is False.
                             the file name is 'stock.csv' in same root that
@@ -428,7 +510,8 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
 
     :return: pandas dataframe or None
     """
-    def _get_stock_RL(stock_name, mstart, mend, mvalues, mtse_format, moutput_type, mdate_format):
+
+    def _get_stock_RI(stock_name, mstart, mend, mvalues, mtse_format, moutput_type, mdate_format):
         web_id = search_stock(search_txt=stock_name)
         client_type_base_url = settings.url_client_type
         if web_id[-5:] == "index":
@@ -439,10 +522,13 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
             mvalues = 0
         try:
             fopen = requests.get(client_type_base_url.format(web_id)).text.split(";")
-            data = {"<DTYYYYMMDD>": [], "<TICKER>": [], "<N_BUY_REAL>": [], "<N_BUY_LEGAL>": [], "<N_SELL_REAL>": [],
-                    "<N_SELL_LEGAL>": [],
-                    "<VOL_BUY_REAL>": [], "<VOL_BUY_LEGAL>": [], "<VOL_SELL_REAL>": [], "<VOL_SELL_LEGAL>": [],
-                    "<VAL_BUY_REAL>": [], "<VAL_BUY_LEGAL>": [], "<VAL_SELL_REAL>": [], "<VAL_SELL_LEGAL>": [],
+            data = {"<DTYYYYMMDD>": [], "<TICKER>": [], "<N_BUY_RETAIL>": [], "<N_BUY_INSTITUTIONAL>": [],
+                    "<N_SELL_RETAIL>": [],
+                    "<N_SELL_INSTITUTIONAL>": [],
+                    "<VOL_BUY_RETAIL>": [], "<VOL_BUY_INSTITUTIONAL>": [], "<VOL_SELL_RETAIL>": [],
+                    "<VOL_SELL_INSTITUTIONAL>": [],
+                    "<VAL_BUY_RETAIL>": [], "<VAL_BUY_INSTITUTIONAL>": [], "<VAL_SELL_RETAIL>": [],
+                    "<VAL_SELL_INSTITUTIONAL>": [],
                     "<PER>": []}
 
             for dt in fopen:
@@ -450,18 +536,18 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
                 date_iso = dts[0][:4] + "-" + dts[0][4:6] + "-" + dts[0][6:]
                 data["<DTYYYYMMDD>"].append(datetime.date.fromisoformat(date_iso))
                 data['<TICKER>'].append(stock_name)
-                data['<N_BUY_REAL>'].append(int(dts[1]))
-                data['<N_BUY_LEGAL>'].append(int(dts[2]))
-                data['<N_SELL_REAL>'].append(int(dts[3]))
-                data['<N_SELL_LEGAL>'].append(int(dts[4]))
-                data['<VOL_BUY_REAL>'].append(int(dts[5]))
-                data['<VOL_BUY_LEGAL>'].append(int(dts[6]))
-                data['<VOL_SELL_REAL>'].append(int(dts[7]))
-                data['<VOL_SELL_LEGAL>'].append(int(dts[8]))
-                data['<VAL_BUY_REAL>'].append(int(dts[9]))
-                data['<VAL_BUY_LEGAL>'].append(int(dts[10]))
-                data['<VAL_SELL_REAL>'].append(int(dts[11]))
-                data['<VAL_SELL_LEGAL>'].append(int(dts[12]))
+                data['<N_BUY_RETAIL>'].append(int(dts[1]))
+                data['<N_BUY_INSTITUTIONAL>'].append(int(dts[2]))
+                data['<N_SELL_RETAIL>'].append(int(dts[3]))
+                data['<N_SELL_INSTITUTIONAL>'].append(int(dts[4]))
+                data['<VOL_BUY_RETAIL>'].append(int(dts[5]))
+                data['<VOL_BUY_INSTITUTIONAL>'].append(int(dts[6]))
+                data['<VOL_SELL_RETAIL>'].append(int(dts[7]))
+                data['<VOL_SELL_INSTITUTIONAL>'].append(int(dts[8]))
+                data['<VAL_BUY_RETAIL>'].append(int(dts[9]))
+                data['<VAL_BUY_INSTITUTIONAL>'].append(int(dts[10]))
+                data['<VAL_SELL_RETAIL>'].append(int(dts[11]))
+                data['<VAL_SELL_INSTITUTIONAL>'].append(int(dts[12]))
                 data['<PER>'].append('D')
 
             df = pd.DataFrame(data, columns=data.keys(), index=pd.DatetimeIndex(data["<DTYYYYMMDD>"]))
@@ -483,20 +569,25 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
             else:
                 df.index.rename("Date_base", inplace=True)
                 df.drop(["<TICKER>", "<PER>"], axis=1, inplace=True)
-                df.rename(columns={"<N_BUY_REAL>": "N_buy_real", "<N_BUY_LEGAL>": "N_buy_legal",
-                                   "<N_SELL_REAL>": "N_sell_real", "<N_SELL_LEGAL>": "N_sell_legal",
-                                   "<VOL_BUY_REAL>": "Vol_buy_real", "<VOL_BUY_LEGAL>": "Vol_buy_legal",
-                                   "<VOL_SELL_REAL>": "Vol_sell_real", "<VOL_SELL_LEGAL>": "Vol_sell_legal",
-                                   "<VAL_BUY_REAL>": "Val_buy_real", "<VAL_BUY_LEGAL>": "Val_buy_legal",
-                                   "<VAL_SELL_REAL>": "Val_sell_real", "<VAL_SELL_LEGAL>": "Val_sell_legal"},
+                df.rename(columns={"<N_BUY_RETAIL>": "N_buy_retail", "<N_BUY_INSTITUTIONAL>": "N_buy_institutional",
+                                   "<N_SELL_RETAIL>": "N_sell_retail", "<N_SELL_INSTITUTIONAL>": "N_sell_institutional",
+                                   "<VOL_BUY_RETAIL>": "Vol_buy_retail",
+                                   "<VOL_BUY_INSTITUTIONAL>": "Vol_buy_institutional",
+                                   "<VOL_SELL_RETAIL>": "Vol_sell_retail",
+                                   "<VOL_SELL_INSTITUTIONAL>": "Vol_sell_institutional",
+                                   "<VAL_BUY_RETAIL>": "Val_buy_retail",
+                                   "<VAL_BUY_INSTITUTIONAL>": "Val_buy_institutional",
+                                   "<VAL_SELL_RETAIL>": "Val_sell_retail",
+                                   "<VAL_SELL_INSTITUTIONAL>": "Val_sell_institutional"},
                           inplace=True)
 
-                df['Per_capita_buy_real'] = round(df['Val_buy_real'] / df['N_buy_real'])
-                df['Per_capita_sell_real'] = round(df['Val_sell_real'] / df['N_sell_real'])
-                df['Per_capita_buy_legal'] = round(df['Val_buy_legal'] / df['N_buy_legal'])
-                df['Per_capita_sell_legal'] = round(df['Val_sell_legal'] / df['N_sell_legal'])
-                df['Power_real'] = round(df['Per_capita_buy_real'] / df['Per_capita_sell_real'], 3)
-                df['Power_legal'] = round(df['Per_capita_buy_legal'] / df['Per_capita_sell_legal'], 3)
+                df['Per_capita_buy_retail'] = round(df['Val_buy_retail'] / df['N_buy_retail'])
+                df['Per_capita_sell_retail'] = round(df['Val_sell_retail'] / df['N_sell_retail'])
+                df['Per_capita_buy_institutional'] = round(df['Val_buy_institutional'] / df['N_buy_institutional'])
+                df['Per_capita_sell_institutional'] = round(df['Val_sell_institutional'] / df['N_sell_institutional'])
+                df['Power_retail'] = round(df['Per_capita_buy_retail'] / df['Per_capita_sell_retail'], 3)
+                df['Power_institutional'] = round(
+                    df['Per_capita_buy_institutional'] / df['Per_capita_sell_institutional'], 3)
 
                 df["Date"] = df.index
                 df["J-Date"] = df["Date"]
@@ -522,9 +613,11 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
                     print("please select date_format between 'jalali', 'gregorian ', 'both' ")
                     return None
                 if moutput_type == "standard":
-                    df = df.loc[:, ["N_buy_real", "N_buy_legal", "N_sell_real", "N_sell_legal", "Vol_buy_real",
-                                    "Vol_buy_legal", "Vol_sell_real", "Vol_sell_legal", "Val_buy_real", "Val_buy_legal",
-                                    "Val_sell_real", "Val_sell_legal", ]]
+                    df = df.loc[:, ["N_buy_retail", "N_buy_institutional", "N_sell_retail", "N_sell_institutional",
+                                    "Vol_buy_retail",
+                                    "Vol_buy_institutional", "Vol_sell_retail", "Vol_sell_institutional",
+                                    "Val_buy_retail", "Val_buy_institutional",
+                                    "Val_sell_retail", "Val_sell_institutional", ]]
                 elif moutput_type == "complete":
                     pass
                 else:
@@ -538,9 +631,9 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
     if stock == "":
         stock = "شتران"
         if progress:
-            print("1/1: Getting historical real/legal of {}".format(stock))
+            print("1/1: Getting historical retail/institutional of {}".format(stock))
         stock = characters.ar_to_fa(stock).strip("\u200c").strip()
-        df = _get_stock_RL(stock_name=stock, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
+        df = _get_stock_RI(stock_name=stock, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                            moutput_type=output_type, mdate_format=date_format)
         if progress and df is not None:
             print("1/1: Completed!")
@@ -552,9 +645,9 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
     else:
         if isinstance(stock, str):
             if progress:
-                print("1/1: Getting historical real/legal of {}".format(stock))
+                print("1/1: Getting historical retail/institutional of {}".format(stock))
             stock = characters.ar_to_fa(stock).strip("\u200c").strip()
-            df = _get_stock_RL(stock_name=stock, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
+            df = _get_stock_RI(stock_name=stock, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                                moutput_type=output_type, mdate_format=date_format)
             if progress and df is not None:
                 print("1/1: Completed!")
@@ -569,9 +662,9 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
             file_name_str = ''
             for stk in stock:
                 if progress:
-                    print("{}/{}: Getting historical real/legal of {}".format(n, len(stock), stk))
+                    print("{}/{}: Getting historical retail/institutional of {}".format(n, len(stock), stk))
                 stk = characters.ar_to_fa(stk).strip("\u200c").strip()
-                df = _get_stock_RL(stock_name=stk, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
+                df = _get_stock_RI(stock_name=stk, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                                    moutput_type=output_type, mdate_format=date_format)
                 if df is not None:
                     file_name_str += "-" + stk
@@ -594,6 +687,13 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
                 return df
             else:
                 df = pd.concat(df_dict, axis=1)
+                multi_assets_columns = df.columns
+                reversed_multi_assets_columns = []
+                for column_index in multi_assets_columns:
+                    reversed_multi_assets_columns.append(column_index[::-1])
+                new_index = pd.MultiIndex.from_tuples(reversed_multi_assets_columns)
+                df.columns = new_index
+
                 if multi_stock_drop:
                     df.dropna(inplace=True)
                 if save_to_file and df is not None:
@@ -601,3 +701,10 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
                         print("Saving to file: {}-حقیقی-حقوقی.csv".format(file_name_str[1:]))
                     df.to_csv(file_name_str[1:] + "-حقیقی-حقوقی.csv", encoding="utf-8-sig")
                 return df
+
+
+def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_type="standard", date_format="jalali",
+             progress=True, save_to_file=False, multi_stock_drop=True):
+    return stock_RI(stock=stock, start=start, end=end, values=values, tse_format=tse_format, output_type=output_type,
+                    date_format=date_format, progress=progress, save_to_file=save_to_file,
+                    multi_stock_drop=multi_stock_drop)

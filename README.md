@@ -87,6 +87,51 @@ att.stock(
     progress=True,
     save_to_file=False,
     multi_stock_drop=True,
-    adjust_volume=False
+    adjust_volume=False,
+    return_type=None,
     )
+```
+### دریافت سابقه حقیقی-حقوقی:
+
+</div>
+
+```python
+att.stock_RI(
+    stock='شتران',
+    start='1402-01-01',
+    end='1402-07-01',
+    values=0,
+    tse_format=False,
+    output_type="standard",
+    date_format="jalali",
+    progress=True,
+    save_to_file=False,
+    multi_stock_drop=True,
+    )
+```
+
+### دریافت لیست کلیه دارایی های موجود در بورس تهران:
+
+</div>
+
+```python
+att.stocklist(
+    bourse=True,
+    farabourse=True,
+    payeh=True,
+    haghe_taqadom=False,
+    sandogh=False,
+    output="dataframe",
+    progress=True
+    )
+```
+
+### دریافت اطلاعات مربوط به یک دارایی:
+
+</div>
+
+```python
+att.stockdetail(
+    stock='شتران'
+)
 ```
