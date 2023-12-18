@@ -162,37 +162,6 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                     df.drop("Weekday_No", axis=1, inplace=True)
                     df['Ticker'] = stock_name
 
-                    # return type
-                    if return_type is not None:
-                        if isinstance(return_type, str):
-                            if return_type == 'simple':
-                                df['returns'] = df['Adj Close'].pct_change()
-                            elif return_type == 'log':
-                                df['returns'] = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
-                            elif return_type == 'both':
-                                df['simple_returns'] = df['Adj Close'].pct_change()
-                                df['log_returns'] = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
-                            else:
-                                print("return_type should select between 'simple', 'log' or ''both")
-                                return None
-                        elif isinstance(return_type, list) and len(return_type) == 3:
-                            # ['simple', 'Close', 2]
-                            if return_type[0] == 'simple':
-                                df['returns'] = df[return_type[1]].pct_change(return_type[2])
-                            elif return_type[0] == 'log':
-                                df['returns'] = np.log(df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                            elif return_type[0] == 'both':
-                                df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
-                                df['log_returns'] = np.log(
-                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                            else:
-                                print("return_type[0] should select between 'simple', 'log' or ''both")
-                                return None
-                        else:
-                            print(
-                                "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
-                            return None
-
                     if mauto_adjust:
                         df.drop("Adj Close", axis=1, inplace=True)
                         if mdate_format == "jalali":
@@ -232,6 +201,40 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                         else:
                             print("output_type should select between 'standard' or 'complete'")
                             return None
+
+                    # return type
+                    if return_type is not None:
+                        price = 'Close' if mauto_adjust else 'Adj Close'
+                        if isinstance(return_type, str):
+                            if return_type == 'simple':
+                                df['returns'] = df[price].pct_change()
+                            elif return_type == 'log':
+                                df['returns'] = np.log(df[price] / df[price].shift(1))
+                            elif return_type == 'both':
+                                df['simple_returns'] = df[price].pct_change()
+                                df['log_returns'] = np.log(df[price] / df[price].shift(1))
+                            else:
+                                print("return_type should select between 'simple', 'log' or ''both")
+                                return None
+                        elif isinstance(return_type, list) and len(return_type) == 3:
+                            # ['simple', 'Close', 2]
+                            if return_type[0] == 'simple':
+                                df['returns'] = df[return_type[1]].pct_change(return_type[2])
+                            elif return_type[0] == 'log':
+                                df['returns'] = np.log(
+                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
+                            elif return_type[0] == 'both':
+                                df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
+                                df['log_returns'] = np.log(
+                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
+                            else:
+                                print("return_type[0] should select between 'simple', 'log' or ''both")
+                                return None
+                        else:
+                            print(
+                                "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
+                            return None
+
                     return df
             except:
                 print("Connection Error!")
@@ -345,14 +348,15 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
 
                     # return type
                     if return_type is not None:
+                        price = 'Close' if mauto_adjust else 'Adj Close'
                         if isinstance(return_type, str):
                             if return_type == 'simple':
-                                df['returns'] = df['Adj Close'].pct_change()
+                                df['returns'] = df[price].pct_change()
                             elif return_type == 'log':
-                                df['returns'] = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
+                                df['returns'] = np.log(df[price] / df[price].shift(1))
                             elif return_type == 'both':
-                                df['simple_returns'] = df['Adj Close'].pct_change()
-                                df['log_returns'] = np.log(df['Adj Close'] / df['Adj Close'].shift(1))
+                                df['simple_returns'] = df[price].pct_change()
+                                df['log_returns'] = np.log(df[price] / df[price].shift(1))
                             else:
                                 print("return_type should select between 'simple', 'log' or ''both")
                                 return None
@@ -375,7 +379,6 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                                 "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
                             return None
                     return df
-
             except:
                 print("Stock Not Found!")
                 return None

@@ -1,7 +1,9 @@
+import datetime
+
 from persiantools.jdatetime import JalaliDate
 
 
-def date_fix(start: str=None, end: str=None) -> (str, str):
+def date_fix(start: str=None, end: str=None, start_delta: [None, str]=None) -> (str, str):
     new_start = None
     new_end = None
     if start is not None and not '-' in start:

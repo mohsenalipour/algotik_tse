@@ -21,6 +21,6 @@ from algotik_tse import stock, stock_RL, stock_RI
 # df = stock_RL(stock="مدیریت", start="1400-01-01", end="1401-01-01")
 # df = stock_RL(stock="مدیریت", values=100, start="1401-01-01", end="1402-01-01")
 
-# df = stock(stock='شتران', output_type='complete', return_type=['both', 'Close', 23])
+df = stock(stock='شتران', output_type='complete', auto_adjust=False, return_type='simple')
 
 print(df.to_string())

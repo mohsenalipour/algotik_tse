@@ -1,8 +1,8 @@
 """
-version 0.2.7
+version 0.2.9
 Main module code by @Python4finance
 New version code by Mohsen Alipour alipour@algotik.ir
-last Edit: 2023-10-01
+last Edit: 2023-12-18
 * Base: old.tsetmc.com
 
 Sample:
@@ -25,7 +25,7 @@ you can get historical retail/institutional data, in customized way with set the
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '0.2.8'
+__version__ = '0.2.9'
 
 # import algotik_tse.settings
 # from algotik_tse.core.search import search_stock
