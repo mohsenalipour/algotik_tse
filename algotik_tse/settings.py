@@ -1,5 +1,9 @@
+import datetime
+
+
 class Settings:
     def __init__(self):
+        self.today = datetime.date.today().isoformat()
         self.headers = {
             'User-Agent': 'Mozilla/108.0.1 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
         self.en_weekdays = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday",
@@ -20,3 +24,5 @@ class Settings:
         self.url_price_history = 'http://old.tsetmc.com/tsev2/data/Export-txt.aspx?t=i&a=1&b=0&i={}'
         self.url_index_history = 'http://old.tsetmc.com/tsev2/chart/data/IndexFinancial.aspx?i={}&t=ph'
         self.url_client_type = 'http://old.tsetmc.com/tsev2/data/clienttype.aspx?i={}'
+        self.url_last_share_holders = 'https://cdn.tsetmc.com/api/Shareholder/GetInstrumentShareHolderLast/{}'
+        self.url_share_holders_history = 'https://cdn.tsetmc.com/api/Shareholder/{}/{}'

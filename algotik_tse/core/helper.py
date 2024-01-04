@@ -1,5 +1,4 @@
 import datetime
-
 from persiantools.jdatetime import JalaliDate
 
 

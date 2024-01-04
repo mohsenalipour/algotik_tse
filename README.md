@@ -53,6 +53,18 @@ pip install algotik-tse
 
 <div dir="rtl" align="right">
 
+# آپدیت ماژول
+
+</div>
+
+```python
+pip install algotik-tse --upgrade
+```
+
+<p>&nbsp;</p>
+
+<div dir="rtl" align="right">
+
 # فراخوانی ماژول
 
 </div>
@@ -91,6 +103,8 @@ att.stock(
     return_type=None,
     )
 ```
+<div dir="rtl">
+
 ### دریافت سابقه حقیقی-حقوقی:
 
 </div>
@@ -109,6 +123,7 @@ att.stock_RI(
     multi_stock_drop=True,
     )
 ```
+<div dir="rtl">
 
 ### دریافت لیست کلیه دارایی های موجود در بورس تهران:
 
@@ -125,6 +140,7 @@ att.stocklist(
     progress=True
     )
 ```
+<div dir="rtl">
 
 ### دریافت اطلاعات مربوط به یک دارایی:
 
@@ -133,5 +149,19 @@ att.stocklist(
 ```python
 att.stockdetail(
     stock='شتران'
+)
+```
+
+<div dir="rtl">
+
+### دریافت لیست سهامداران عمده سهم:
+
+</div>
+
+```python
+att.shareholders(
+    stock='شتران',
+    date=None,
+    shh_id=False
 )
 ```
