@@ -38,7 +38,6 @@ def shareholders(stock="", date=None, shh_id=False):
                 share_holders_df = pd.DataFrame(share_holders)
                 share_holders_columns = ['shareHolderName', 'numberOfShares', 'perOfShares', 'change', 'changeAmount',
                                          'dEven']
-                print(share_holders_df.to_string())
                 if shh_id:
                     share_holders_columns.append(share_holder_id_name)
                 share_holders_df = share_holders_df.loc[:, share_holders_columns]

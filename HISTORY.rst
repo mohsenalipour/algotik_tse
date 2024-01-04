@@ -14,7 +14,7 @@ History
 * fix bug in returns
 
 
-0.3.1 (2024-01-05)
+0.3.2 (2024-01-05)
 ------------------
 * Third release on PyPI.
 * Add Shareholders
