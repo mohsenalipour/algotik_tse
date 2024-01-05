@@ -1,5 +1,5 @@
 """
-version 0.3.2
+version 0.3.3
 Main module code by @Python4finance
 New version code by Mohsen Alipour alipour@algotik.ir
 last Edit: 2024-01-05
@@ -28,7 +28,7 @@ you can get last and historical shareholders data for stock, in customized way w
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 from algotik_tse.core.stock_detail import stockdetail
 from algotik_tse.core.stock_list import stocklist

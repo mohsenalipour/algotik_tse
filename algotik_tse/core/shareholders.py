@@ -48,6 +48,11 @@ def shareholders(stock="", date=None, shh_id=False):
                 if shh_id:
                     share_holders_df.rename(columns={share_holder_id_name: 'share_holder_id'}, inplace=True)
                 if date is not None:
+                    share_holders_df['first_row'] = share_holders_df.groupby('share_holder_name')['number_of_shares'].transform('first')
+                    share_holders_df['last_row'] = share_holders_df.groupby('share_holder_name')[
+                        'number_of_shares'].transform('last')
+                    share_holders_df['change_amount'] = share_holders_df['first_row'] - share_holders_df['last_row']
+                    share_holders_df = share_holders_df.drop(['first_row', 'last_row'], axis=1)
                     share_holders_df = share_holders_df.loc[share_holders_df['date'] == share_holders_df['date'].max(),
                                        :]
                 else:

@@ -18,3 +18,8 @@ History
 ------------------
 * Third release on PyPI.
 * Add Shareholders
+
+0.3.3 (2024-01-05)
+------------------
+* Third release on PyPI.
+* Fix bug in change_amount of shareholders

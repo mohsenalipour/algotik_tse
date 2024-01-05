@@ -23,5 +23,6 @@ from algotik_tse import shareholders
 # df = stock_RL(stock="مدیریت", values=100, start="1401-01-01", end="1402-01-01")
 
 # df = stock(stock='شتران', output_type='complete', auto_adjust=False, return_type='simple')
-# df = shareholders(stock='شبندر', date='14021011', shh_id=True)
+# df = shareholders(stock='داتام', date='14021006', shh_id=True)
 # print(df.to_string())
+# df.to_excel('test.xlsx')
