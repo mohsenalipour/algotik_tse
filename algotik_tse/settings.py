@@ -26,3 +26,4 @@ class Settings:
         self.url_client_type = 'http://old.tsetmc.com/tsev2/data/clienttype.aspx?i={}'
         self.url_last_share_holders = 'https://cdn.tsetmc.com/api/Shareholder/GetInstrumentShareHolderLast/{}'
         self.url_share_holders_history = 'https://cdn.tsetmc.com/api/Shareholder/{}/{}'
+        self.url_capital_increase = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentShareChange/{}'

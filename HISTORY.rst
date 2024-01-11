@@ -23,3 +23,8 @@ History
 ------------------
 * Third release on PyPI.
 * Fix bug in change_amount of shareholders
+
+0.3.4 (2024-01-11)
+------------------
+* Fourth release on PyPI.
+* Add Capital Increase in simple method

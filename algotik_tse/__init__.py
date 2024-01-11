@@ -24,13 +24,16 @@ you can get historical retail/institutional data, in customized way with set the
 
 att.shareholders(stock="شبندر", date="14020812", shh_id=False)
 you can get last and historical shareholders data for stock, in customized way with set the function parameters!
+
+att.stock_capital_increase(stock='شبندر')
+you can get every capital increase in selected asset.
 """
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 
 from algotik_tse.core.stock_detail import stockdetail
 from algotik_tse.core.stock_list import stocklist
-from algotik_tse.core.stock import stock, stock_RI, stock_RL
+from algotik_tse.core.stock import stock, stock_RI, stock_RL, stock_capital_increase
 from algotik_tse.core.shareholders import shareholders

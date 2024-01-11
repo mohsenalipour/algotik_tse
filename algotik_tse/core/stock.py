@@ -711,3 +711,37 @@ def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_
     return stock_RI(stock=stock, start=start, end=end, values=values, tse_format=tse_format, output_type=output_type,
                     date_format=date_format, progress=progress, save_to_file=save_to_file,
                     multi_stock_drop=multi_stock_drop)
+
+
+# stock capital increase version 1
+def stock_capital_increase(stock=''):
+    """
+    Get every capital increase in selected asset.
+    :param stock:   stock name in persian, or a list of stock in
+                                persian (['شتران', 'آریا'])
+                    Default value is 'شتران'.
+    :return: pandas DataFrame or None
+    """
+    web_id = search_stock(search_txt=stock)
+    _capital_increase_url = settings.url_capital_increase
+    if web_id[-5:] == "index":
+        print("Indexes don't have capital increase!")
+        return None
+    else:
+        try:
+            response = requests.get(url=_capital_increase_url.format(web_id), headers=settings.headers)
+            if response.status_code == 200:
+                data_dict = response.json()['instrumentShareChange']
+                df = pd.DataFrame(data_dict)
+                df.rename(
+                    columns={'dEven': 'date', 'numberOfShareNew': 'new_shares_amount', 'numberOfShareOld': 'old_shares_amount'},
+                    inplace=True)
+                df['date'] = df['date'].astype(str)
+                df.set_index('date', inplace=True)
+                df.index = pd.to_datetime(df.index)
+                df = df.loc[:, ['old_shares_amount', 'new_shares_amount']]
+                return df
+            else:
+                return None
+        except:
+            return None

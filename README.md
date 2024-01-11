@@ -165,3 +165,15 @@ att.shareholders(
     shh_id=False
 )
 ```
+
+<div dir="rtl">
+
+### دریافت لیست افزایش سرمایه های سهم:
+
+</div>
+
+```python
+att.stock_capital_increase(
+    stock='شتران',
+)
+```
