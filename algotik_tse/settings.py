@@ -27,3 +27,4 @@ class Settings:
         self.url_last_share_holders = 'https://cdn.tsetmc.com/api/Shareholder/GetInstrumentShareHolderLast/{}'
         self.url_share_holders_history = 'https://cdn.tsetmc.com/api/Shareholder/{}/{}'
         self.url_capital_increase = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentShareChange/{}'
+        self.url_instrument_information = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentInfo/{}'

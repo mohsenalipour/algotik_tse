@@ -28,3 +28,8 @@ History
 ------------------
 * Fourth release on PyPI.
 * Add Capital Increase in simple method
+
+0.3.5 (2024-01-18)
+------------------
+* Fifth release on PyPI.
+* Add stock information in beta phase.
