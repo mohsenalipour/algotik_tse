@@ -38,3 +38,8 @@ History
 ------------------
 * sixth release on PyPI.
 * Add stock statistics in beta phase.
+
+0.3.7 (2024-02-04)
+------------------
+* seventh release on PyPI.
+* Add currencies and coins in beta phase.

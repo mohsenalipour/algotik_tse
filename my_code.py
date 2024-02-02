@@ -1,7 +1,8 @@
-from algotik_tse import stockdetail, stock_information
+from algotik_tse import stockdetail, stock_information, stock_statistics
 from algotik_tse import stocklist
 from algotik_tse import stock, stock_RL, stock_RI, stock_capital_increase
 from algotik_tse import shareholders
+from algotik_tse import currency_coin
 
 # stock -> shakhes
 # df = stock(stock="شاخص کل", values=100)
@@ -26,8 +27,15 @@ from algotik_tse import shareholders
 # df = shareholders(stock='داتام', date='14021006', shh_id=True)
 
 # df = stock_capital_increase(stock='شپنا')
+#
+# df = stock_information(stock='خودرو')
+# print(df.to_string())
 
-df = stock_information(stock='خودرو')
+# df = stock_statistics('نوری')
+# print(df.to_string())
+
+df = currency_coin(['ربع سکه', 'euro'], return_type='log', date_format='gregorian')
 print(df.to_string())
+
 
 # df.to_excel('test.xlsx')

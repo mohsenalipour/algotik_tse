@@ -29,3 +29,37 @@ class Settings:
         self.url_capital_increase = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentShareChange/{}'
         self.url_instrument_information = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentInfo/{}'
         self.url_instrument_statistics = 'https://cdn.tsetmc.com/api/MarketData/GetInstrumentStatistic/{}'
+        self.url_currency_from_tgju = 'https://api.tgju.org/v1/market/indicator/summary-table-data/{}'
+        self.url_sekke_from_tgju = 'https://api.tgju.org/v1/market/indicator/summary-table-data/sekee'
+
+        self.currency_web_word = {'dollar': {'web_word': 'price_dollar_rl', 'persian_word': 'دلار'},
+                                  'euro': {'web_word': 'price_eur', 'persian_word': 'یورو'},
+                                  'yuan': {'web_word': 'price_cny', 'persian_word': 'یوان'},
+                                  'dirham': {'web_word': 'price_aed', 'persian_word': 'درهم امارات'},
+                                  'pound': {'web_word': 'price_gbp', 'persian_word': 'پوند انگلیس'},
+                                  'lira': {'web_word': 'price_try', 'persian_word': 'لیر ترکیه'},
+                                  'dollar-sana-sell': {'web_word': 'sana_sell_usd', 'persian_word': 'دلار سنا-فروش'},
+                                  'dollar-sarafimelli-buy': {'web_word': 'sana_real_buy_usd', 'persian_word': 'دلار صرافی ملی-خرید'},
+                                  'seke': {'web_word': 'sekee', 'persian_word': 'سکه امامی'},
+                                  'seke-bahar-azadi': {'web_word': 'sekeb', 'persian_word': 'سکه بهار آزادی'},
+                                  'nim-seke': {'web_word': 'nim', 'persian_word': 'نیم سکه'},
+                                  'rob-seke': {'web_word': 'rob', 'persian_word': 'ربع سکه'},
+                                  'seke-gerami': {'web_word': 'gerami', 'persian_word': 'سکه گرمی'},
+                                  }
+        self.currency_persian = {'دلار': 'dollar',
+                                 'یورو': 'euro',
+                                 'یوان': 'yuan',
+                                 'درهم': 'dirham',
+                                 'پوند': 'pound',
+                                 'لیر': 'lira',
+                                 'دلار سنا': 'dollar-sana-sell',
+                                 'دلار صرافی ملی': 'dollar-sarafimelli-buy',
+                                 'سکه': 'seke',
+                                 'سکه بهار آزادی': 'seke-bahar-azadi',
+                                 'نیم سکه': 'nim-seke',
+                                 'ربع سکه': 'rob-seke',
+                                 'سکه گرمی': 'seke-gerami',
+                                 }
+
+
+settings = Settings()

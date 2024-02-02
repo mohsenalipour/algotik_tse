@@ -1,8 +1,8 @@
 """
-version 0.3.6
+version 0.3.7
 Main module code by @Python4finance
 New version code by Mohsen Alipour alipour@algotik.ir
-last Edit: 2024-02-02
+last Edit: 2024-02-03
 * Base: old.tsetmc.com
 
 Sample:
@@ -33,13 +33,17 @@ you can get extra information about instrument and asset.
 
 att.stock_information(stock='شبندر')
 you can get statistics about instrument and asset.
+
+att.currency_coin(['ربع سکه', 'euro'])
+you cand get historical price of currencies and coins!
 """
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '0.3.6'
+__version__ = '0.3.7'
 
 from algotik_tse.core.stock_detail import stockdetail, stock_information, stock_statistics
 from algotik_tse.core.stock_list import stocklist
 from algotik_tse.core.stock import stock, stock_RI, stock_RL, stock_capital_increase
 from algotik_tse.core.shareholders import shareholders
+from algotik_tse.core.currency import currency_coin
