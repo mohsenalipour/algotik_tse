@@ -33,3 +33,8 @@ History
 ------------------
 * Fifth release on PyPI.
 * Add stock information in beta phase.
+
+0.3.6 (2024-02-02)
+------------------
+* sixth release on PyPI.
+* Add stock statistics in beta phase.

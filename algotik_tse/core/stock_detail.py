@@ -3,6 +3,7 @@ import json
 import requests
 import warnings
 import pandas as pd
+from persiantools import characters
 from algotik_tse.settings import Settings
 from algotik_tse.core.search import search_stock
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -63,6 +64,40 @@ def stock_information(stock):
             detail = requests.get(settings.url_instrument_information.format(web_id), headers=settings.headers)
             if detail.status_code == 200:
                 raw = __flatten_dict(detail.json()['instrumentInfo'])
+                df = pd.DataFrame([raw]).T
+                df.reset_index(inplace=True)
+                df.rename(columns={'index': 'key', 0: 'value'}, inplace=True)
+                df.set_index('key', inplace=True)
+                return df
+            else:
+                print("Connection Error!!!")
+                return None
+    else:
+        print("Stock Not Found, Please try again ...")
+        return None
+
+
+def stock_statistics(stock):
+    """
+        Get all stock statistics
+        :param stock: name of stock
+                      Default value is 'شتران'.
+
+        :return: pandas dataframe
+        """
+    web_id = search_stock(search_txt=stock)
+    if len(web_id) != 0:
+        if web_id[-5:] == "index":
+            print("This is an index, no statistics found!")
+            return None
+        else:
+            detail = requests.get(settings.url_instrument_statistics.format(web_id), headers=settings.headers)
+            if detail.status_code == 200:
+                js = detail.json()['instrumentStatistic']
+                statistics_dict = {
+                    characters.ar_to_fa(x['dataTypeDesc']): float(x['dataValue']) if '.' in x['dataValue'] else int(
+                        x['dataValue']) for x in js}
+                raw = __flatten_dict(statistics_dict)
                 df = pd.DataFrame([raw]).T
                 df.reset_index(inplace=True)
                 df.rename(columns={'index': 'key', 0: 'value'}, inplace=True)

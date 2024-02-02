@@ -28,3 +28,4 @@ class Settings:
         self.url_share_holders_history = 'https://cdn.tsetmc.com/api/Shareholder/{}/{}'
         self.url_capital_increase = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentShareChange/{}'
         self.url_instrument_information = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentInfo/{}'
+        self.url_instrument_statistics = 'https://cdn.tsetmc.com/api/MarketData/GetInstrumentStatistic/{}'
