@@ -39,7 +39,8 @@ class Settings:
                                   'pound': {'web_word': 'price_gbp', 'persian_word': 'پوند انگلیس'},
                                   'lira': {'web_word': 'price_try', 'persian_word': 'لیر ترکیه'},
                                   'dollar-sana-sell': {'web_word': 'sana_sell_usd', 'persian_word': 'دلار سنا-فروش'},
-                                  'dollar-sarafimelli-buy': {'web_word': 'sana_real_buy_usd', 'persian_word': 'دلار صرافی ملی-خرید'},
+                                  'dollar-sarafimelli-buy': {'web_word': 'sana_real_buy_usd',
+                                                             'persian_word': 'دلار صرافی ملی-خرید'},
                                   'seke': {'web_word': 'sekee', 'persian_word': 'سکه امامی'},
                                   'seke-bahar-azadi': {'web_word': 'sekeb', 'persian_word': 'سکه بهار آزادی'},
                                   'nim-seke': {'web_word': 'nim', 'persian_word': 'نیم سکه'},
@@ -60,6 +61,9 @@ class Settings:
                                  'ربع سکه': 'rob-seke',
                                  'سکه گرمی': 'seke-gerami',
                                  }
+        self.payeh_market_color_num = {'زرد': [0, 1], 'نارنجی': [1, 2], 'قرمز': [2, 4]}
+        self.payeh_market_color = ['بازار پايه زرد فرابورس', 'بازار پايه نارنجي فرابورس', 'بازار پایه قرمز فرابورس',
+                                   'بازار پايه قرمز فرابورس']
 
 
 settings = Settings()

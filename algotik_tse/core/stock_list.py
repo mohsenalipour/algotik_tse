@@ -9,8 +9,8 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 settings = Settings()
 
 
-def stocklist(bourse=True, farabourse=True, payeh=True, haghe_taqadom=False, sandogh=False, output="dataframe",
-              progress=True):
+def stocklist(bourse=True, farabourse=True, payeh=True, haghe_taqadom=False, sandogh=False, payeh_color=None,
+              output="dataframe", progress=True):
     """
     Get all symbols in bourse, farabourse, payeh, haghe_taqadom from tsetmc
     :param bourse:          if True you can get all bourse symbols in output.
@@ -23,6 +23,9 @@ def stocklist(bourse=True, farabourse=True, payeh=True, haghe_taqadom=False, san
                             Default value is False.
     :param sandogh:         if True you can get all sandogh symbols in output.
                             Default value is False.
+    :param payeh_color:     if None you can get all payeh market stocks. and you can enter payeh market color in string
+                            or list format.
+                            Default value is None.
     :param output:          you can choose output format between :
                                 dataftame(stock with detal) and
                                 list(stocks name only)
@@ -102,9 +105,24 @@ def stocklist(bourse=True, farabourse=True, payeh=True, haghe_taqadom=False, san
                 if farabourse:
                     allowed_markets.extend(['بازار اول فرابورس', 'شرکتهاي کوچک و متوسط فرابورس', 'بازار دوم فرابورس'])
                 if payeh:
-                    allowed_markets.extend(
-                        ['بازار پايه نارنجي فرابورس', 'بازار پایه قرمز فرابورس', 'بازار پايه زرد فرابورس',
-                         'بازار پايه قرمز فرابورس'])
+                    if isinstance(payeh_color, str):
+                        list_of_payeh_market = settings.payeh_market_color[
+                                               settings.payeh_market_color_num[payeh_color][0]:
+                                               settings.payeh_market_color_num[payeh_color][1]]
+                    elif isinstance(payeh_color, list):
+                        list_of_payeh_market = []
+                        for color in payeh_color:
+                            if color in settings.payeh_market_color_num.keys():
+                                list_of_payeh_market.extend(settings.payeh_market_color[
+                                                            settings.payeh_market_color_num[color][0]:
+                                                            settings.payeh_market_color_num[color][1]])
+                            else:
+                                print("{} is not in payeh market.".format(color))
+                                continue
+                    else:
+                        list_of_payeh_market = settings.payeh_market_color
+
+                    allowed_markets.extend(list_of_payeh_market)
 
                 df_filtered = df[(df['instrument_isin'].str.slice(stop=4).isin(allowed_pre_instrument_isin)) & (
                     ~df['industry_group'].isin(group_not_allowed)) & (df['instrument_isin'].str.slice(-1) == '1')]

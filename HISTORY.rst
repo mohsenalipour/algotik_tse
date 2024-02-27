@@ -43,3 +43,8 @@ History
 ------------------
 * seventh release on PyPI.
 * Add currencies and coins in beta phase.
+
+0.3.8 (2024-02-27)
+------------------
+* eighth release on PyPI.
+* Add payeh market color in stocklist.
