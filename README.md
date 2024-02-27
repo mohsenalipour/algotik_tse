@@ -136,6 +136,7 @@ att.stocklist(
     payeh=True,
     haghe_taqadom=False,
     sandogh=False,
+    payeh_color=None,
     output="dataframe",
     progress=True
     )
