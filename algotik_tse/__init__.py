@@ -1,8 +1,8 @@
 """
-version 0.3.8
+version 0.3.9
 Main module code by @Python4finance
 New version code by Mohsen Alipour alipour@algotik.ir
-last Edit: 2024-02-27
+last Edit: 2024-03-08
 * Base: old.tsetmc.com
 
 Sample:
@@ -42,7 +42,7 @@ you cand get historical price of currencies and coins!
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '0.3.8'
+__version__ = '0.3.9'
 
 from algotik_tse.core.stock_detail import stockdetail, stock_information, stock_statistics
 from algotik_tse.core.stock_list import stocklist

@@ -48,3 +48,8 @@ History
 ------------------
 * eighth release on PyPI.
 * Add payeh market color in stocklist.
+
+0.3.9 (2024-03-08)
+------------------
+* ninth release on PyPI.
+* bug fix in shareholders change_amount.

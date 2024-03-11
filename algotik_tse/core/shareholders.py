@@ -38,18 +38,18 @@ def shareholders(stock="", date=None, shh_id=False):
                 share_holders_df = pd.DataFrame(share_holders)
                 share_holders_columns = ['shareHolderName', 'numberOfShares', 'perOfShares', 'change', 'changeAmount',
                                          'dEven']
-                if shh_id:
-                    share_holders_columns.append(share_holder_id_name)
+
+                share_holders_columns.append(share_holder_id_name)
                 share_holders_df = share_holders_df.loc[:, share_holders_columns]
                 share_holders_df.rename(columns={'shareHolderName': 'share_holder_name',
                                                  'numberOfShares': 'number_of_shares',
                                                  'perOfShares': 'percentage_of_shares', 'change': 'change_state',
-                                                 'changeAmount': 'change_amount', 'dEven': 'date'}, inplace=True)
-                if shh_id:
-                    share_holders_df.rename(columns={share_holder_id_name: 'share_holder_id'}, inplace=True)
+                                                 'changeAmount': 'change_amount', 'dEven': 'date',
+                                                 share_holder_id_name: 'share_holder_id'}, inplace=True)
+
                 if date is not None:
-                    share_holders_df['first_row'] = share_holders_df.groupby('share_holder_name')['number_of_shares'].transform('first')
-                    share_holders_df['last_row'] = share_holders_df.groupby('share_holder_name')[
+                    share_holders_df['first_row'] = share_holders_df.groupby('share_holder_id')['number_of_shares'].transform('first')
+                    share_holders_df['last_row'] = share_holders_df.groupby('share_holder_id')[
                         'number_of_shares'].transform('last')
                     share_holders_df['change_amount'] = share_holders_df['first_row'] - share_holders_df['last_row']
                     share_holders_df = share_holders_df.drop(['first_row', 'last_row'], axis=1)
@@ -57,6 +57,8 @@ def shareholders(stock="", date=None, shh_id=False):
                                        :]
                 else:
                     share_holders_df['date'] = settings.today.replace('-', '')
+                if not shh_id:
+                    share_holders_df.drop(columns=['share_holder_id'], inplace=True)
                 return share_holders_df
         except:
             print("Connection Error!!!")
