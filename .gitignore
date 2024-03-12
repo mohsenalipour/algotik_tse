@@ -107,3 +107,6 @@ ENV/
 
 # my code
 my_code.py
+
+# pypirc
+.pypirc

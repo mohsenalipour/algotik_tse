@@ -53,3 +53,8 @@ History
 ------------------
 * ninth release on PyPI.
 * bug fix in shareholders change_amount.
+
+0.3.9 (2024-03-08)
+------------------
+* ninth release on PyPI.
+* bug fix in shareholders change_amount.

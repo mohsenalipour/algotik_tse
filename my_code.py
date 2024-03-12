@@ -37,7 +37,8 @@ from algotik_tse import currency_coin
 # df = currency_coin(['ربع سکه', 'euro'], return_type='log', date_format='gregorian')
 # print(df.to_string())
 
-df = stocklist(bourse=False, farabourse=False, payeh=True)
+# df = stocklist(bourse=False, farabourse=False, payeh=True)
+df = shareholders(stock='شصدف', date='14011103', shh_id=True)
 print(df.to_string())
 
 # df.to_excel('test.xlsx')
