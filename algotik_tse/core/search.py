@@ -6,6 +6,7 @@ settings = Settings()
 
 def search_stock(search_txt='شتران'):
     index_names = settings.index_names
+    industry_index = settings.industry_index
     headers = settings.headers
     stock_id = ''
     if search_txt in index_names:
@@ -35,6 +36,18 @@ def search_stock(search_txt='شتران'):
                       index_names[23]: 46342955726788357,
                       }
         return str(webid_dict[search_txt]) + "index"
+    elif search_txt in industry_index:
+        industry_dict = {
+            industry_index[0]: 32453344048876642,
+            industry_index[1]: 32453344048876642,
+            industry_index[2]: 70077233737515808,
+            industry_index[3]: 70077233737515808,
+            industry_index[4]: 20213770409093165,
+            industry_index[5]: 20213770409093165,
+            industry_index[6]: 33626672012415176,
+            industry_index[7]: 33626672012415176,
+        }
+        return str(industry_dict[search_txt]) + "industry"
     else:
         try:
             res_search = requests.get(settings.url_search.format(search_txt), headers=headers).json()[

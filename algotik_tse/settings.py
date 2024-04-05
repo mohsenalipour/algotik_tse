@@ -16,7 +16,9 @@ class Settings:
                             "شاخص شناور آزاد", "شاخص شناور", "شاخص بازار اول", "شاخص بازار دوم", "شاخص صنعت",
                             "شاخص 30 شرکت بزرگ", "شاخص سی شرکت بزرگ", "شاخص ۳۰ شرکت بزرگ",
                             "شاخص ۵۰ شرکت فعال", "شاخص پنجاه شرکت فعال", "شاخص 50 شرکت فعال",
-                            "شاخص 50 شرکت فعال بورس", "شاخص پنجاه شرکت فعال بورس", "شاخص ۵۰ شرکت فعال بورس"]
+                            "شاخص 50 شرکت فعال بورس", "شاخص پنجاه شرکت فعال بورس", "شاخص ۵۰ شرکت فعال بورس",]
+        self.industry_index = ["شاخص صنعت فلزات اساسی", "شاخص فلزات اساسی", "شاخص صنعت سیمان", "شاخص سیمان",
+                               "شاخص صنعت خودرو", "شاخص خودرو", "شاخص صنعت شیمیایی", "شاخص شیمیایی"]
 
         self.url_search = 'http://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/{}'
         self.url_detail = 'http://old.tsetmc.com/Loader.aspx?Partree=15131M&i={}'
@@ -39,6 +41,9 @@ class Settings:
                                   'pound': {'web_word': 'price_gbp', 'persian_word': 'پوند انگلیس'},
                                   'lira': {'web_word': 'price_try', 'persian_word': 'لیر ترکیه'},
                                   'dollar-sana-sell': {'web_word': 'sana_sell_usd', 'persian_word': 'دلار سنا-فروش'},
+                                  'dollar-sana-buy': {'web_word': 'sana_buy_usd', 'persian_word': 'دلار سنا-خرید'},
+                                  'dollar-nima-buy': {'web_word': 'nima_buy_usd', 'persian_word': 'دلار نیما-خرید'},
+                                  'dollar-nima-sell': {'web_word': 'nima_sell_usd', 'persian_word': 'دلار نیما-فروش'},
                                   'dollar-sarafimelli-buy': {'web_word': 'sana_real_buy_usd',
                                                              'persian_word': 'دلار صرافی ملی-خرید'},
                                   'seke': {'web_word': 'sekee', 'persian_word': 'سکه امامی'},
@@ -53,7 +58,10 @@ class Settings:
                                  'درهم': 'dirham',
                                  'پوند': 'pound',
                                  'لیر': 'lira',
-                                 'دلار سنا': 'dollar-sana-sell',
+                                 'دلار سنا فروش': 'dollar-sana-sell',
+                                 'دلار سنا خرید': 'dollar-sana-buy',
+                                 'دلار نیما خرید': 'dollar-nima-buy',
+                                 'دلار نیما فروش': 'dollar-nima-sell',
                                  'دلار صرافی ملی': 'dollar-sarafimelli-buy',
                                  'سکه': 'seke',
                                  'سکه بهار آزادی': 'seke-bahar-azadi',

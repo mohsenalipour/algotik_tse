@@ -58,3 +58,8 @@ History
 ------------------
 * ninth release on PyPI.
 * bug fix in shareholders change_amount.
+
+0.3.10 (2024-03-15)
+------------------
+* tenth release on PyPI.
+* bug fix in currency, dollar sana and nima buy and sell.
