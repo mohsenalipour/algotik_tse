@@ -63,3 +63,8 @@ History
 ------------------
 * tenth release on PyPI.
 * bug fix in currency, dollar sana and nima buy and sell.
+
+0.3.11 (2024-03-15)
+------------------
+* eleventh release on PyPI.
+* add a few index of industry to package.

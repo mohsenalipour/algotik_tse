@@ -46,6 +46,20 @@ def search_stock(search_txt='شتران'):
             industry_index[5]: 20213770409093165,
             industry_index[6]: 33626672012415176,
             industry_index[7]: 33626672012415176,
+            industry_index[8]: 24733701189547084,
+            industry_index[9]: 24733701189547084,
+            industry_index[10]: 25163959460949732,
+            industry_index[11]: 25163959460949732,
+            industry_index[12]: 59288237226302898,
+            industry_index[13]: 59288237226302898,
+            industry_index[14]: 57616105980228781,
+            industry_index[15]: 57616105980228781,
+            industry_index[16]: 25766336681098389,
+            industry_index[17]: 25766336681098389,
+            industry_index[18]: 62691002126902464,
+            industry_index[19]: 62691002126902464,
+            industry_index[20]: 69306841376553334,
+            industry_index[21]: 69306841376553334,
         }
         return str(industry_dict[search_txt]) + "industry"
     else:

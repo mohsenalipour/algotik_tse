@@ -94,13 +94,132 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
         web_id = search_stock(search_txt=stock_name)
         _price_base_url = settings.url_price_history
         isIndex = False
+        isIndustry = False
         if web_id[-5:] == "index":
             web_id = web_id[:-5]
             _price_base_url = settings.url_index_history
             isIndex = True
+        elif web_id[-8:] == "industry":
+            web_id = web_id[:-8]
+            _price_base_url = settings.url_industry_history
+            isIndustry = True
         new_start, new_end = date_fix(start=mstart, end=mend)
         if new_start is not None or new_end is not None:
             mvalues = 0
+        if isIndustry:
+            industry_name = {'32453344048876642': 'Basic Metals',
+                             '70077233737515808': 'Cement',
+                             '20213770409093165': 'Automobile',
+                             '33626672012415176': 'Chemical',
+                             '24733701189547084': 'Communication',
+                             '25163959460949732': 'Other Financial',
+                             '59288237226302898': 'Textiles',
+                             '57616105980228781': 'Tile and Ceramic',
+                             '25766336681098389': 'Publishing',
+                             '62691002126902464': 'Mines',
+                             '69306841376553334': 'Leather Products'}
+            try:
+                data = {"<TICKER>": [], "<DTYYYYMMDD>": [], "<HIGH>": [], "<LOW>": [], "<CLOSE>": [], "<PER>": []}
+                fopen = requests.get(_price_base_url.format(web_id), headers=settings.headers).json()
+                day_dict = {value['dEven']: {'Close': value['xNivInuClMresIbs'], 'High': value['xNivInuPhMresIbs'],
+                                             'Low': value['xNivInuPbMresIbs']} for value in fopen['indexB2']}
+                for key, value in day_dict.items():
+                    data["<TICKER>"].append(industry_name[web_id])
+                    date_str = str(key)
+                    date_iso = date_str[:4] + "-" + date_str[4:6] + "-" + date_str[6:]
+                    data["<DTYYYYMMDD>"].append(datetime.date.fromisoformat(date_iso))
+                    data["<HIGH>"].append(value['High'])
+                    data["<LOW>"].append(value['Low'])
+                    data["<CLOSE>"].append(value['Close'])
+                    data["<PER>"].append('D')
+
+                df = pd.DataFrame(data, columns=data.keys(), index=pd.DatetimeIndex(data["<DTYYYYMMDD>"]))
+                df.index.names = ['<DTYYYYMMDD>']
+                df.drop(columns=['<DTYYYYMMDD>'], inplace=True)
+
+                if mvalues is not None or mstart is not None or mend is not None:
+                    if mvalues != 0:
+                        df = df.iloc[-mvalues:]
+                    else:
+                        if new_end is None:
+                            df = df.loc[new_start:]
+                        else:
+                            df = df.loc[new_start:new_end]
+
+                if mtse_format:
+                    return df
+                else:
+                    df.index.rename("Date_base", inplace=True)
+                    df.drop(["<TICKER>", "<PER>"], axis=1, inplace=True)
+                    df.rename(columns={"<HIGH>": "High", "<LOW>": "Low", "<CLOSE>": "Close"}, inplace=True)
+                    df = df.loc[:, ["High", "Low", "Close",]]
+                    df["Date"] = df.index
+                    df["J-Date"] = df["Date"]
+                    df['J-Date'] = df['J-Date'].apply(lambda x: x.strftime("%Y-%m-%d"))
+                    df['J-Date'] = df['J-Date'].apply(
+                        lambda x: JalaliDate.to_jalali(datetime.datetime.fromisoformat(x)).isoformat())
+                    df["Weekday_No"] = df["Date"].dt.weekday
+                    df["Weekday"] = df["Weekday_No"].apply(lambda x: settings.en_weekdays[x])
+                    df["Weekday_fa"] = df["Weekday_No"].apply(lambda x: settings.fa_weekdays[x])
+                    df.drop("Weekday_No", axis=1, inplace=True)
+                    df['Ticker'] = stock_name
+
+                    if mdate_format == "jalali":
+                        df.set_index("J-Date", drop=True, inplace=True)
+                        df.drop(columns=["Date", "Weekday"], inplace=True)
+                    elif mdate_format == "gregorian":
+                        df.set_index("Date", drop=True, inplace=True)
+                        df.drop(columns=["J-Date", "Weekday_fa"], inplace=True)
+                    elif mdate_format == "both":
+                        df.set_index("Date", drop=True, inplace=True)
+                    else:
+                        print("please select date_format between 'jalali', 'gregorian', 'both' ")
+                        return None
+                    if moutput_type == "standard":
+                        df = df.loc[:, ['High', 'Low', 'Close',]]
+                    elif moutput_type == "complete":
+                        pass
+                    else:
+                        print("output_type should select between 'standard' or 'complete'")
+                        return None
+
+                    # return type
+                    if return_type is not None:
+                        price = 'Close'
+                        if isinstance(return_type, str):
+                            if return_type == 'simple':
+                                df['returns'] = df[price].pct_change()
+                            elif return_type == 'log':
+                                df['returns'] = np.log(df[price] / df[price].shift(1))
+                            elif return_type == 'both':
+                                df['simple_returns'] = df[price].pct_change()
+                                df['log_returns'] = np.log(df[price] / df[price].shift(1))
+                            else:
+                                print("return_type should select between 'simple', 'log' or ''both")
+                                return None
+                        elif isinstance(return_type, list) and len(return_type) == 3:
+                            # ['simple', 'Close', 2]
+                            if return_type[0] == 'simple':
+                                df['returns'] = df[return_type[1]].pct_change(return_type[2])
+                            elif return_type[0] == 'log':
+                                df['returns'] = np.log(
+                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
+                            elif return_type[0] == 'both':
+                                df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
+                                df['log_returns'] = np.log(
+                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
+                            else:
+                                print("return_type[0] should select between 'simple', 'log' or ''both")
+                                return None
+                        else:
+                            print(
+                                "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
+                            return None
+
+                    return df
+            except:
+                print("Connection Error!")
+                return None
         if isIndex:
             index_names = {'32097828799138957': 'Overall Index',
                            '67130298613737946': 'Total Equal Weighted Index',
@@ -517,7 +636,7 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
     def _get_stock_RI(stock_name, mstart, mend, mvalues, mtse_format, moutput_type, mdate_format):
         web_id = search_stock(search_txt=stock_name)
         client_type_base_url = settings.url_client_type
-        if web_id[-5:] == "index":
+        if web_id[-5:] == "index" or web_id[-8:] == "industry":
             print("{} is an index, Please enter a valid stock name!".format(stock_name))
             return None
         new_start, new_end = date_fix(start=mstart, end=mend)

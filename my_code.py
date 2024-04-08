@@ -41,7 +41,9 @@ from algotik_tse import currency_coin
 # df = shareholders(stock='شصدف', date='14011103', shh_id=True)
 # df = currency_coin(currency_coin_name='دلار')
 
-df = stock("شاخص صنعت فلزات اساسی")
+# df = stock("شاخص صنعت فلزات اساسی", )
+
+df = stocklist()
 print(df.to_string())
 
 # df.to_excel('test.xlsx')

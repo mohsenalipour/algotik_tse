@@ -18,13 +18,19 @@ class Settings:
                             "شاخص ۵۰ شرکت فعال", "شاخص پنجاه شرکت فعال", "شاخص 50 شرکت فعال",
                             "شاخص 50 شرکت فعال بورس", "شاخص پنجاه شرکت فعال بورس", "شاخص ۵۰ شرکت فعال بورس",]
         self.industry_index = ["شاخص صنعت فلزات اساسی", "شاخص فلزات اساسی", "شاخص صنعت سیمان", "شاخص سیمان",
-                               "شاخص صنعت خودرو", "شاخص خودرو", "شاخص صنعت شیمیایی", "شاخص شیمیایی"]
+                               "شاخص صنعت خودرو", "شاخص خودرو", "شاخص صنعت شیمیایی", "شاخص شیمیایی",
+                               "شاخص صنعت وسایل ارتباطی", "شاخص وسایل ارتباطی", "شاخص صنعت سایر مالی", "شاخص سایر مالی",
+                               "شاخص صنعت منسوجات", "شاخص منسوجات", "شاخص صنعت کاشی و سرامیک", 'شاخص کاشی و سرامیک',
+                               "شاخص صنعت انتشار و چاپ", "شاخص انتشار و چاپ", "شاخص صنعت معادن", "شاخص معادن",
+                               "شاخص صنعت محصولات چرمی", "شاخص محصولات چرمی"]
 
         self.url_search = 'http://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/{}'
         self.url_detail = 'http://old.tsetmc.com/Loader.aspx?Partree=15131M&i={}'
         self.url_stock_list = 'http://old.tsetmc.com/Loader.aspx?ParTree=151114'
         self.url_price_history = 'http://old.tsetmc.com/tsev2/data/Export-txt.aspx?t=i&a=1&b=0&i={}'
         self.url_index_history = 'http://old.tsetmc.com/tsev2/chart/data/IndexFinancial.aspx?i={}&t=ph'
+        self.url_industry_history = 'https://cdn.tsetmc.com/api/Index/GetIndexB2History/{}'
+        self.url_industry_intra = 'https://cdn.tsetmc.com/api/Index/GetIndexB1LastDay/{}'
         self.url_client_type = 'http://old.tsetmc.com/tsev2/data/clienttype.aspx?i={}'
         self.url_last_share_holders = 'https://cdn.tsetmc.com/api/Shareholder/GetInstrumentShareHolderLast/{}'
         self.url_share_holders_history = 'https://cdn.tsetmc.com/api/Shareholder/{}/{}'
