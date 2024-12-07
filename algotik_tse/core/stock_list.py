@@ -62,7 +62,7 @@ def stocklist(bourse=True, farabourse=True, payeh=True, haghe_taqadom=False, san
 
         try:
             req = requests.get(settings.url_stock_list)
-            df = pd.read_html(req.content, encoding='utf8', extract_links='body')[0]
+            df = pd.read_html(req.content, encoding='utf-8', extract_links='body')[0]
 
             df.rename(columns={'کد 12 رقمی نماد [Instrument ISIN]': 'instrument_isin',
                                'کد 4 رقمی شرکت [Company Code]': 'company_code',
