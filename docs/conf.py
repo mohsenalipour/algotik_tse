@@ -47,7 +47,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'algotik-tse'
-copyright = "2023, Mohsen Alipour"
+copyright = "2024, Mohsen Alipour"
 author = "Mohsen Alipour"
 
 # The version info for the project you're documenting, acts as replacement

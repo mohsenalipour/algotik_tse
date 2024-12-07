@@ -68,3 +68,8 @@ History
 ------------------
 * eleventh release on PyPI.
 * add a few index of industry to package.
+
+0.3.12 (2024-12-07)
+------------------
+* Twelfth release on PyPI.
+* fix stock list error.

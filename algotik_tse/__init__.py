@@ -42,7 +42,7 @@ you cand get historical price of currencies and coins!
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '0.3.11'
+__version__ = '0.3.12'
 
 from algotik_tse.core.stock_detail import stockdetail, stock_information, stock_statistics
 from algotik_tse.core.stock_list import stocklist

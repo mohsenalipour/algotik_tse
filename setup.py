@@ -42,6 +42,7 @@ setup(
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
     description="Get all data from TSETMC.com (Tehran Bourse).",
     install_requires=requirements,
@@ -55,6 +56,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/mohsenalipour/algotik_tse',
-    version='0.3.11',
+    version='0.3.12',
     zip_safe=False,
 )
