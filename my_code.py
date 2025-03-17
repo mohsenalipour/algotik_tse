@@ -43,7 +43,10 @@ from algotik_tse import currency_coin
 
 # df = stock("شاخص صنعت فلزات اساسی", )
 
-df = stocklist()
-print(df.to_string())
+# df = stocklist()
+# print(df.to_string())
 
 # df.to_excel('test.xlsx')
+
+df = stock(stock="شپنا")
+print(df.to_string())

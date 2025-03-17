@@ -24,7 +24,7 @@ class Settings:
                                "شاخص صنعت انتشار و چاپ", "شاخص انتشار و چاپ", "شاخص صنعت معادن", "شاخص معادن",
                                "شاخص صنعت محصولات چرمی", "شاخص محصولات چرمی"]
 
-        self.url_search = 'http://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/{}'
+        self.url_search = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/{}'
         self.url_detail = 'http://old.tsetmc.com/Loader.aspx?Partree=15131M&i={}'
         self.url_stock_list = 'http://old.tsetmc.com/Loader.aspx?ParTree=151114'
         self.url_price_history = 'http://old.tsetmc.com/tsev2/data/Export-txt.aspx?t=i&a=1&b=0&i={}'

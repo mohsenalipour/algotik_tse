@@ -1,5 +1,9 @@
 import requests
 from algotik_tse.settings import Settings
+import urllib3
+
+# هشدارهای مربوط به SSL غیرفعال می‌شود
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 settings = Settings()
 
@@ -64,7 +68,7 @@ def search_stock(search_txt='شتران'):
         return str(industry_dict[search_txt]) + "industry"
     else:
         try:
-            res_search = requests.get(settings.url_search.format(search_txt), headers=headers).json()[
+            res_search = requests.get(settings.url_search.format(search_txt), headers=headers, verify=False).json()[
                 'instrumentSearch']
 
             if len(res_search) > 0:
