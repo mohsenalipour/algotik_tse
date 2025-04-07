@@ -39,6 +39,7 @@ class Settings:
         self.url_instrument_statistics = 'https://cdn.tsetmc.com/api/MarketData/GetInstrumentStatistic/{}'
         self.url_currency_from_tgju = 'https://api.tgju.org/v1/market/indicator/summary-table-data/{}'
         self.url_sekke_from_tgju = 'https://api.tgju.org/v1/market/indicator/summary-table-data/sekee'
+        self.url_market_data_live = 'https://old.tsetmc.com/tsev2/data/MarketWatchPlus.aspx'
 
         self.currency_web_word = {'dollar': {'web_word': 'price_dollar_rl', 'persian_word': 'دلار'},
                                   'euro': {'web_word': 'price_eur', 'persian_word': 'یورو'},

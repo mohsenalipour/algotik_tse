@@ -5,6 +5,7 @@ import pandas as pd
 from persiantools import characters
 from algotik_tse.settings import Settings
 from algotik_tse.core.search import search_stock
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 settings = Settings()
@@ -24,7 +25,7 @@ def stockdetail(stock):
             print("This is an index, no information found!")
             return None
         else:
-            detail = requests.get(settings.url_detail.format(web_id), headers=settings.headers)
+            detail = requests.get(settings.url_detail.format(web_id), headers=settings.headers, verify=False)
             if detail.status_code == 200:
                 df = pd.read_html(detail.content, encoding='utf8')[0]
                 df.rename(columns={0: 'key', 1: 'value'}, inplace=True)
@@ -40,10 +41,10 @@ def stockdetail(stock):
 
 
 def __flatten_dict(dd, separator='_', prefix=''):
-    return { prefix + separator + k if prefix else k : v
-             for kk, vv in dd.items()
-             for k, v in __flatten_dict(vv, separator, kk).items()
-             } if isinstance(dd, dict) else { prefix : dd }
+    return {prefix + separator + k if prefix else k: v
+            for kk, vv in dd.items()
+            for k, v in __flatten_dict(vv, separator, kk).items()
+            } if isinstance(dd, dict) else {prefix: dd}
 
 
 def stock_information(stock):
@@ -60,7 +61,8 @@ def stock_information(stock):
             print("This is an index, no information found!")
             return None
         else:
-            detail = requests.get(settings.url_instrument_information.format(web_id), headers=settings.headers)
+            detail = requests.get(settings.url_instrument_information.format(web_id), headers=settings.headers,
+                                  verify=False)
             if detail.status_code == 200:
                 raw = __flatten_dict(detail.json()['instrumentInfo'])
                 df = pd.DataFrame([raw]).T
@@ -90,7 +92,8 @@ def stock_statistics(stock):
             print("This is an index, no statistics found!")
             return None
         else:
-            detail = requests.get(settings.url_instrument_statistics.format(web_id), headers=settings.headers)
+            detail = requests.get(settings.url_instrument_statistics.format(web_id), headers=settings.headers,
+                                  verify=False)
             if detail.status_code == 200:
                 js = detail.json()['instrumentStatistic']
                 statistics_dict = {

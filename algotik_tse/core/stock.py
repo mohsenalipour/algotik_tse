@@ -848,7 +848,7 @@ def stock_capital_increase(stock=''):
         return None
     else:
         try:
-            response = requests.get(url=_capital_increase_url.format(web_id), headers=settings.headers)
+            response = requests.get(url=_capital_increase_url.format(web_id), headers=settings.headers, verify=False)
             if response.status_code == 200:
                 data_dict = response.json()['instrumentShareChange']
                 df = pd.DataFrame(data_dict)

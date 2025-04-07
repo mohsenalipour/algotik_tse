@@ -28,7 +28,7 @@ from algotik_tse import currency_coin
 
 # df = stock_capital_increase(stock='شپنا')
 #
-# df = stock_information(stock='خودرو')
+df = stock_information(stock='ضهرم2016')
 # print(df.to_string())
 
 # df = stock_statistics('نوری')
@@ -48,5 +48,5 @@ from algotik_tse import currency_coin
 
 # df.to_excel('test.xlsx')
 
-df = stock(stock="شپنا")
+# df = stock(stock="شپنا")
 print(df.to_string())
