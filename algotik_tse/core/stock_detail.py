@@ -1,33 +1,36 @@
 import json
 import requests
 import warnings
+from io import StringIO
 import pandas as pd
 from persiantools import characters
-from algotik_tse.settings import Settings
+from algotik_tse.settings import settings
 from algotik_tse.core.search import search_stock
+from algotik_tse.http_client import safe_get
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-settings = Settings()
 
-
-def stockdetail(stock):
+def stockdetail(symbol="", **kwargs):
     """
     Get all symbol detail
-    :param stock: name of stock
+    :param symbol: symbol name in Persian
                   Default value is 'شتران'.
 
     :return: pandas dataframe
     """
-    web_id = search_stock(search_txt=stock)
-    if len(web_id) != 0:
+    # Backward compatibility: accept deprecated 'stock' keyword
+    if not symbol and 'stock' in kwargs:
+        symbol = kwargs.pop('stock')
+    web_id = search_stock(search_txt=symbol)
+    if web_id is not None and len(web_id) != 0:
         if web_id[-5:] == "index":
             print("This is an index, no information found!")
             return None
         else:
-            detail = requests.get(settings.url_detail.format(web_id), headers=settings.headers, verify=False)
+            detail = safe_get(settings.url_detail.format(web_id))
             if detail.status_code == 200:
-                df = pd.read_html(detail.content, encoding='utf8')[0]
+                df = pd.read_html(StringIO(detail.text))[0]
                 df.rename(columns={0: 'key', 1: 'value'}, inplace=True)
                 df.set_index('key', drop=True, inplace=True)
                 df.loc['id'] = str(web_id)
@@ -47,22 +50,24 @@ def __flatten_dict(dd, separator='_', prefix=''):
             } if isinstance(dd, dict) else {prefix: dd}
 
 
-def stock_information(stock):
+def stock_information(symbol="", **kwargs):
     """
     Get all stock information
-    :param stock: name of stock
+    :param symbol: symbol name in Persian
                   Default value is 'شتران'.
 
     :return: pandas dataframe
     """
-    web_id = search_stock(search_txt=stock)
-    if len(web_id) != 0:
+    # Backward compatibility: accept deprecated 'stock' keyword
+    if not symbol and 'stock' in kwargs:
+        symbol = kwargs.pop('stock')
+    web_id = search_stock(search_txt=symbol)
+    if web_id is not None and len(web_id) != 0:
         if web_id[-5:] == "index":
             print("This is an index, no information found!")
             return None
         else:
-            detail = requests.get(settings.url_instrument_information.format(web_id), headers=settings.headers,
-                                  verify=False)
+            detail = safe_get(settings.url_instrument_information.format(web_id))
             if detail.status_code == 200:
                 raw = __flatten_dict(detail.json()['instrumentInfo'])
                 df = pd.DataFrame([raw]).T
@@ -78,22 +83,24 @@ def stock_information(stock):
         return None
 
 
-def stock_statistics(stock):
+def stock_statistics(symbol="", **kwargs):
     """
         Get all stock statistics
-        :param stock: name of stock
+        :param symbol: symbol name in Persian
                       Default value is 'شتران'.
 
         :return: pandas dataframe
         """
-    web_id = search_stock(search_txt=stock)
-    if len(web_id) != 0:
+    # Backward compatibility: accept deprecated 'stock' keyword
+    if not symbol and 'stock' in kwargs:
+        symbol = kwargs.pop('stock')
+    web_id = search_stock(search_txt=symbol)
+    if web_id is not None and len(web_id) != 0:
         if web_id[-5:] == "index":
             print("This is an index, no statistics found!")
             return None
         else:
-            detail = requests.get(settings.url_instrument_statistics.format(web_id), headers=settings.headers,
-                                  verify=False)
+            detail = safe_get(settings.url_instrument_statistics.format(web_id))
             if detail.status_code == 200:
                 js = detail.json()['instrumentStatistic']
                 statistics_dict = {

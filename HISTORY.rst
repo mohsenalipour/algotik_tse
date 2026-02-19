@@ -2,6 +2,20 @@
 History
 =======
 
+1.0.0 (2025-07-12)
+------------------
+* **Major release** — Production/Stable.
+* New centralized HTTP client with retry, timeout, and rate-limiting support.
+* Added configurable ``settings`` object (``ssl_verify``, ``timeout``, ``max_retries``, ``retry_backoff_factor``, ``rate_limit_delay``).
+* Custom exception hierarchy (``AlgotikTSEError``, ``ConnectionError``, ``StockNotFoundError``, ``InvalidParameterError``, ``DataParsingError``, ``RateLimitError``).
+* Replaced all bare ``except:`` blocks with specific exception handling.
+* Fixed ``None`` check bugs in ``stockdetail``, ``stock_information``, ``stock_statistics``, ``shareholders``.
+* Eliminated ~200 lines of duplicated code via shared helper functions (``add_date_columns``, ``apply_date_format``, ``apply_return_type``, ``filter_by_date_or_values``).
+* Settings singleton — no more redundant ``Settings()`` instantiation per call.
+* Comprehensive professional README with full API reference.
+* Added ``numpy`` to install requirements.
+* Updated classifiers to ``Development Status :: 5 - Production/Stable``.
+
 0.2.8 (2023-12-17)
 ------------------
 

@@ -1,11 +1,6 @@
 import requests
-from algotik_tse.settings import Settings
-import urllib3
-
-# هشدارهای مربوط به SSL غیرفعال می‌شود
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-settings = Settings()
+from algotik_tse.settings import settings
+from algotik_tse.http_client import safe_get
 
 
 def search_stock(search_txt='شتران'):
@@ -68,13 +63,17 @@ def search_stock(search_txt='شتران'):
         return str(industry_dict[search_txt]) + "industry"
     else:
         try:
-            res_search = requests.get(settings.url_search.format(search_txt), headers=headers, verify=False).json()[
+            res_search = safe_get(settings.url_search.format(search_txt)).json()[
                 'instrumentSearch']
 
             if len(res_search) > 0:
                 stock_id = res_search[0]['insCode']
             else:
                 return None
-        except:
+        except requests.exceptions.RequestException:
             print("Connection Error!")
+            return None
+        except (ValueError, KeyError, IndexError, TypeError) as e:
+            print("Search Error: {}".format(e))
+            return None
         return stock_id

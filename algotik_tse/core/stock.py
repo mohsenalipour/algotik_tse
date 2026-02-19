@@ -7,21 +7,20 @@ import pandas as pd
 from persiantools import characters
 from persiantools.jdatetime import JalaliDate
 
-from algotik_tse.settings import Settings
+from algotik_tse.settings import settings
 from algotik_tse.core.search import search_stock
-from algotik_tse.core.helper import date_fix
+from algotik_tse.core.helper import date_fix, add_date_columns, apply_date_format, apply_return_type, filter_by_date_or_values
+from algotik_tse.http_client import safe_get
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-settings = Settings()
 
-
-def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjust=True, output_type="standard",
-          date_format="jalali", progress=True, save_to_file=False, multi_stock_drop=True, adjust_volume=False,
-          return_type=None):
+def stock(symbol="", start=None, end=None, limit=0, raw=False, auto_adjust=True, output_type="standard",
+          date_format="jalali", progress=True, save_to_file=False, dropna=True, adjust_volume=False,
+          return_type=None, ascending=True, save_path=None, **kwargs):
     """
     Get symbol or symbols price history from tsetmc
-    :param stock:           stock name in persian, or a list of stock in
+    :param symbol:           symbol name in persian, or a list of symbol in
                                 persian (['شتران', 'آریا'])
                             Default value is 'شتران'.
     :param start:           you can choose strat date (from) to get historical price.
@@ -43,7 +42,7 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                             Default value is False.
                             if tse_format=True, ignore auto_adjust, output_type,
                                 date_format, adjust_volume!
-    :param auto_adjust:     if True, adjust all OHLC price, with stock splits and dps.
+    :param auto_adjust:     if True, adjust all OHLC price, with symbol splits and dps.
                             Default value is True.
                             if False, show 'Adj Close' column in output
     :param output_type:     you can choose between 'standard' and 'complete'.
@@ -66,7 +65,7 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                                 'Weekday', 'Weekday_fa' in complete mode in output.
     :param progress:        if True, show progress and report in console.
                             Default value is True.
-    :param save_to_file:    if True, save stock(s) historical data with customized
+    :param save_to_file:    if True, save symbol(s) historical data with customized
                                 columns in .csv format.
                             Default value is False.
                             the file name is 'stock.csv' in same root that
@@ -89,6 +88,24 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
 
     :return: pandas dataframe or None
     """
+    # Backward compatibility: accept deprecated keyword names
+    if not symbol and 'stock' in kwargs:
+        symbol = kwargs.pop('stock')
+    if 'values' in kwargs:
+        limit = kwargs.pop('values')
+    if 'tse_format' in kwargs:
+        raw = kwargs.pop('tse_format')
+    if 'multi_stock_drop' in kwargs:
+        dropna = kwargs.pop('multi_stock_drop')
+
+    # Support legacy output_type value 'complete' → 'full'
+    if output_type == 'complete':
+        output_type = 'full'
+
+    # Internal aliases for existing code
+    values = limit
+    tse_format = raw
+    multi_stock_drop = dropna
 
     def _get_stock(stock_name, mstart, mend, mvalues, mtse_format, mauto_adjust, moutput_type, mdate_format, ):
         web_id = search_stock(search_txt=stock_name)
@@ -120,7 +137,7 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                              '69306841376553334': 'Leather Products'}
             try:
                 data = {"<TICKER>": [], "<DTYYYYMMDD>": [], "<HIGH>": [], "<LOW>": [], "<CLOSE>": [], "<PER>": []}
-                fopen = requests.get(_price_base_url.format(web_id), headers=settings.headers).json()
+                fopen = safe_get(_price_base_url.format(web_id)).json()
                 day_dict = {value['dEven']: {'Close': value['xNivInuClMresIbs'], 'High': value['xNivInuPhMresIbs'],
                                              'Low': value['xNivInuPbMresIbs']} for value in fopen['indexB2']}
                 for key, value in day_dict.items():
@@ -138,13 +155,7 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                 df.drop(columns=['<DTYYYYMMDD>'], inplace=True)
 
                 if mvalues is not None or mstart is not None or mend is not None:
-                    if mvalues != 0:
-                        df = df.iloc[-mvalues:]
-                    else:
-                        if new_end is None:
-                            df = df.loc[new_start:]
-                        else:
-                            df = df.loc[new_start:new_end]
+                    df = filter_by_date_or_values(df, mvalues, new_start, new_end)
 
                 if mtse_format:
                     return df
@@ -153,72 +164,29 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                     df.drop(["<TICKER>", "<PER>"], axis=1, inplace=True)
                     df.rename(columns={"<HIGH>": "High", "<LOW>": "Low", "<CLOSE>": "Close"}, inplace=True)
                     df = df.loc[:, ["High", "Low", "Close",]]
-                    df["Date"] = df.index
-                    df["J-Date"] = df["Date"]
-                    df['J-Date'] = df['J-Date'].apply(lambda x: x.strftime("%Y-%m-%d"))
-                    df['J-Date'] = df['J-Date'].apply(
-                        lambda x: JalaliDate.to_jalali(datetime.datetime.fromisoformat(x)).isoformat())
-                    df["Weekday_No"] = df["Date"].dt.weekday
-                    df["Weekday"] = df["Weekday_No"].apply(lambda x: settings.en_weekdays[x])
-                    df["Weekday_fa"] = df["Weekday_No"].apply(lambda x: settings.fa_weekdays[x])
-                    df.drop("Weekday_No", axis=1, inplace=True)
-                    df['Ticker'] = stock_name
+                    df = add_date_columns(df, stock_name)
 
-                    if mdate_format == "jalali":
-                        df.set_index("J-Date", drop=True, inplace=True)
-                        df.drop(columns=["Date", "Weekday"], inplace=True)
-                    elif mdate_format == "gregorian":
-                        df.set_index("Date", drop=True, inplace=True)
-                        df.drop(columns=["J-Date", "Weekday_fa"], inplace=True)
-                    elif mdate_format == "both":
-                        df.set_index("Date", drop=True, inplace=True)
-                    else:
-                        print("please select date_format between 'jalali', 'gregorian', 'both' ")
+                    df = apply_date_format(df, mdate_format)
+                    if df is None:
                         return None
                     if moutput_type == "standard":
                         df = df.loc[:, ['High', 'Low', 'Close',]]
-                    elif moutput_type == "complete":
+                    elif moutput_type == "full":
                         pass
                     else:
-                        print("output_type should select between 'standard' or 'complete'")
+                        print("output_type should select between 'standard' or 'full'")
                         return None
 
-                    # return type
-                    if return_type is not None:
-                        price = 'Close'
-                        if isinstance(return_type, str):
-                            if return_type == 'simple':
-                                df['returns'] = df[price].pct_change()
-                            elif return_type == 'log':
-                                df['returns'] = np.log(df[price] / df[price].shift(1))
-                            elif return_type == 'both':
-                                df['simple_returns'] = df[price].pct_change()
-                                df['log_returns'] = np.log(df[price] / df[price].shift(1))
-                            else:
-                                print("return_type should select between 'simple', 'log' or ''both")
-                                return None
-                        elif isinstance(return_type, list) and len(return_type) == 3:
-                            # ['simple', 'Close', 2]
-                            if return_type[0] == 'simple':
-                                df['returns'] = df[return_type[1]].pct_change(return_type[2])
-                            elif return_type[0] == 'log':
-                                df['returns'] = np.log(
-                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                            elif return_type[0] == 'both':
-                                df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
-                                df['log_returns'] = np.log(
-                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                            else:
-                                print("return_type[0] should select between 'simple', 'log' or ''both")
-                                return None
-                        else:
-                            print(
-                                "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
-                            return None
+                    df = apply_return_type(df, return_type, default_price='Close')
+                    if df is None:
+                        return None
 
                     return df
-            except:
+            except requests.exceptions.RequestException:
                 print("Connection Error!")
+                return None
+            except Exception as e:
+                print("Error processing industry data: {}".format(e))
                 return None
         if isIndex:
             index_names = {'32097828799138957': 'Overall Index',
@@ -234,7 +202,7 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
             try:
                 data = {"<TICKER>": [], "<DTYYYYMMDD>": [], "<FIRST>": [], "<HIGH>": [], "<LOW>": [], "<CLOSE>": [],
                         "<VOL>": [], "<PER>": [], "<OPEN>": [], "<LAST>": []}
-                fopen = requests.get(_price_base_url.format(web_id), headers=settings.headers).text.split(";")
+                fopen = safe_get(_price_base_url.format(web_id)).text.split(";")
                 for dt in fopen:
                     dts = dt.split(",")
                     data["<TICKER>"].append(index_names[web_id])
@@ -254,13 +222,7 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                 df.drop(columns=['<DTYYYYMMDD>'], inplace=True)
 
                 if mvalues is not None or mstart is not None or mend is not None:
-                    if mvalues != 0:
-                        df = df.iloc[-mvalues:]
-                    else:
-                        if new_end is None:
-                            df = df.loc[new_start:]
-                        else:
-                            df = df.loc[new_start:new_end]
+                    df = filter_by_date_or_values(df, mvalues, new_start, new_end)
 
                 if mtse_format:
                     return df
@@ -270,108 +232,51 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                     df.rename(columns={"<FIRST>": "Open", "<HIGH>": "High", "<LOW>": "Low", "<CLOSE>": "Adj Close",
                                        "<VOL>": "Volume", "<LAST>": "Close"}, inplace=True)
                     df = df.loc[:, ["Open", "High", "Low", "Close", "Adj Close", "Volume", ]]
-                    df["Date"] = df.index
-                    df["J-Date"] = df["Date"]
-                    df['J-Date'] = df['J-Date'].apply(lambda x: x.strftime("%Y-%m-%d"))
-                    df['J-Date'] = df['J-Date'].apply(
-                        lambda x: JalaliDate.to_jalali(datetime.datetime.fromisoformat(x)).isoformat())
-                    df["Weekday_No"] = df["Date"].dt.weekday
-                    df["Weekday"] = df["Weekday_No"].apply(lambda x: settings.en_weekdays[x])
-                    df["Weekday_fa"] = df["Weekday_No"].apply(lambda x: settings.fa_weekdays[x])
-                    df.drop("Weekday_No", axis=1, inplace=True)
-                    df['Ticker'] = stock_name
+                    df = add_date_columns(df, stock_name)
 
                     if mauto_adjust:
                         df.drop("Adj Close", axis=1, inplace=True)
-                        if mdate_format == "jalali":
-                            df.set_index("J-Date", drop=True, inplace=True)
-                            df.drop(columns=["Date", "Weekday"], inplace=True)
-                        elif mdate_format == "gregorian":
-                            df.set_index("Date", drop=True, inplace=True)
-                            df.drop(columns=["J-Date", "Weekday_fa"], inplace=True)
-                        elif mdate_format == "both":
-                            df.set_index("Date", drop=True, inplace=True)
-                        else:
-                            print("please select date_format between 'jalali', 'gregorian ', 'both' ")
+                        df = apply_date_format(df, mdate_format)
+                        if df is None:
                             return None
                         if moutput_type == "standard":
                             df = df.loc[:, ['Open', 'High', 'Low', 'Close', 'Volume']]
-                        elif moutput_type == "complete":
+                        elif moutput_type == "full":
                             pass
                         else:
-                            print("output_type should select between 'standard' or 'complete'")
+                            print("output_type should select between 'standard' or 'full'")
                             return None
                     else:
-                        if mdate_format == "jalali":
-                            df.set_index("J-Date", drop=True, inplace=True)
-                            df.drop(columns=["Date", "Weekday"], inplace=True)
-                        elif mdate_format == "gregorian":
-                            df.set_index("Date", drop=True, inplace=True)
-                            df.drop(columns=["J-Date", "Weekday_fa"], inplace=True)
-                        elif mdate_format == "both":
-                            df.set_index("Date", drop=True, inplace=True)
-                        else:
-                            print("please select date_format between 'jalali', 'gregorian', 'both' ")
+                        df = apply_date_format(df, mdate_format)
+                        if df is None:
                             return None
                         if moutput_type == "standard":
                             df = df.loc[:, ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
-                        elif moutput_type == "complete":
+                        elif moutput_type == "full":
                             pass
                         else:
-                            print("output_type should select between 'standard' or 'complete'")
+                            print("output_type should select between 'standard' or 'full'")
                             return None
 
-                    # return type
-                    if return_type is not None:
-                        price = 'Close' if mauto_adjust else 'Adj Close'
-                        if isinstance(return_type, str):
-                            if return_type == 'simple':
-                                df['returns'] = df[price].pct_change()
-                            elif return_type == 'log':
-                                df['returns'] = np.log(df[price] / df[price].shift(1))
-                            elif return_type == 'both':
-                                df['simple_returns'] = df[price].pct_change()
-                                df['log_returns'] = np.log(df[price] / df[price].shift(1))
-                            else:
-                                print("return_type should select between 'simple', 'log' or ''both")
-                                return None
-                        elif isinstance(return_type, list) and len(return_type) == 3:
-                            # ['simple', 'Close', 2]
-                            if return_type[0] == 'simple':
-                                df['returns'] = df[return_type[1]].pct_change(return_type[2])
-                            elif return_type[0] == 'log':
-                                df['returns'] = np.log(
-                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                            elif return_type[0] == 'both':
-                                df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
-                                df['log_returns'] = np.log(
-                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                            else:
-                                print("return_type[0] should select between 'simple', 'log' or ''both")
-                                return None
-                        else:
-                            print(
-                                "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
-                            return None
+                    price = 'Close' if mauto_adjust else 'Adj Close'
+                    df = apply_return_type(df, return_type, default_price=price)
+                    if df is None:
+                        return None
 
                     return df
-            except:
+            except requests.exceptions.RequestException:
                 print("Connection Error!")
+                return None
+            except Exception as e:
+                print("Error processing index data: {}".format(e))
                 return None
         else:
             try:
-                fopen = requests.get(_price_base_url.format(web_id), headers=settings.headers).content
+                fopen = safe_get(_price_base_url.format(web_id)).content
                 df = pd.read_csv(io.StringIO(fopen.decode("utf-8")), index_col="<DTYYYYMMDD>", parse_dates=True)
                 df = df[::-1]
                 if mvalues is not None or mstart is not None or mend is not None:
-                    if mvalues != 0:
-                        df = df.iloc[-mvalues:]
-                        pass
-                    else:
-                        if new_end is None:
-                            df = df.loc[new_start:]
-                        else:
-                            df = df.loc[new_start:new_end]
+                    df = filter_by_date_or_values(df, mvalues, new_start, new_end)
 
                 if mtse_format:
                     return df
@@ -400,16 +305,7 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                     df['Adj Final'] = (df['Final'] * df['Adj coef']).apply(lambda x: int(x))
                     df['Adj Volume'] = (df['Volume'] * df['Adj Vol coef']).apply(lambda x: int(x))
                     df.drop(columns=['coef', 'Adj coef', 'Adj Vol coef'], inplace=True)
-                    df["Date"] = df.index
-                    df["J-Date"] = df["Date"]
-                    df['J-Date'] = df['J-Date'].apply(lambda x: x.strftime("%Y-%m-%d"))
-                    df['J-Date'] = df['J-Date'].apply(
-                        lambda x: JalaliDate.to_jalali(datetime.datetime.fromisoformat(x)).isoformat())
-                    df["Weekday_No"] = df["Date"].dt.weekday
-                    df["Weekday"] = df["Weekday_No"].apply(lambda x: settings.en_weekdays[x])
-                    df["Weekday_fa"] = df["Weekday_No"].apply(lambda x: settings.fa_weekdays[x])
-                    df.drop("Weekday_No", axis=1, inplace=True)
-                    df['Ticker'] = stock_name
+                    df = add_date_columns(df, stock_name)
                     if mauto_adjust:
                         if adjust_volume:
                             df = df.loc[:,
@@ -420,23 +316,15 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                                             'No.', 'Value', 'Date', 'J-Date', 'Weekday', 'Weekday_fa', 'Ticker']]
                         df.rename(columns={'Adj Open': 'Open', 'Adj High': 'High', 'Adj Low': 'Low',
                                            'Adj Close': 'Close', 'Adj Final': 'Final'}, inplace=True)
-                        if mdate_format == "jalali":
-                            df.set_index("J-Date", drop=True, inplace=True)
-                            df.drop(columns=["Date", "Weekday"], inplace=True)
-                        elif mdate_format == "gregorian":
-                            df.set_index("Date", drop=True, inplace=True)
-                            df.drop(columns=["J-Date", "Weekday_fa"], inplace=True)
-                        elif mdate_format == "both":
-                            df.set_index("Date", drop=True, inplace=True)
-                        else:
-                            print("please select date_format between 'jalali', 'gregorian ', 'both' ")
+                        df = apply_date_format(df, mdate_format)
+                        if df is None:
                             return None
                         if moutput_type == "standard":
                             df = df.loc[:, ['Open', 'High', 'Low', 'Close', 'Volume']]
-                        elif moutput_type == "complete":
+                        elif moutput_type == "full":
                             pass
                         else:
-                            print("output_type should select between 'standard' or 'complete'")
+                            print("output_type should select between 'standard' or 'full'")
                             return None
                     else:
                         if adjust_volume:
@@ -446,97 +334,81 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                         else:
                             df = df.loc[:, ['Open', 'High', 'Low', 'Close', 'Final', 'Adj Close', 'Volume',
                                             'No.', 'Value', 'Date', 'J-Date', 'Weekday', 'Weekday_fa', 'Ticker']]
-                        if mdate_format == "jalali":
-                            df.set_index("J-Date", drop=True, inplace=True)
-                            df.drop(columns=["Date", "Weekday"], inplace=True)
-                        elif mdate_format == "gregorian":
-                            df.set_index("Date", drop=True, inplace=True)
-                            df.drop(columns=["J-Date", "Weekday_fa"], inplace=True)
-                        elif mdate_format == "both":
-                            df.set_index("Date", drop=True, inplace=True)
-                        else:
-                            print("please select date_format between 'jalali', 'gregorian', 'both' ")
+                        df = apply_date_format(df, mdate_format)
+                        if df is None:
                             return None
                         if moutput_type == "standard":
                             df = df.loc[:, ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
-                        elif moutput_type == "complete":
+                        elif moutput_type == "full":
                             pass
                         else:
-                            print("output_type should select between 'standard' or 'complete'")
+                            print("output_type should select between 'standard' or 'full'")
                             return None
 
-                    # return type
-                    if return_type is not None:
-                        price = 'Close' if mauto_adjust else 'Adj Close'
-                        if isinstance(return_type, str):
-                            if return_type == 'simple':
-                                df['returns'] = df[price].pct_change()
-                            elif return_type == 'log':
-                                df['returns'] = np.log(df[price] / df[price].shift(1))
-                            elif return_type == 'both':
-                                df['simple_returns'] = df[price].pct_change()
-                                df['log_returns'] = np.log(df[price] / df[price].shift(1))
-                            else:
-                                print("return_type should select between 'simple', 'log' or ''both")
-                                return None
-                        elif isinstance(return_type, list) and len(return_type) == 3:
-                            # ['simple', 'Close', 2]
-                            if return_type[0] == 'simple':
-                                df['returns'] = df[return_type[1]].pct_change(return_type[2])
-                            elif return_type[0] == 'log':
-                                df['returns'] = np.log(
-                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                            elif return_type[0] == 'both':
-                                df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
-                                df['log_returns'] = np.log(
-                                    df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                            else:
-                                print("return_type[0] should select between 'simple', 'log' or ''both")
-                                return None
-                        else:
-                            print(
-                                "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
-                            return None
+                    price = 'Close' if mauto_adjust else 'Adj Close'
+                    df = apply_return_type(df, return_type, default_price=price)
+                    if df is None:
+                        return None
                     return df
-            except:
-                print("Stock Not Found!")
+            except requests.exceptions.RequestException:
+                print("Connection Error!")
+                return None
+            except Exception as e:
+                print("Stock Not Found or data error: {}".format(e))
                 return None
 
-    if stock == "":
-        stock = "شتران"
+    import os
+
+    def _save_csv(df, filename):
+        """Save DataFrame to CSV, respecting save_path."""
+        if save_path:
+            os.makedirs(save_path, exist_ok=True)
+            filepath = os.path.join(save_path, filename)
+        else:
+            filepath = filename
+        df.to_csv(filepath, encoding="utf-8-sig")
+
+    def _apply_ascending(df):
+        """Sort by index ascending/descending based on user preference."""
+        if df is not None and not ascending:
+            return df.iloc[::-1]
+        return df
+
+    if symbol == "":
+        symbol = "شتران"
         if progress:
-            print("1/1: Getting historical price of {}".format(stock))
-        stock = characters.ar_to_fa(stock).strip("\u200c").strip()
-        df = _get_stock(stock_name=stock, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
+            print("1/1: Getting historical price of {}".format(symbol))
+        symbol = characters.ar_to_fa(symbol).strip("\u200c").strip()
+        df = _get_stock(stock_name=symbol, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                         mauto_adjust=auto_adjust, moutput_type=output_type, mdate_format=date_format)
         if progress and df is not None:
             print("1/1: Completed!")
         if save_to_file and df is not None:
             if progress:
-                print("Saving to file: {}.csv".format(stock))
-            df.to_csv(stock + ".csv", encoding="utf-8-sig")
-        return df
+                print("Saving to file: {}.csv".format(symbol))
+            _save_csv(df, symbol + ".csv")
+        return _apply_ascending(df)
     else:
-        if isinstance(stock, str):
+        if isinstance(symbol, str):
             if progress:
-                print("1/1: Getting historical price of {}".format(stock))
-            stock = characters.ar_to_fa(stock).strip("\u200c").strip()
-            df = _get_stock(stock_name=stock, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
+                print("1/1: Getting historical price of {}".format(symbol))
+            symbol = characters.ar_to_fa(symbol).strip("\u200c").strip()
+            df = _get_stock(stock_name=symbol, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                             mauto_adjust=auto_adjust, moutput_type=output_type, mdate_format=date_format)
             if progress and df is not None:
                 print("1/1: Completed!")
             if save_to_file and df is not None:
                 if progress:
-                    print("Saving to file: {}.csv".format(stock))
-                df.to_csv(stock + ".csv", encoding="utf-8-sig")
-            return df
-        elif isinstance(stock, list):
+                    print("Saving to file: {}.csv".format(symbol))
+                _save_csv(df, symbol + ".csv")
+            return _apply_ascending(df)
+        elif isinstance(symbol, list):
             n = 1
             df_dict = {}
             file_name_str = ''
-            for stk in stock:
+            for stk in symbol:
                 if progress:
-                    print("{}/{}: Getting historical price of {}".format(n, len(stock), stk))
+                    print("{}/{}: Getting historical price of {}".format(n, len(symbol), stk))
                 stk = characters.ar_to_fa(stk).strip("\u200c").strip()
                 df = _get_stock(stock_name=stk, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                                 mauto_adjust=auto_adjust, moutput_type=output_type, mdate_format=date_format)
@@ -547,7 +419,7 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                     print("{} not Found!".format(stk))
                 n += 1
             if progress:
-                print('{}/{} Completed!'.format(len(stock), len(stock)))
+                print('{}/{} Completed!'.format(len(symbol), len(symbol)))
 
             if len(list(df_dict.keys())) == 0:
                 print('None of the entered stocks exist!!')
@@ -557,8 +429,8 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                 if save_to_file and df is not None:
                     if progress:
                         print("Saving to file: {}.csv".format(file_name_str[1:]))
-                    df.to_csv(file_name_str[1:] + ".csv", encoding="utf-8-sig")
-                return df
+                    _save_csv(df, file_name_str[1:] + ".csv")
+                return _apply_ascending(df)
             else:
                 df = pd.concat(df_dict, axis=1)
                 multi_assets_columns = df.columns
@@ -573,15 +445,15 @@ def stock(stock="", start=None, end=None, values=0, tse_format=False, auto_adjus
                 if save_to_file and df is not None:
                     if progress:
                         print("Saving to file: {}.csv".format(file_name_str[1:]))
-                    df.to_csv(file_name_str[1:] + ".csv", encoding="utf-8-sig")
-                return df
+                    _save_csv(df, file_name_str[1:] + ".csv")
+                return _apply_ascending(df)
 
 
-def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_type="standard", date_format="jalali",
-             progress=True, save_to_file=False, multi_stock_drop=True):
+def stock_RI(symbol="", start=None, end=None, limit=0, raw=False, output_type="standard", date_format="jalali",
+             progress=True, save_to_file=False, dropna=True, ascending=True, save_path=None, **kwargs):
     """
     Get symbol or symbols retail/institutional history from tsetmc
-    :param stock:           stock name in persian, or a list of stock in
+    :param symbol:           symbol name in persian, or a list of symbol in
                                 persian (['شتران', 'آریا'])
                             Default value is 'شتران'.
     :param start:           you can choose strat date (from) to get historical RETAIL/institutional.
@@ -621,7 +493,7 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
                                 'Weekday', 'Weekday_fa' in complete mode in output.
     :param progress:        if True, show progress and report in console.
                             Default value is True.
-    :param save_to_file:    if True, save stock(s) historical RETAIL/institutional data with customized
+    :param save_to_file:    if True, save symbol(s) historical RETAIL/institutional data with customized
                                 columns in .csv format.
                             Default value is False.
                             the file name is 'stock.csv' in same root that
@@ -632,7 +504,24 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
 
     :return: pandas dataframe or None
     """
+    # Backward compatibility: accept deprecated keyword names
+    if not symbol and 'stock' in kwargs:
+        symbol = kwargs.pop('stock')
+    if 'values' in kwargs:
+        limit = kwargs.pop('values')
+    if 'tse_format' in kwargs:
+        raw = kwargs.pop('tse_format')
+    if 'multi_stock_drop' in kwargs:
+        dropna = kwargs.pop('multi_stock_drop')
 
+    # Support legacy output_type value 'complete' → 'full'
+    if output_type == 'complete':
+        output_type = 'full'
+
+    # Internal aliases for existing code
+    values = limit
+    tse_format = raw
+    multi_stock_drop = dropna
     def _get_stock_RI(stock_name, mstart, mend, mvalues, mtse_format, moutput_type, mdate_format):
         web_id = search_stock(search_txt=stock_name)
         client_type_base_url = settings.url_client_type
@@ -643,7 +532,7 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
         if new_start is not None or new_end is not None:
             mvalues = 0
         try:
-            fopen = requests.get(client_type_base_url.format(web_id)).text.split(";")
+            fopen = safe_get(client_type_base_url.format(web_id)).text.split(";")
             data = {"<DTYYYYMMDD>": [], "<TICKER>": [], "<N_BUY_RETAIL>": [], "<N_BUY_INSTITUTIONAL>": [],
                     "<N_SELL_RETAIL>": [],
                     "<N_SELL_INSTITUTIONAL>": [],
@@ -678,13 +567,7 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
 
             df = df[::-1]
             if mvalues is not None or mstart is not None or mend is not None:
-                if mvalues != 0:
-                    df = df.iloc[-mvalues:]
-                else:
-                    if new_end is None:
-                        df = df.loc[new_start:]
-                    else:
-                        df = df.loc[new_start:new_end]
+                df = filter_by_date_or_values(df, mvalues, new_start, new_end)
 
             if mtse_format:
                 return df
@@ -711,28 +594,11 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
                 df['Power_institutional'] = round(
                     df['Per_capita_buy_institutional'] / df['Per_capita_sell_institutional'], 3)
 
-                df["Date"] = df.index
-                df["J-Date"] = df["Date"]
-                df['J-Date'] = df['J-Date'].apply(lambda x: x.strftime("%Y-%m-%d"))
-                df['J-Date'] = df['J-Date'].apply(
-                    lambda x: JalaliDate.to_jalali(datetime.datetime.fromisoformat(x)).isoformat())
-                df["Weekday_No"] = df["Date"].dt.weekday
-                df["Weekday"] = df["Weekday_No"].apply(lambda x: settings.en_weekdays[x])
-                df["Weekday_fa"] = df["Weekday_No"].apply(lambda x: settings.fa_weekdays[x])
-                df.drop("Weekday_No", axis=1, inplace=True)
-                df['Ticker'] = stock_name
+                df = add_date_columns(df, stock_name)
                 df.fillna(value=0, inplace=True)
 
-                if mdate_format == "jalali":
-                    df.set_index("J-Date", drop=True, inplace=True)
-                    df.drop(columns=["Date", "Weekday"], inplace=True)
-                elif mdate_format == "gregorian":
-                    df.set_index("Date", drop=True, inplace=True)
-                    df.drop(columns=["J-Date", "Weekday_fa"], inplace=True)
-                elif mdate_format == "both":
-                    df.set_index("Date", drop=True, inplace=True)
-                else:
-                    print("please select date_format between 'jalali', 'gregorian ', 'both' ")
+                df = apply_date_format(df, mdate_format)
+                if df is None:
                     return None
                 if moutput_type == "standard":
                     df = df.loc[:, ["N_buy_retail", "N_buy_institutional", "N_sell_retail", "N_sell_institutional",
@@ -740,51 +606,71 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
                                     "Vol_buy_institutional", "Vol_sell_retail", "Vol_sell_institutional",
                                     "Val_buy_retail", "Val_buy_institutional",
                                     "Val_sell_retail", "Val_sell_institutional", ]]
-                elif moutput_type == "complete":
+                elif moutput_type == "full":
                     pass
                 else:
-                    print("output_type should select between 'standard' or 'complete'")
+                    print("output_type should select between 'standard' or 'full'")
                     return None
                 return df
-        except:
-            print("Stock Not Found!")
+        except requests.exceptions.RequestException:
+            print("Connection Error!")
+            return None
+        except Exception as e:
+            print("Stock Not Found or data error: {}".format(e))
             return None
 
-    if stock == "":
-        stock = "شتران"
+    import os
+
+    def _save_csv_ri(df, filename):
+        """Save DataFrame to CSV, respecting save_path."""
+        if save_path:
+            os.makedirs(save_path, exist_ok=True)
+            filepath = os.path.join(save_path, filename)
+        else:
+            filepath = filename
+        df.to_csv(filepath, encoding="utf-8-sig")
+
+    def _apply_ascending_ri(df):
+        """Sort by index ascending/descending based on user preference."""
+        if df is not None and not ascending:
+            return df.iloc[::-1]
+        return df
+
+    if symbol == "":
+        symbol = "شتران"
         if progress:
-            print("1/1: Getting historical retail/institutional of {}".format(stock))
-        stock = characters.ar_to_fa(stock).strip("\u200c").strip()
-        df = _get_stock_RI(stock_name=stock, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
+            print("1/1: Getting historical retail/institutional of {}".format(symbol))
+        symbol = characters.ar_to_fa(symbol).strip("\u200c").strip()
+        df = _get_stock_RI(stock_name=symbol, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                            moutput_type=output_type, mdate_format=date_format)
         if progress and df is not None:
             print("1/1: Completed!")
         if save_to_file and df is not None:
             if progress:
-                print("Saving to file: {}-حقیقی-حقوقی.csv".format(stock))
-            df.to_csv(stock + "-حقیقی-حقوقی.csv", encoding="utf-8-sig")
-        return df
+                print("Saving to file: {}-حقیقی-حقوقی.csv".format(symbol))
+            _save_csv_ri(df, symbol + "-حقیقی-حقوقی.csv")
+        return _apply_ascending_ri(df)
     else:
-        if isinstance(stock, str):
+        if isinstance(symbol, str):
             if progress:
-                print("1/1: Getting historical retail/institutional of {}".format(stock))
-            stock = characters.ar_to_fa(stock).strip("\u200c").strip()
-            df = _get_stock_RI(stock_name=stock, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
+                print("1/1: Getting historical retail/institutional of {}".format(symbol))
+            symbol = characters.ar_to_fa(symbol).strip("\u200c").strip()
+            df = _get_stock_RI(stock_name=symbol, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                                moutput_type=output_type, mdate_format=date_format)
             if progress and df is not None:
                 print("1/1: Completed!")
             if save_to_file and df is not None:
                 if progress:
-                    print("Saving to file: {}-حقیقی-حقوقی.csv".format(stock))
-                df.to_csv(stock + "-حقیقی-حقوقی.csv", encoding="utf-8-sig")
-            return df
-        elif isinstance(stock, list):
+                    print("Saving to file: {}-حقیقی-حقوقی.csv".format(symbol))
+                _save_csv_ri(df, symbol + "-حقیقی-حقوقی.csv")
+            return _apply_ascending_ri(df)
+        elif isinstance(symbol, list):
             n = 1
             df_dict = {}
             file_name_str = ''
-            for stk in stock:
+            for stk in symbol:
                 if progress:
-                    print("{}/{}: Getting historical retail/institutional of {}".format(n, len(stock), stk))
+                    print("{}/{}: Getting historical retail/institutional of {}".format(n, len(symbol), stk))
                 stk = characters.ar_to_fa(stk).strip("\u200c").strip()
                 df = _get_stock_RI(stock_name=stk, mstart=start, mend=end, mvalues=values, mtse_format=tse_format,
                                    moutput_type=output_type, mdate_format=date_format)
@@ -795,7 +681,7 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
                     print("{} not Found!".format(stk))
                 n += 1
             if progress:
-                print('{}/{} Completed!'.format(len(stock), len(stock)))
+                print('{}/{} Completed!'.format(len(symbol), len(symbol)))
 
             if len(list(df_dict.keys())) == 0:
                 print('None of the entered stocks exist!!')
@@ -805,8 +691,8 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
                 if save_to_file and df is not None:
                     if progress:
                         print("Saving to file: {}-حقیقی-حقوقی.csv".format(file_name_str[1:]))
-                    df.to_csv(file_name_str[1:] + "-حقیقی-حقوقی.csv", encoding="utf-8-sig")
-                return df
+                    _save_csv_ri(df, file_name_str[1:] + "-حقیقی-حقوقی.csv")
+                return _apply_ascending_ri(df)
             else:
                 df = pd.concat(df_dict, axis=1)
                 multi_assets_columns = df.columns
@@ -821,34 +707,46 @@ def stock_RI(stock="", start=None, end=None, values=0, tse_format=False, output_
                 if save_to_file and df is not None:
                     if progress:
                         print("Saving to file: {}-حقیقی-حقوقی.csv".format(file_name_str[1:]))
-                    df.to_csv(file_name_str[1:] + "-حقیقی-حقوقی.csv", encoding="utf-8-sig")
-                return df
+                    _save_csv_ri(df, file_name_str[1:] + "-حقیقی-حقوقی.csv")
+                return _apply_ascending_ri(df)
 
 
-def stock_RL(stock="", start=None, end=None, values=0, tse_format=False, output_type="standard", date_format="jalali",
-             progress=True, save_to_file=False, multi_stock_drop=True):
-    return stock_RI(stock=stock, start=start, end=end, values=values, tse_format=tse_format, output_type=output_type,
+def stock_RL(symbol="", start=None, end=None, limit=0, raw=False, output_type="standard", date_format="jalali",
+             progress=True, save_to_file=False, dropna=True, ascending=True, save_path=None, **kwargs):
+    # Backward compat
+    if not symbol and 'stock' in kwargs:
+        symbol = kwargs.pop('stock')
+    if 'values' in kwargs:
+        limit = kwargs.pop('values')
+    if 'tse_format' in kwargs:
+        raw = kwargs.pop('tse_format')
+    if 'multi_stock_drop' in kwargs:
+        dropna = kwargs.pop('multi_stock_drop')
+    return stock_RI(symbol=symbol, start=start, end=end, limit=limit, raw=raw, output_type=output_type,
                     date_format=date_format, progress=progress, save_to_file=save_to_file,
-                    multi_stock_drop=multi_stock_drop)
+                    dropna=dropna, ascending=ascending, save_path=save_path)
 
 
-# stock capital increase version 1
-def stock_capital_increase(stock=''):
+# symbol capital increase version 1
+def stock_capital_increase(symbol='', **kwargs):
     """
     Get every capital increase in selected asset.
-    :param stock:   stock name in persian, or a list of stock in
+    :param symbol:   symbol name in persian, or a list of symbol in
                                 persian (['شتران', 'آریا'])
                     Default value is 'شتران'.
     :return: pandas DataFrame or None
     """
-    web_id = search_stock(search_txt=stock)
+    # Backward compatibility: accept deprecated 'stock' keyword
+    if not symbol and 'stock' in kwargs:
+        symbol = kwargs.pop('stock')
+    web_id = search_stock(search_txt=symbol)
     _capital_increase_url = settings.url_capital_increase
     if web_id[-5:] == "index":
         print("Indexes don't have capital increase!")
         return None
     else:
         try:
-            response = requests.get(url=_capital_increase_url.format(web_id), headers=settings.headers, verify=False)
+            response = safe_get(_capital_increase_url.format(web_id))
             if response.status_code == 200:
                 data_dict = response.json()['instrumentShareChange']
                 df = pd.DataFrame(data_dict)
@@ -862,5 +760,7 @@ def stock_capital_increase(stock=''):
                 return df
             else:
                 return None
-        except:
+        except requests.exceptions.RequestException:
+            return None
+        except Exception:
             return None

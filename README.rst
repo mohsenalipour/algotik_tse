@@ -1,41 +1,42 @@
 ===========
-algotik-tse
+AlgoTik TSE
 ===========
-
 
 .. image:: https://img.shields.io/pypi/v/algotik_tse.svg
         :target: https://pypi.python.org/pypi/algotik_tse
 
-.. image:: https://img.shields.io/travis/mohsenalipour/algotik_tse.svg
-        :target: https://travis-ci.com/mohsenalipour/algotik_tse
+.. image:: https://img.shields.io/pypi/pyversions/algotik_tse.svg
+        :target: https://pypi.python.org/pypi/algotik_tse
 
-.. image:: https://readthedocs.org/projects/algotik-tse/badge/?version=latest
-        :target: https://algotik-tse.readthedocs.io/en/latest/?version=latest
-        :alt: Documentation Status
-
-
-.. image:: https://pyup.io/repos/github/mohsenalipour/algotik_tse/shield.svg
-     :target: https://pyup.io/repos/github/mohsenalipour/algotik_tse/
-     :alt: Updates
+.. image:: https://img.shields.io/pypi/l/algotik_tse.svg
+        :target: https://github.com/mohsenalipour/algotik_tse/blob/main/LICENSE
 
 
-
-Get all data from TSETMC.com (Tehran Bourse).
+A comprehensive Python library for fetching Tehran Stock Exchange (TSETMC)
+and currency/coin market data.
 
 
 * Free software: GNU General Public License v3
-* Documentation: https://algotik-tse.readthedocs.io.
+* Website: https://algotik.com
+* Documentation: https://github.com/mohsenalipour/algotik_tse#readme
+* Telegram: https://t.me/algotik
 
 
 Features
 --------
 
-* TODO
+* Stock price history with Jalali date support
+* Options, ETFs, Bonds, and Fund data
+* Real/Legal (retail/institutional) client type data
+* Intraday trading details, order book, and market watch
+* Shareholders data and capital increase history
+* Currency and coin prices (TGJU)
+* Full-text search across all TSETMC symbols
+* Configurable settings (timeout, retries, rate limiting)
+
 
 Credits
 -------
 
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+Developed and maintained by `Mohsen Alipour <https://algotik.com>`_ (alipour@algotik.ir).
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage

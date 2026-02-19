@@ -3,15 +3,16 @@ import pandas as pd
 import numpy as np
 from algotik_tse.settings import settings
 from algotik_tse.providers.tgju_convertor import tgju_convertor
-from algotik_tse.core.helper import date_fix
+from algotik_tse.core.helper import date_fix, apply_date_format, apply_return_type, filter_by_date_or_values
+from algotik_tse.http_client import safe_get
 
 
-def currency_coin(currency_coin_name="", start=None, end=None, values=0, output_type="standard",
-                  date_format="jalali", progress=True, save_to_file=False, multi_currencies_drop=True,
-                  return_type=None):
+def currency_coin(name="", start=None, end=None, limit=0, output_type="standard",
+                  date_format="jalali", progress=True, save_to_file=False, dropna=True,
+                  return_type=None, ascending=True, save_path=None, **kwargs):
     """
         Get symbol or symbols price history from tsetmc
-        :param currency_coin_name:currency or coin name in persian or english, or a list of currency or  in
+        :param name:currency or coin name in persian or english, or a list of currency or  in
                                     persian (['euro', 'سکه امامی'])
                                 Default value is 'dollar'.
         :param start:           you can choose strat date (from) to get historical price.
@@ -66,21 +67,45 @@ def currency_coin(currency_coin_name="", start=None, end=None, values=0, output_
 
         :return: pandas dataframe or None
         """
+    # Backward compatibility: accept deprecated keyword names
+    if not name and 'currency_coin_name' in kwargs:
+        name = kwargs.pop('currency_coin_name')
+    if 'values' in kwargs:
+        limit = kwargs.pop('values')
+    if 'multi_currencies_drop' in kwargs:
+        dropna = kwargs.pop('multi_currencies_drop')
+
+    # Support legacy output_type value 'complete' → 'full'
+    if output_type == 'full':
+        output_type = 'full'
+
+    # Internal aliases for existing code
+    values = limit
+    multi_currencies_drop = dropna
+
+    import os
+
+    def _save_csv(df, filename):
+        if save_path:
+            os.makedirs(save_path, exist_ok=True)
+            filepath = os.path.join(save_path, filename)
+        else:
+            filepath = filename
+        df.to_csv(filepath, encoding="utf-8-sig")
+
+    def _apply_ascending(df):
+        if df is not None and not ascending:
+            return df.iloc[::-1]
+        return df
 
     def __get_currency_history(currency__name):
         url_word = settings.currency_web_word[currency__name]['web_word']
         new_start, new_end = date_fix(start=start, end=end)
-        detail = requests.get(settings.url_currency_from_tgju.format(url_word), headers=settings.headers)
+        detail = safe_get(settings.url_currency_from_tgju.format(url_word))
         if detail.status_code == 200:
             df = tgju_convertor(detail.json()['data'])
             if values is not None or start is not None or end is not None:
-                if values != 0:
-                    df = df.iloc[-values:]
-                else:
-                    if end is None:
-                        df = df.loc[new_start:]
-                    else:
-                        df = df.loc[new_start:new_end]
+                df = filter_by_date_or_values(df, values, new_start, new_end)
 
             df["Weekday_No"] = df["Date"].dt.weekday
             df["Weekday"] = df["Weekday_No"].apply(lambda x: settings.en_weekdays[x])
@@ -88,96 +113,60 @@ def currency_coin(currency_coin_name="", start=None, end=None, values=0, output_
             df.drop("Weekday_No", axis=1, inplace=True)
             df['Ticker'] = settings.currency_web_word[currency__name]['persian_word']
 
-            if date_format == 'jalali':
-                df.set_index('J-Date', drop=True, inplace=True)
-                df.drop(columns=["Date", "Weekday"], inplace=True)
-            elif date_format == 'gregorian':
-                df.set_index('Date', drop=True, inplace=True)
-                df.drop(columns=["J-Date", 'Weekday_fa'], inplace=True)
-            elif date_format == 'both':
-                df.set_index('Date', drop=True, inplace=True)
-            else:
-                print("please select date_format between 'jalali', 'gregorian ', 'both' ")
+            df = apply_date_format(df, date_format)
+            if df is None:
                 return None
 
             if output_type == "standard":
                 df = df.loc[:, "Open High Low Close".split()]
-            elif output_type == 'complete':
+            elif output_type == 'full':
                 pass
             else:
-                print("output_type should select between 'standard' or 'complete'")
+                print("output_type should select between 'standard' or 'full'")
                 return None
 
-            if return_type is not None:
-                price = 'Close'
-                if isinstance(return_type, str):
-                    if return_type == 'simple':
-                        df['returns'] = df[price].pct_change()
-                    elif return_type == 'log':
-                        df['returns'] = np.log(df[price] / df[price].shift(1))
-                    elif return_type == 'both':
-                        df['simple_returns'] = df[price].pct_change()
-                        df['log_returns'] = np.log(df[price] / df[price].shift(1))
-                    else:
-                        print("return_type should select between 'simple', 'log' or ''both")
-                        return None
-                elif isinstance(return_type, list) and len(return_type) == 3:
-                    # ['simple', 'Close', 2]
-                    if return_type[0] == 'simple':
-                        df['returns'] = df[return_type[1]].pct_change(return_type[2])
-                    elif return_type[0] == 'log':
-                        df['returns'] = np.log(
-                            df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                    elif return_type[0] == 'both':
-                        df['simple_returns'] = df[return_type[1]].pct_change(return_type[2])
-                        df['log_returns'] = np.log(
-                            df[return_type[1]] / df[return_type[1]].shift(return_type[2]))
-                    else:
-                        print("return_type[0] should select between 'simple', 'log' or ''both")
-                        return None
-                else:
-                    print(
-                        "return_type should select between 'simple', 'log' or 'both' or enter a list like this: ['simple', 'Close', 3]")
-                    return None
+            df = apply_return_type(df, return_type, default_price='Close')
+            if df is None:
+                return None
             return df
         else:
             print("Connection Error!!!")
             return None
 
-    if currency_coin_name == "":
-        currency_coin_name = "dollar"
+    if name == "":
+        name = "dollar"
         if progress:
-            print("1/1: Getting historical price of {}".format(currency_coin_name))
-        df = __get_currency_history(currency__name=currency_coin_name)
+            print("1/1: Getting historical price of {}".format(name))
+        df = __get_currency_history(currency__name=name)
         if progress and df is not None:
             print("1/1: Completed!")
         if save_to_file and df is not None:
             if progress:
-                print("Saving to file: {}.csv".format(currency_coin_name))
-            df.to_csv(currency_coin_name + ".csv", encoding="utf-8-sig")
-        return df
+                print("Saving to file: {}.csv".format(name))
+            _save_csv(df, name + ".csv")
+        return _apply_ascending(df)
     else:
-        if isinstance(currency_coin_name, str):
-            currency_coin_name = currency_coin_name if currency_coin_name.isascii() else settings.currency_persian[
-                currency_coin_name]
+        if isinstance(name, str):
+            name = name if name.isascii() else settings.currency_persian[
+                name]
             if progress:
-                print("1/1: Getting historical price of {}".format(currency_coin_name))
-            df = __get_currency_history(currency__name=currency_coin_name)
+                print("1/1: Getting historical price of {}".format(name))
+            df = __get_currency_history(currency__name=name)
             if progress and df is not None:
                 print("1/1: Completed!")
             if save_to_file and df is not None:
                 if progress:
-                    print("Saving to file: {}.csv".format(currency_coin_name))
-                df.to_csv(currency_coin_name + ".csv", encoding="utf-8-sig")
-            return df
-        elif isinstance(currency_coin_name, list):
+                    print("Saving to file: {}.csv".format(name))
+                _save_csv(df, name + ".csv")
+            return _apply_ascending(df)
+        elif isinstance(name, list):
             n = 1
             df_dict = {}
             file_name_str = ''
-            for cur in currency_coin_name:
+            for cur in name:
                 cur = cur if cur.isascii() else settings.currency_persian[cur]
                 if progress:
-                    print("{}/{}: Getting historical price of {}".format(n, len(currency_coin_name), cur))
+                    print("{}/{}: Getting historical price of {}".format(n, len(name), cur))
                 df = __get_currency_history(currency__name=cur)
                 if df is not None:
                     file_name_str += "-" + cur
@@ -186,7 +175,7 @@ def currency_coin(currency_coin_name="", start=None, end=None, values=0, output_
                     print("{} not Found!".format(cur))
                 n += 1
             if progress:
-                print('{}/{} Completed!'.format(len(currency_coin_name), len(currency_coin_name)))
+                print('{}/{} Completed!'.format(len(name), len(name)))
 
             if len(list(df_dict.keys())) == 0:
                 print('None of the entered currencies exist!!')
@@ -196,8 +185,8 @@ def currency_coin(currency_coin_name="", start=None, end=None, values=0, output_
                 if save_to_file and df is not None:
                     if progress:
                         print("Saving to file: {}.csv".format(file_name_str[1:]))
-                    df.to_csv(file_name_str[1:] + ".csv", encoding="utf-8-sig")
-                return df
+                    _save_csv(df, file_name_str[1:] + ".csv")
+                return _apply_ascending(df)
             else:
                 df = pd.concat(df_dict, axis=1)
                 multi_assets_columns = df.columns
@@ -212,5 +201,5 @@ def currency_coin(currency_coin_name="", start=None, end=None, values=0, output_
                 if save_to_file and df is not None:
                     if progress:
                         print("Saving to file: {}.csv".format(file_name_str[1:]))
-                    df.to_csv(file_name_str[1:] + ".csv", encoding="utf-8-sig")
-                return df
+                    _save_csv(df, file_name_str[1:] + ".csv")
+                return _apply_ascending(df)

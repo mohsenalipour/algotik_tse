@@ -40,6 +40,38 @@ class Settings:
         self.url_currency_from_tgju = 'https://api.tgju.org/v1/market/indicator/summary-table-data/{}'
         self.url_sekke_from_tgju = 'https://api.tgju.org/v1/market/indicator/summary-table-data/sekee'
         self.url_market_data_live = 'https://old.tsetmc.com/tsev2/data/MarketWatchPlus.aspx'
+        self.url_market_watch_init = 'https://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0'
+        self.url_client_type_all = 'https://old.tsetmc.com/tsev2/data/ClientTypeAll.aspx'
+        self.url_closing_price_all = 'https://members.tsetmc.com/tsev2/data/ClosingPriceAll.aspx'
+        self.url_intraday_trades = 'https://cdn.tsetmc.com/api/Trade/GetTrade/{}'
+        self.url_intraday_history = 'https://cdn.tsetmc.com/api/ClosingPrice/GetClosingPriceHistory/{}/{}'
+        self.url_option_info = 'https://cdn.tsetmc.com/api/Instrument/GetInstrumentOptionByInstrumentID/{}'
+        self.url_fund_list = 'https://cdn.tsetmc.com/api/Fund/GetFunds/{}'
+
+        self.fund_type_ids = {
+            'equity': 6,
+            'fixed_income': 4,
+            'mixed': 7,
+            'market_maker': 11,
+            'venture': 12,
+            'project': 13,
+            'real_estate': 14,
+            'commodity': 5,
+            'private': 16,
+            'fund_of_funds': 17,
+        }
+        self.fund_type_labels = {
+            6: 'equity',
+            4: 'fixed_income',
+            7: 'mixed',
+            11: 'market_maker',
+            12: 'venture',
+            13: 'project',
+            14: 'real_estate',
+            5: 'commodity',
+            16: 'private',
+            17: 'fund_of_funds',
+        }
 
         self.currency_web_word = {'dollar': {'web_word': 'price_dollar_rl', 'persian_word': 'دلار'},
                                   'euro': {'web_word': 'price_eur', 'persian_word': 'یورو'},
@@ -79,6 +111,13 @@ class Settings:
         self.payeh_market_color_num = {'زرد': [0, 1], 'نارنجی': [1, 2], 'قرمز': [2, 4]}
         self.payeh_market_color = ['بازار پايه زرد فرابورس', 'بازار پايه نارنجي فرابورس', 'بازار پایه قرمز فرابورس',
                                    'بازار پايه قرمز فرابورس']
+
+        # ── HTTP Client Settings ──────────────────────────────────────
+        self.ssl_verify = False        # Set True to enable SSL certificate verification
+        self.timeout = 10              # Request timeout in seconds
+        self.max_retries = 3           # Number of retries on transient HTTP errors
+        self.retry_backoff_factor = 0.3  # Exponential backoff factor between retries
+        self.rate_limit_delay = 0.3    # Minimum seconds between consecutive requests
 
 
 settings = Settings()
