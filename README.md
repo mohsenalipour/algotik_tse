@@ -95,7 +95,7 @@ pip install algotik-tse
 pip install algotik-tse --upgrade
 ```
 
-**Requirements:** Python 3.6+ &nbsp;|&nbsp; pandas &nbsp;|&nbsp; requests &nbsp;|&nbsp; persiantools &nbsp;|&nbsp; lxml &nbsp;|&nbsp; numpy
+**Requirements:** Python 3.8+ &nbsp;|&nbsp; pandas &nbsp;|&nbsp; requests &nbsp;|&nbsp; persiantools &nbsp;|&nbsp; lxml &nbsp;|&nbsp; numpy &nbsp;|&nbsp; openpyxl
 
 ---
 

@@ -2,6 +2,11 @@
 History
 =======
 
+1.0.1 (2026-02-19)
+------------------
+* Added ``lxml`` and ``openpyxl`` to install requirements.
+* Fixed ``NAV_Discount`` column dtype bug in ``list_etfs()`` — was ``object`` (due to ``None`` init), now correctly ``float64``.
+
 1.0.0 (2025-07-12)
 ------------------
 * **Major release** — Production/Stable.

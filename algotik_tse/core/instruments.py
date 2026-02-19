@@ -10,6 +10,7 @@ Also provides ``list_funds()`` which fetches detailed fund information
 
 import datetime
 import time
+import numpy as np
 import pandas as pd
 
 from algotik_tse.settings import settings
@@ -386,7 +387,7 @@ def list_etfs(progress=True):
         return pd.DataFrame()
 
     # Compute NAV discount/premium
-    etfs['NAV_Discount'] = None
+    etfs['NAV_Discount'] = np.nan
     mask = etfs['NAV'] > 0
     etfs.loc[mask, 'NAV_Discount'] = (
         (etfs.loc[mask, 'Close'] - etfs.loc[mask, 'NAV'])

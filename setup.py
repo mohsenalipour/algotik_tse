@@ -21,6 +21,8 @@ requirements = [
     'numpy>=1.20.0',
     'persiantools>=2.0.0',
     'urllib3>=1.26.0',
+    'lxml>=4.6.0',
+    'openpyxl>=3.0.0',
 ]
 
 test_requirements = ['pytest>=7.0', ]
@@ -61,6 +63,6 @@ setup(
         'Documentation': 'https://github.com/mohsenalipour/algotik_tse#readme',
         'Telegram': 'https://t.me/algotik',
     },
-    version='1.0.0',
+    version='1.0.1',
     zip_safe=False,
 )

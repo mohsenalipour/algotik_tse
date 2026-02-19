@@ -63,7 +63,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = 'alipour@algotik.ir'
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 from algotik_tse.settings import settings
 from algotik_tse.core.stock_detail import stockdetail, stock_information, stock_statistics
