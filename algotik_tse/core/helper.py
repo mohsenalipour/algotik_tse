@@ -28,9 +28,9 @@ def date_fix(start: Optional[str] = None, end: Optional[str] = None,
     """
     new_start = None
     new_end = None
-    if start is not None and not '-' in start:
+    if start is not None and '-' not in start:
         start = start[:4] + "-" + start[4:6] + "-" + start[6:]
-    if end is not None and not '-' in end:
+    if end is not None and '-' not in end:
         end = end[:4] + "-" + end[4:6] + "-" + end[6:]
 
     if start is not None:

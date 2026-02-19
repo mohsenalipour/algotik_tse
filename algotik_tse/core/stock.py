@@ -2,10 +2,8 @@ import io
 import datetime
 import requests
 import warnings
-import numpy as np
 import pandas as pd
 from persiantools import characters
-from persiantools.jdatetime import JalaliDate
 
 from algotik_tse.settings import settings
 from algotik_tse.core.search import search_stock

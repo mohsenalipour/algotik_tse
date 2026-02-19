@@ -8,7 +8,6 @@ Also provides ``list_funds()`` which fetches detailed fund information
 (NAV, returns, portfolio composition, manager, etc.) from TSETMC Fund API.
 """
 
-import datetime
 import time
 import numpy as np
 import pandas as pd
@@ -21,7 +20,6 @@ from algotik_tse.core.parsers import (
     parse_option_symbol,
     parse_bond_name,
     parse_treasury_name,
-    _jalali_str_to_date,
     _days_until,
 )
 

@@ -6,7 +6,6 @@ from algotik_tse.http_client import safe_get
 def search_stock(search_txt='شتران'):
     index_names = settings.index_names
     industry_index = settings.industry_index
-    headers = settings.headers
     stock_id = ''
     if search_txt in index_names:
         webid_dict = {index_names[0]: 32097828799138957,

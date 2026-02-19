@@ -1,6 +1,4 @@
-import requests
 import pandas as pd
-import numpy as np
 from algotik_tse.settings import settings
 from algotik_tse.providers.tgju_convertor import tgju_convertor
 from algotik_tse.core.helper import date_fix, apply_date_format, apply_return_type, filter_by_date_or_values

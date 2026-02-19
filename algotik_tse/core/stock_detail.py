@@ -1,5 +1,3 @@
-import json
-import requests
 import warnings
 from io import StringIO
 import pandas as pd
