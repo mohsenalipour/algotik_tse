@@ -7,8 +7,11 @@ from typing import Optional, Union, List, Tuple
 from algotik_tse.settings import settings
 
 
-def date_fix(start: Optional[str] = None, end: Optional[str] = None,
-             start_delta: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+def date_fix(
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    start_delta: Optional[str] = None,
+) -> Tuple[Optional[str], Optional[str]]:
     """Convert start/end date strings (Jalali or Gregorian) to Gregorian ISO format.
 
     Parameters
@@ -28,15 +31,17 @@ def date_fix(start: Optional[str] = None, end: Optional[str] = None,
     """
     new_start = None
     new_end = None
-    if start is not None and '-' not in start:
+    if start is not None and "-" not in start:
         start = start[:4] + "-" + start[4:6] + "-" + start[6:]
-    if end is not None and '-' not in end:
+    if end is not None and "-" not in end:
         end = end[:4] + "-" + end[4:6] + "-" + end[6:]
 
     if start is not None:
         two_left_char_start = start[:2]
         if two_left_char_start in ["13", "14", "15"]:
-            new_start = JalaliDate.to_gregorian(JalaliDate.fromisoformat(start)).isoformat()
+            new_start = JalaliDate.to_gregorian(
+                JalaliDate.fromisoformat(start)
+            ).isoformat()
         else:
             new_start = start
     if end is not None:
@@ -69,14 +74,15 @@ def add_date_columns(df: pd.DataFrame, stock_name: str) -> pd.DataFrame:
     """
     df["Date"] = df.index
     df["J-Date"] = df["Date"]
-    df['J-Date'] = df['J-Date'].apply(lambda x: x.strftime("%Y-%m-%d"))
-    df['J-Date'] = df['J-Date'].apply(
-        lambda x: JalaliDate.to_jalali(datetime.datetime.fromisoformat(x)).isoformat())
+    df["J-Date"] = df["J-Date"].apply(lambda x: x.strftime("%Y-%m-%d"))
+    df["J-Date"] = df["J-Date"].apply(
+        lambda x: JalaliDate.to_jalali(datetime.datetime.fromisoformat(x)).isoformat()
+    )
     df["Weekday_No"] = df["Date"].dt.weekday
     df["Weekday"] = df["Weekday_No"].apply(lambda x: settings.en_weekdays[x])
     df["Weekday_fa"] = df["Weekday_No"].apply(lambda x: settings.fa_weekdays[x])
     df.drop("Weekday_No", axis=1, inplace=True)
-    df['Ticker'] = stock_name
+    df["Ticker"] = stock_name
     return df
 
 
@@ -109,8 +115,9 @@ def apply_date_format(df: pd.DataFrame, date_format: str) -> Optional[pd.DataFra
     return df
 
 
-def apply_return_type(df: pd.DataFrame, return_type: Union[str, List, None],
-                      default_price: str = 'Close') -> Optional[pd.DataFrame]:
+def apply_return_type(
+    df: pd.DataFrame, return_type: Union[str, List, None], default_price: str = "Close"
+) -> Optional[pd.DataFrame]:
     """Calculate and add return columns to the DataFrame.
 
     Parameters
@@ -139,37 +146,40 @@ def apply_return_type(df: pd.DataFrame, return_type: Union[str, List, None],
 
     price = default_price
     if isinstance(return_type, str):
-        if return_type == 'simple':
-            df['returns'] = df[price].pct_change()
-        elif return_type == 'log':
-            df['returns'] = np.log(df[price] / df[price].shift(1))
-        elif return_type == 'both':
-            df['simple_returns'] = df[price].pct_change()
-            df['log_returns'] = np.log(df[price] / df[price].shift(1))
+        if return_type == "simple":
+            df["returns"] = df[price].pct_change()
+        elif return_type == "log":
+            df["returns"] = np.log(df[price] / df[price].shift(1))
+        elif return_type == "both":
+            df["simple_returns"] = df[price].pct_change()
+            df["log_returns"] = np.log(df[price] / df[price].shift(1))
         else:
             print("return_type should select between 'simple', 'log' or 'both'")
             return None
     elif isinstance(return_type, list) and len(return_type) == 3:
         rt_type, rt_col, rt_period = return_type[0], return_type[1], return_type[2]
-        if rt_type == 'simple':
-            df['returns'] = df[rt_col].pct_change(rt_period)
-        elif rt_type == 'log':
-            df['returns'] = np.log(df[rt_col] / df[rt_col].shift(rt_period))
-        elif rt_type == 'both':
-            df['simple_returns'] = df[rt_col].pct_change(rt_period)
-            df['log_returns'] = np.log(df[rt_col] / df[rt_col].shift(rt_period))
+        if rt_type == "simple":
+            df["returns"] = df[rt_col].pct_change(rt_period)
+        elif rt_type == "log":
+            df["returns"] = np.log(df[rt_col] / df[rt_col].shift(rt_period))
+        elif rt_type == "both":
+            df["simple_returns"] = df[rt_col].pct_change(rt_period)
+            df["log_returns"] = np.log(df[rt_col] / df[rt_col].shift(rt_period))
         else:
             print("return_type[0] should select between 'simple', 'log' or 'both'")
             return None
     else:
-        print("return_type should select between 'simple', 'log' or 'both' "
-              "or enter a list like this: ['simple', 'Close', 3]")
+        print(
+            "return_type should select between 'simple', 'log' or 'both' "
+            "or enter a list like this: ['simple', 'Close', 3]"
+        )
         return None
     return df
 
 
-def filter_by_date_or_values(df: pd.DataFrame, values: int, new_start: Optional[str],
-                              new_end: Optional[str]) -> pd.DataFrame:
+def filter_by_date_or_values(
+    df: pd.DataFrame, values: int, new_start: Optional[str], new_end: Optional[str]
+) -> pd.DataFrame:
     """Filter a DataFrame by number of trailing rows or date range.
 
     Parameters

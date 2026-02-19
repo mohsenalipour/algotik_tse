@@ -28,6 +28,7 @@ from algotik_tse.core.parsers import (
 #  Options
 # ══════════════════════════════════════════════════════════════
 
+
 def list_options(underlying=None, progress=True):
     """List all active option contracts with parsed metadata.
 
@@ -79,10 +80,10 @@ def list_options(underlying=None, progress=True):
         print("Fetching market data...")
 
     data = market_watch()
-    stocks_df = data['stocks']
+    stocks_df = data["stocks"]
 
     # Filter to options only (311=call, 312=put)
-    options_df = stocks_df[stocks_df['InstrumentType'].isin([311, 312])].copy()
+    options_df = stocks_df[stocks_df["InstrumentType"].isin([311, 312])].copy()
 
     if options_df.empty:
         if progress:
@@ -95,61 +96,69 @@ def list_options(underlying=None, progress=True):
     # Parse Name field for each option
     parsed_rows = []
     for _, row in options_df.iterrows():
-        parsed = parse_option_name(row['Name'])
+        parsed = parse_option_name(row["Name"])
         if parsed:
-            parsed_rows.append({
-                'InsCode': row['InsCode'],
-                'ISIN': row['ISIN'],
-                'Symbol': row['Symbol'],
-                'Name': row['Name'],
-                'OptionType': parsed['option_type'],
-                'Underlying': parsed['underlying'],
-                'Strike': parsed['strike'],
-                'ExpiryJalali': parsed['expiry_jalali'],
-                'ExpiryGregorian': parsed['expiry_gregorian'],
-                'DaysToExpiry': _days_until(parsed['expiry_gregorian']) if parsed['expiry_gregorian'] else None,
-                'Last': row['Last'],
-                'Close': row['Close'],
-                'Yesterday': row['Yesterday'],
-                'Volume': row['Volume'],
-                'Value': row['Value'],
-                'TradeCount': row['TradeCount'],
-                'Change': row['Change'],
-                'ChangePct': row['ChangePct'],
-                'MaxAllowed': row['MaxAllowed'],
-                'MinAllowed': row['MinAllowed'],
-            })
+            parsed_rows.append(
+                {
+                    "InsCode": row["InsCode"],
+                    "ISIN": row["ISIN"],
+                    "Symbol": row["Symbol"],
+                    "Name": row["Name"],
+                    "OptionType": parsed["option_type"],
+                    "Underlying": parsed["underlying"],
+                    "Strike": parsed["strike"],
+                    "ExpiryJalali": parsed["expiry_jalali"],
+                    "ExpiryGregorian": parsed["expiry_gregorian"],
+                    "DaysToExpiry": (
+                        _days_until(parsed["expiry_gregorian"])
+                        if parsed["expiry_gregorian"]
+                        else None
+                    ),
+                    "Last": row["Last"],
+                    "Close": row["Close"],
+                    "Yesterday": row["Yesterday"],
+                    "Volume": row["Volume"],
+                    "Value": row["Value"],
+                    "TradeCount": row["TradeCount"],
+                    "Change": row["Change"],
+                    "ChangePct": row["ChangePct"],
+                    "MaxAllowed": row["MaxAllowed"],
+                    "MinAllowed": row["MinAllowed"],
+                }
+            )
         else:
             # Fallback: use symbol prefix for type detection
-            opt_type = parse_option_symbol(row['Symbol']) or 'unknown'
-            parsed_rows.append({
-                'InsCode': row['InsCode'],
-                'ISIN': row['ISIN'],
-                'Symbol': row['Symbol'],
-                'Name': row['Name'],
-                'OptionType': opt_type,
-                'Underlying': None,
-                'Strike': None,
-                'ExpiryJalali': None,
-                'ExpiryGregorian': None,
-                'DaysToExpiry': None,
-                'Last': row['Last'],
-                'Close': row['Close'],
-                'Yesterday': row['Yesterday'],
-                'Volume': row['Volume'],
-                'Value': row['Value'],
-                'TradeCount': row['TradeCount'],
-                'Change': row['Change'],
-                'ChangePct': row['ChangePct'],
-                'MaxAllowed': row['MaxAllowed'],
-                'MinAllowed': row['MinAllowed'],
-            })
+            opt_type = parse_option_symbol(row["Symbol"]) or "unknown"
+            parsed_rows.append(
+                {
+                    "InsCode": row["InsCode"],
+                    "ISIN": row["ISIN"],
+                    "Symbol": row["Symbol"],
+                    "Name": row["Name"],
+                    "OptionType": opt_type,
+                    "Underlying": None,
+                    "Strike": None,
+                    "ExpiryJalali": None,
+                    "ExpiryGregorian": None,
+                    "DaysToExpiry": None,
+                    "Last": row["Last"],
+                    "Close": row["Close"],
+                    "Yesterday": row["Yesterday"],
+                    "Volume": row["Volume"],
+                    "Value": row["Value"],
+                    "TradeCount": row["TradeCount"],
+                    "Change": row["Change"],
+                    "ChangePct": row["ChangePct"],
+                    "MaxAllowed": row["MaxAllowed"],
+                    "MinAllowed": row["MinAllowed"],
+                }
+            )
 
     result = pd.DataFrame(parsed_rows)
 
     # Filter by underlying if specified
     if underlying and not result.empty:
-        result = result[result['Underlying'] == underlying].copy()
+        result = result[result["Underlying"] == underlying].copy()
         if progress:
             print(f"Filtered to {len(result)} contracts for underlying '{underlying}'.")
 
@@ -208,28 +217,28 @@ def get_options_chain(underlying, fetch_oi=False, progress=True):
 
     if all_options.empty:
         return {
-            'calls': pd.DataFrame(),
-            'puts': pd.DataFrame(),
-            'underlying_name': underlying,
-            'underlying_price': None,
-            'expiry_dates': [],
-            'market_time': None,
+            "calls": pd.DataFrame(),
+            "puts": pd.DataFrame(),
+            "underlying_name": underlying,
+            "underlying_price": None,
+            "expiry_dates": [],
+            "market_time": None,
         }
 
     # Get underlying price from market_watch
     data = market_watch()
     underlying_price = None
-    market_time = data.get('market_time', '')
+    market_time = data.get("market_time", "")
 
     # Search for underlying in stocks
-    stocks_df = data['stocks']
+    stocks_df = data["stocks"]
     # Try exact symbol match first
-    match = stocks_df[stocks_df['Symbol'] == underlying]
+    match = stocks_df[stocks_df["Symbol"] == underlying]
     if match.empty:
         # Try partial match in Name
-        match = stocks_df[stocks_df['Symbol'].str.contains(underlying, na=False)]
+        match = stocks_df[stocks_df["Symbol"].str.contains(underlying, na=False)]
     if not match.empty:
-        underlying_price = int(match.iloc[0]['Last'])
+        underlying_price = int(match.iloc[0]["Last"])
 
     # Fetch open interest if requested
     if fetch_oi:
@@ -237,7 +246,7 @@ def get_options_chain(underlying, fetch_oi=False, progress=True):
             print(f"Fetching open interest for {len(all_options)} contracts...")
         oi_data = []
         for i, (_, row) in enumerate(all_options.iterrows()):
-            oi = _fetch_option_info(row['ISIN'])
+            oi = _fetch_option_info(row["ISIN"])
             oi_data.append(oi)
             if progress and (i + 1) % 10 == 0:
                 print(f"  ... {i + 1}/{len(all_options)} contracts fetched")
@@ -245,25 +254,25 @@ def get_options_chain(underlying, fetch_oi=False, progress=True):
         all_options = pd.concat([all_options, oi_df], axis=1)
 
     # Split into calls and puts
-    calls = all_options[all_options['OptionType'] == 'call'].copy()
-    puts = all_options[all_options['OptionType'] == 'put'].copy()
+    calls = all_options[all_options["OptionType"] == "call"].copy()
+    puts = all_options[all_options["OptionType"] == "put"].copy()
 
     # Sort by strike then expiry
     for df in [calls, puts]:
         if not df.empty:
-            df.sort_values(['ExpiryJalali', 'Strike'], inplace=True)
+            df.sort_values(["ExpiryJalali", "Strike"], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
     # Unique expiry dates
-    expiry_dates = sorted(all_options['ExpiryJalali'].dropna().unique().tolist())
+    expiry_dates = sorted(all_options["ExpiryJalali"].dropna().unique().tolist())
 
     return {
-        'calls': calls,
-        'puts': puts,
-        'underlying_name': underlying,
-        'underlying_price': underlying_price,
-        'expiry_dates': expiry_dates,
-        'market_time': market_time,
+        "calls": calls,
+        "puts": puts,
+        "underlying_name": underlying,
+        "underlying_price": underlying_price,
+        "expiry_dates": expiry_dates,
+        "market_time": market_time,
     }
 
 
@@ -303,14 +312,14 @@ def _fetch_option_info(isin):
         if response is None or response.status_code != 200:
             return _empty_oi()
         data = response.json()
-        opt = data.get('instrumentOption', {})
+        opt = data.get("instrumentOption", {})
         return {
-            'OpenInterest': opt.get('buyOP', 0),
-            'ContractSize': opt.get('contractSize', 0),
-            'StrikePrice_API': opt.get('strikePrice', 0),
-            'UnderlyingInsCode': str(opt.get('uaInsCode', '')),
-            'BeginDate': opt.get('beginDate', 0),
-            'EndDate': opt.get('endDate', 0),
+            "OpenInterest": opt.get("buyOP", 0),
+            "ContractSize": opt.get("contractSize", 0),
+            "StrikePrice_API": opt.get("strikePrice", 0),
+            "UnderlyingInsCode": str(opt.get("uaInsCode", "")),
+            "BeginDate": opt.get("beginDate", 0),
+            "EndDate": opt.get("endDate", 0),
         }
     except Exception:
         return _empty_oi()
@@ -319,18 +328,19 @@ def _fetch_option_info(isin):
 def _empty_oi():
     """Return an empty OI dict for failed fetches."""
     return {
-        'OpenInterest': None,
-        'ContractSize': None,
-        'StrikePrice_API': None,
-        'UnderlyingInsCode': None,
-        'BeginDate': None,
-        'EndDate': None,
+        "OpenInterest": None,
+        "ContractSize": None,
+        "StrikePrice_API": None,
+        "UnderlyingInsCode": None,
+        "BeginDate": None,
+        "EndDate": None,
     }
 
 
 # ══════════════════════════════════════════════════════════════
 #  ETFs
 # ══════════════════════════════════════════════════════════════
+
 
 def list_etfs(progress=True):
     """List all ETF/fund instruments with NAV and discount/premium.
@@ -374,10 +384,10 @@ def list_etfs(progress=True):
         print("Fetching market data...")
 
     data = market_watch()
-    stocks_df = data['stocks']
+    stocks_df = data["stocks"]
 
     # Filter to ETFs (InstrumentType == 305)
-    etfs = stocks_df[stocks_df['InstrumentType'] == 305].copy()
+    etfs = stocks_df[stocks_df["InstrumentType"] == 305].copy()
 
     if etfs.empty:
         if progress:
@@ -385,28 +395,37 @@ def list_etfs(progress=True):
         return pd.DataFrame()
 
     # Compute NAV discount/premium
-    etfs['NAV_Discount'] = np.nan
-    mask = etfs['NAV'] > 0
-    etfs.loc[mask, 'NAV_Discount'] = (
-        (etfs.loc[mask, 'Close'] - etfs.loc[mask, 'NAV'])
-        / etfs.loc[mask, 'NAV'] * 100
+    etfs["NAV_Discount"] = np.nan
+    mask = etfs["NAV"] > 0
+    etfs.loc[mask, "NAV_Discount"] = (
+        (etfs.loc[mask, "Close"] - etfs.loc[mask, "NAV"]) / etfs.loc[mask, "NAV"] * 100
     ).round(2)
 
     # Select and reorder columns
     cols = [
-        'InsCode', 'ISIN', 'Symbol', 'Name',
-        'Last', 'Close', 'Yesterday',
-        'Volume', 'Value', 'TradeCount',
-        'Low', 'High',
-        'NAV', 'NAV_Discount',
-        'Change', 'ChangePct',
-        'MarketCode',
+        "InsCode",
+        "ISIN",
+        "Symbol",
+        "Name",
+        "Last",
+        "Close",
+        "Yesterday",
+        "Volume",
+        "Value",
+        "TradeCount",
+        "Low",
+        "High",
+        "NAV",
+        "NAV_Discount",
+        "Change",
+        "ChangePct",
+        "MarketCode",
     ]
     available_cols = [c for c in cols if c in etfs.columns]
     result = etfs[available_cols].copy()
 
     if progress:
-        nav_count = (result['NAV'] > 0).sum() if 'NAV' in result.columns else 0
+        nav_count = (result["NAV"] > 0).sum() if "NAV" in result.columns else 0
         print(f"Done. {len(result)} ETFs found ({nav_count} with NAV data).")
 
     return result.reset_index(drop=True)
@@ -415,6 +434,7 @@ def list_etfs(progress=True):
 # ══════════════════════════════════════════════════════════════
 #  Bonds & Treasury
 # ══════════════════════════════════════════════════════════════
+
 
 def list_bonds(progress=True):
     """List all bond and treasury instruments with parsed maturity dates.
@@ -459,48 +479,52 @@ def list_bonds(progress=True):
         print("Fetching market data...")
 
     data = market_watch()
-    stocks_df = data['stocks']
+    stocks_df = data["stocks"]
 
     if progress:
         print("Scanning for bonds and treasury instruments...")
 
     parsed_rows = []
     for _, row in stocks_df.iterrows():
-        name = row['Name']
+        name = row["Name"]
         parsed = None
 
         # Try treasury first (اسناد خزانه / اخزا)
-        if any(kw in name for kw in ['اسناد', 'خزانه', 'اخزا']):
+        if any(kw in name for kw in ["اسناد", "خزانه", "اخزا"]):
             parsed = parse_treasury_name(name)
 
         # Try bond (مرابحه, اجاره, etc.)
-        if parsed is None and any(kw in name for kw in ['مرابحه', 'اجاره', 'سلف', 'اراد', 'ش.خ']):
+        if parsed is None and any(
+            kw in name for kw in ["مرابحه", "اجاره", "سلف", "اراد", "ش.خ"]
+        ):
             parsed = parse_bond_name(name)
 
         if parsed:
             days_to_mat = None
-            if parsed.get('maturity_gregorian'):
-                days_to_mat = _days_until(parsed['maturity_gregorian'])
+            if parsed.get("maturity_gregorian"):
+                days_to_mat = _days_until(parsed["maturity_gregorian"])
 
-            parsed_rows.append({
-                'InsCode': row['InsCode'],
-                'ISIN': row['ISIN'],
-                'Symbol': row['Symbol'],
-                'Name': name,
-                'BondType': parsed['bond_type'],
-                'Ticker': parsed.get('ticker') or row['Symbol'],
-                'MaturityJalali': parsed['maturity_jalali'],
-                'MaturityGregorian': parsed['maturity_gregorian'],
-                'DaysToMaturity': days_to_mat,
-                'Last': row['Last'],
-                'Close': row['Close'],
-                'Yesterday': row['Yesterday'],
-                'Volume': row['Volume'],
-                'Value': row['Value'],
-                'TradeCount': row['TradeCount'],
-                'Change': row['Change'],
-                'ChangePct': row['ChangePct'],
-            })
+            parsed_rows.append(
+                {
+                    "InsCode": row["InsCode"],
+                    "ISIN": row["ISIN"],
+                    "Symbol": row["Symbol"],
+                    "Name": name,
+                    "BondType": parsed["bond_type"],
+                    "Ticker": parsed.get("ticker") or row["Symbol"],
+                    "MaturityJalali": parsed["maturity_jalali"],
+                    "MaturityGregorian": parsed["maturity_gregorian"],
+                    "DaysToMaturity": days_to_mat,
+                    "Last": row["Last"],
+                    "Close": row["Close"],
+                    "Yesterday": row["Yesterday"],
+                    "Volume": row["Volume"],
+                    "Value": row["Value"],
+                    "TradeCount": row["TradeCount"],
+                    "Change": row["Change"],
+                    "ChangePct": row["ChangePct"],
+                }
+            )
 
     result = pd.DataFrame(parsed_rows)
 
@@ -508,8 +532,8 @@ def list_bonds(progress=True):
         if result.empty:
             print("No bonds/treasury instruments found.")
         else:
-            bond_types = result['BondType'].value_counts().to_dict()
-            summary = ', '.join(f'{v} {k}' for k, v in bond_types.items())
+            bond_types = result["BondType"].value_counts().to_dict()
+            summary = ", ".join(f"{v} {k}" for k, v in bond_types.items())
             print(f"Done. {len(result)} instruments found ({summary}).")
 
     return result.reset_index(drop=True) if not result.empty else result
@@ -518,6 +542,7 @@ def list_bonds(progress=True):
 # ══════════════════════════════════════════════════════════════
 #  Funds — detailed fund data from TSETMC Fund API
 # ══════════════════════════════════════════════════════════════
+
 
 def list_funds(fund_type=None, progress=True):
     """List investment funds with NAV, returns, portfolio composition and manager info.
@@ -608,7 +633,7 @@ def list_funds(fund_type=None, progress=True):
         types_to_fetch = list(all_type_ids.values())
     elif isinstance(fund_type, str):
         if fund_type not in all_type_ids:
-            valid = ', '.join(sorted(all_type_ids.keys()))
+            valid = ", ".join(sorted(all_type_ids.keys()))
             print(f"Invalid fund_type '{fund_type}'. Valid types: {valid}")
             return None
         types_to_fetch = [all_type_ids[fund_type]]
@@ -616,7 +641,7 @@ def list_funds(fund_type=None, progress=True):
         types_to_fetch = []
         for ft in fund_type:
             if ft not in all_type_ids:
-                valid = ', '.join(sorted(all_type_ids.keys()))
+                valid = ", ".join(sorted(all_type_ids.keys()))
                 print(f"Invalid fund_type '{ft}'. Valid types: {valid}")
                 continue
             types_to_fetch.append(all_type_ids[ft])
@@ -641,46 +666,54 @@ def list_funds(fund_type=None, progress=True):
         try:
             resp = safe_get(url)
             data = resp.json()
-            funds_list = data.get('funds', [])
+            funds_list = data.get("funds", [])
         except Exception as e:
             if progress:
                 print(f"    Warning: failed to fetch {label}: {e}")
             continue
 
         for f in funds_list:
-            all_rows.append({
-                'fund_name': f.get('mfName', ''),
-                'fund_type': label,
-                'reg_no': int(f['regNo']) if f.get('regNo') else None,
-                # NAV & Assets
-                'nav_redemption': f.get('navRed'),
-                'nav_subscription': f.get('navSub'),
-                'nav_statistical': f.get('navStat'),
-                'net_asset': f.get('netAsset'),
-                'units': f.get('units'),
-                'inception_date': f.get('initiationDate', '')[:10] if f.get('initiationDate') else None,
-                # Returns
-                'return_1d': f.get('day1Return'),
-                'return_7d': f.get('day7Return'),
-                'return_30d': f.get('day30Return'),
-                'return_90d': f.get('day90Return'),
-                'return_180d': f.get('day180Return'),
-                'return_365d': f.get('day365Return'),
-                'return_inception': f.get('dayFirstReturn'),
-                # Portfolio composition
-                'pct_stock': f.get('portfolioStock'),
-                'pct_bond': f.get('portfolioBond'),
-                'pct_deposit': f.get('portfolioDeposit'),
-                'pct_cash': f.get('portfolioCash'),
-                'pct_other': f.get('portfolioOther'),
-                'pct_top5': f.get('portfolioFiveBest'),
-                # Managers
-                'manager': f.get('manager'),
-                'investment_manager': f.get('investmentManager'),
-                'custodian': f.get('custodian'),
-                'guarantor': f.get('guarantor') if f.get('guarantor') != '----' else None,
-                'market_maker': f.get('marketMaker'),
-            })
+            all_rows.append(
+                {
+                    "fund_name": f.get("mfName", ""),
+                    "fund_type": label,
+                    "reg_no": int(f["regNo"]) if f.get("regNo") else None,
+                    # NAV & Assets
+                    "nav_redemption": f.get("navRed"),
+                    "nav_subscription": f.get("navSub"),
+                    "nav_statistical": f.get("navStat"),
+                    "net_asset": f.get("netAsset"),
+                    "units": f.get("units"),
+                    "inception_date": (
+                        f.get("initiationDate", "")[:10]
+                        if f.get("initiationDate")
+                        else None
+                    ),
+                    # Returns
+                    "return_1d": f.get("day1Return"),
+                    "return_7d": f.get("day7Return"),
+                    "return_30d": f.get("day30Return"),
+                    "return_90d": f.get("day90Return"),
+                    "return_180d": f.get("day180Return"),
+                    "return_365d": f.get("day365Return"),
+                    "return_inception": f.get("dayFirstReturn"),
+                    # Portfolio composition
+                    "pct_stock": f.get("portfolioStock"),
+                    "pct_bond": f.get("portfolioBond"),
+                    "pct_deposit": f.get("portfolioDeposit"),
+                    "pct_cash": f.get("portfolioCash"),
+                    "pct_other": f.get("portfolioOther"),
+                    "pct_top5": f.get("portfolioFiveBest"),
+                    # Managers
+                    "manager": f.get("manager"),
+                    "investment_manager": f.get("investmentManager"),
+                    "custodian": f.get("custodian"),
+                    "guarantor": (
+                        f.get("guarantor") if f.get("guarantor") != "----" else None
+                    ),
+                    "market_maker": f.get("marketMaker"),
+                }
+            )
 
         if progress and len(funds_list) > 0:
             print(f"    → {len(funds_list)} funds")
@@ -698,11 +731,11 @@ def list_funds(fund_type=None, progress=True):
     df = pd.DataFrame(all_rows)
 
     # Sort by fund_type then fund_name
-    df = df.sort_values(['fund_type', 'fund_name'], ignore_index=True)
+    df = df.sort_values(["fund_type", "fund_name"], ignore_index=True)
 
     if progress:
-        type_counts = df['fund_type'].value_counts()
-        summary = ', '.join(f"{v} {k}" for k, v in type_counts.items())
+        type_counts = df["fund_type"].value_counts()
+        summary = ", ".join(f"{v} {k}" for k, v in type_counts.items())
         print(f"Done. {len(df)} funds total ({summary}).")
 
     return df

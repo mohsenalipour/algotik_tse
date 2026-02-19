@@ -9,18 +9,40 @@ from algotik_tse.core.search import search_stock
 from algotik_tse.core.helper import date_fix
 from algotik_tse.http_client import safe_get
 
-warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # ── Interval mapping (shared) ────────────────────────────────
 _INTERVAL_MAP = {
-    '1min': '1min', '1m': '1min', '1': '1min',
-    '5min': '5min', '5m': '5min', '5': '5min',
-    '15min': '15min', '15m': '15min', '15': '15min',
-    '30min': '30min', '30m': '30min', '30': '30min',
-    '1h': '1h', '1hour': '1h', '60min': '1h', '60m': '1h', '60': '1h',
-    '4h': '4h', '4hour': '4h', '240min': '4h', '240m': '4h', '240': '4h',
-    '12h': '12h', '12hour': '12h', '720min': '12h', '720m': '12h', '720': '12h',
-    'tick': 'tick', 'ticks': 'tick', 'raw': 'tick',
+    "1min": "1min",
+    "1m": "1min",
+    "1": "1min",
+    "5min": "5min",
+    "5m": "5min",
+    "5": "5min",
+    "15min": "15min",
+    "15m": "15min",
+    "15": "15min",
+    "30min": "30min",
+    "30m": "30min",
+    "30": "30min",
+    "1h": "1h",
+    "1hour": "1h",
+    "60min": "1h",
+    "60m": "1h",
+    "60": "1h",
+    "4h": "4h",
+    "4hour": "4h",
+    "240min": "4h",
+    "240m": "4h",
+    "240": "4h",
+    "12h": "12h",
+    "12hour": "12h",
+    "720min": "12h",
+    "720m": "12h",
+    "720": "12h",
+    "tick": "tick",
+    "ticks": "tick",
+    "raw": "tick",
 }
 
 
@@ -40,7 +62,11 @@ def _validate_interval(interval):
     """Validate interval string and return the pandas resample frequency."""
     interval_key = str(interval).lower().strip()
     if interval_key not in _INTERVAL_MAP:
-        print("Invalid interval '{}'. Supported: tick, 1min, 5min, 15min, 30min, 1h, 4h, 12h".format(interval))
+        print(
+            "Invalid interval '{}'. Supported: tick, 1min, 5min, 15min, 30min, 1h, 4h, 12h".format(
+                interval
+            )
+        )
         return None
     return _INTERVAL_MAP[interval_key]
 
@@ -57,26 +83,27 @@ def _resolve_web_id(symbol, progress=True):
     return web_id
 
 
-def _resample_to_candles(df, resample_freq, price_col='Price', volume_col='Volume',
-                         count_col=None):
+def _resample_to_candles(
+    df, resample_freq, price_col="Price", volume_col="Volume", count_col=None
+):
     """Resample a time-indexed DataFrame into OHLCV candles."""
     ohlcv = df[price_col].resample(resample_freq).ohlc()
-    ohlcv.columns = ['Open', 'High', 'Low', 'Close']
-    ohlcv['Volume'] = df[volume_col].resample(resample_freq).sum()
+    ohlcv.columns = ["Open", "High", "Low", "Close"]
+    ohlcv["Volume"] = df[volume_col].resample(resample_freq).sum()
     if count_col and count_col in df.columns:
-        ohlcv['TradeCount'] = df[count_col].resample(resample_freq).count()
+        ohlcv["TradeCount"] = df[count_col].resample(resample_freq).count()
     else:
-        ohlcv['TradeCount'] = df[price_col].resample(resample_freq).count()
+        ohlcv["TradeCount"] = df[price_col].resample(resample_freq).count()
 
     # Drop intervals with no data (NaN)
-    ohlcv.dropna(subset=['Open'], inplace=True)
+    ohlcv.dropna(subset=["Open"], inplace=True)
 
     # Convert types — match stock() output format (clean integers)
-    for col in ['Open', 'High', 'Low', 'Close']:
+    for col in ["Open", "High", "Low", "Close"]:
         ohlcv[col] = ohlcv[col].astype(int)
-    ohlcv['Volume'] = ohlcv['Volume'].astype(int)
-    ohlcv['TradeCount'] = ohlcv['TradeCount'].astype(int)
-    ohlcv.index.name = 'DateTime'
+    ohlcv["Volume"] = ohlcv["Volume"].astype(int)
+    ohlcv["TradeCount"] = ohlcv["TradeCount"].astype(int)
+    ohlcv.index.name = "DateTime"
 
     return ohlcv
 
@@ -95,40 +122,43 @@ def _fetch_today_trades(web_id):
     except (requests.exceptions.RequestException, ValueError, KeyError):
         return None
 
-    trades = data.get('trade', [])
+    trades = data.get("trade", [])
     if not trades:
         return None
 
     df = pd.DataFrame(trades)
 
     # Filter out canceled trades
-    if 'canceled' in df.columns:
-        df = df[df['canceled'] != 1].copy()
+    if "canceled" in df.columns:
+        df = df[df["canceled"] != 1].copy()
 
-    required_cols = ['nTran', 'hEven', 'qTitTran', 'pTran']
+    required_cols = ["nTran", "hEven", "qTitTran", "pTran"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         return None
 
     df = df[required_cols].copy()
-    df.rename(columns={
-        'nTran': 'TradeNo',
-        'hEven': 'Time_raw',
-        'qTitTran': 'Volume',
-        'pTran': 'Price',
-    }, inplace=True)
+    df.rename(
+        columns={
+            "nTran": "TradeNo",
+            "hEven": "Time_raw",
+            "qTitTran": "Volume",
+            "pTran": "Price",
+        },
+        inplace=True,
+    )
 
-    df['Volume'] = pd.to_numeric(df['Volume'], errors='coerce').fillna(0).astype(int)
-    df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
-    df = df[df['Price'] > 0].copy()
+    df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce").fillna(0).astype(int)
+    df["Price"] = pd.to_numeric(df["Price"], errors="coerce")
+    df = df[df["Price"] > 0].copy()
 
     if df.empty:
         return None
 
-    df['Time'] = df['Time_raw'].apply(_heven_to_time_str)
-    today_str = pd.Timestamp.now().strftime('%Y-%m-%d')
-    df['DateTime'] = pd.to_datetime(today_str + ' ' + df['Time'])
-    df.sort_values('TradeNo', inplace=True)
+    df["Time"] = df["Time_raw"].apply(_heven_to_time_str)
+    today_str = pd.Timestamp.now().strftime("%Y-%m-%d")
+    df["DateTime"] = pd.to_datetime(today_str + " " + df["Time"])
+    df.sort_values("TradeNo", inplace=True)
     df.reset_index(drop=True, inplace=True)
 
     return df
@@ -162,50 +192,63 @@ def _fetch_historical_day(web_id, greg_date_str):
     except (requests.exceptions.RequestException, ValueError, KeyError):
         return None
 
-    snapshots = data.get('closingPriceHistory', [])
+    snapshots = data.get("closingPriceHistory", [])
     if not snapshots:
         return None
 
     df = pd.DataFrame(snapshots)
 
-    required_cols = ['hEven', 'pDrCotVal', 'qTotTran5J', 'zTotTran']
+    required_cols = ["hEven", "pDrCotVal", "qTotTran5J", "zTotTran"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         return None
 
     df = df[required_cols].copy()
-    df.rename(columns={
-        'hEven': 'Time_raw',
-        'pDrCotVal': 'Price',
-        'qTotTran5J': 'CumVolume',
-        'zTotTran': 'CumTradeCount',
-    }, inplace=True)
+    df.rename(
+        columns={
+            "hEven": "Time_raw",
+            "pDrCotVal": "Price",
+            "qTotTran5J": "CumVolume",
+            "zTotTran": "CumTradeCount",
+        },
+        inplace=True,
+    )
 
-    df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
-    df['CumVolume'] = pd.to_numeric(df['CumVolume'], errors='coerce').fillna(0)
-    df['CumTradeCount'] = pd.to_numeric(df['CumTradeCount'], errors='coerce').fillna(0)
+    df["Price"] = pd.to_numeric(df["Price"], errors="coerce")
+    df["CumVolume"] = pd.to_numeric(df["CumVolume"], errors="coerce").fillna(0)
+    df["CumTradeCount"] = pd.to_numeric(df["CumTradeCount"], errors="coerce").fillna(0)
 
     # Remove zero-price rows
-    df = df[df['Price'] > 0].copy()
+    df = df[df["Price"] > 0].copy()
     if df.empty:
         return None
 
     # Sort by time
-    df.sort_values('Time_raw', inplace=True)
+    df.sort_values("Time_raw", inplace=True)
     df.reset_index(drop=True, inplace=True)
 
     # Calculate incremental volume and trade count from cumulative values
-    df['Volume'] = df['CumVolume'].diff().fillna(df['CumVolume'].iloc[0]).clip(lower=0).astype(int)
-    df['TradeCount'] = df['CumTradeCount'].diff().fillna(df['CumTradeCount'].iloc[0]).clip(lower=0).astype(int)
+    df["Volume"] = (
+        df["CumVolume"].diff().fillna(df["CumVolume"].iloc[0]).clip(lower=0).astype(int)
+    )
+    df["TradeCount"] = (
+        df["CumTradeCount"]
+        .diff()
+        .fillna(df["CumTradeCount"].iloc[0])
+        .clip(lower=0)
+        .astype(int)
+    )
 
     # Parse time and build DateTime
-    df['Time'] = df['Time_raw'].apply(_heven_to_time_str)
+    df["Time"] = df["Time_raw"].apply(_heven_to_time_str)
 
     # Convert greg_date_str (YYYYMMDD) to date string
-    date_str = "{}-{}-{}".format(greg_date_str[:4], greg_date_str[4:6], greg_date_str[6:8])
-    df['DateTime'] = pd.to_datetime(date_str + ' ' + df['Time'])
+    date_str = "{}-{}-{}".format(
+        greg_date_str[:4], greg_date_str[4:6], greg_date_str[6:8]
+    )
+    df["DateTime"] = pd.to_datetime(date_str + " " + df["Time"])
 
-    return df[['DateTime', 'Price', 'Volume', 'TradeCount']].copy()
+    return df[["DateTime", "Price", "Volume", "TradeCount"]].copy()
 
 
 def _generate_date_range(start_greg, end_greg):
@@ -218,7 +261,7 @@ def _generate_date_range(start_greg, end_greg):
     while current <= end_dt:
         # Skip Iranian weekends: Thursday=3, Friday=4
         if current.weekday() not in (3, 4):
-            dates.append(current.strftime('%Y%m%d'))
+            dates.append(current.strftime("%Y%m%d"))
         current += datetime.timedelta(days=1)
     return dates
 
@@ -226,8 +269,9 @@ def _generate_date_range(start_greg, end_greg):
 # ──────────────────────────────────────────────────────────────
 # PUBLIC API
 # ──────────────────────────────────────────────────────────────
-def stock_intraday(symbol='شتران', interval='1min', start=None, end=None,
-                   progress=True, **kwargs):
+def stock_intraday(
+    symbol="شتران", interval="1min", start=None, end=None, progress=True, **kwargs
+):
     """
     Get intraday trade data for a symbol and aggregate into OHLCV candles.
 
@@ -278,8 +322,8 @@ def stock_intraday(symbol='شتران', interval='1min', start=None, end=None,
                                 start='1404-11-01', end='1404-11-06')
     """
     # Backward compatibility: accept deprecated 'stock_name' keyword
-    if symbol == 'شتران' and 'stock_name' in kwargs:
-        symbol = kwargs.pop('stock_name')
+    if symbol == "شتران" and "stock_name" in kwargs:
+        symbol = kwargs.pop("stock_name")
 
     # ── Validate interval ─────────────────────────────────────────
     resample_freq = _validate_interval(interval)
@@ -317,7 +361,10 @@ def stock_intraday(symbol='شتران', interval='1min', start=None, end=None,
             return None
 
         if progress:
-            print("Fetching {} day(s) of intraday data...".format(len(date_list)), flush=True)
+            print(
+                "Fetching {} day(s) of intraday data...".format(len(date_list)),
+                flush=True,
+            )
 
         all_frames = []
         fetched_days = 0
@@ -328,36 +375,57 @@ def stock_intraday(symbol='شتران', interval='1min', start=None, end=None,
                 fetched_days += 1
                 if progress:
                     jdate = JalaliDate(
-                        datetime.date(int(date_str[:4]), int(date_str[4:6]), int(date_str[6:8]))
+                        datetime.date(
+                            int(date_str[:4]), int(date_str[4:6]), int(date_str[6:8])
+                        )
                     )
-                    print("  Day {}/{}: {} ({}) — {} snapshots".format(
-                        i + 1, len(date_list), date_str, jdate, len(df_day)), flush=True)
+                    print(
+                        "  Day {}/{}: {} ({}) — {} snapshots".format(
+                            i + 1, len(date_list), date_str, jdate, len(df_day)
+                        ),
+                        flush=True,
+                    )
 
         if not all_frames:
-            print("No intraday data found for {} in the specified date range.".format(symbol))
+            print(
+                "No intraday data found for {} in the specified date range.".format(
+                    symbol
+                )
+            )
             return None
 
         df = pd.concat(all_frames, ignore_index=True)
-        df.sort_values('DateTime', inplace=True)
+        df.sort_values("DateTime", inplace=True)
         df.reset_index(drop=True, inplace=True)
 
         # ── Return raw snapshot data if tick requested ────────────
-        if resample_freq == 'tick':
-            df.set_index('DateTime', inplace=True)
-            df.index.name = 'DateTime'
+        if resample_freq == "tick":
+            df.set_index("DateTime", inplace=True)
+            df.index.name = "DateTime"
             if progress:
-                print("Historical snapshot data ready! {} snapshots across {} day(s) for {}".format(
-                    len(df), fetched_days, symbol))
+                print(
+                    "Historical snapshot data ready! {} snapshots across {} day(s) for {}".format(
+                        len(df), fetched_days, symbol
+                    )
+                )
             return df
 
         # ── Resample into candles ─────────────────────────────────
-        df.set_index('DateTime', inplace=True)
-        ohlcv = _resample_to_candles(df, resample_freq, price_col='Price',
-                                     volume_col='Volume', count_col='TradeCount')
+        df.set_index("DateTime", inplace=True)
+        ohlcv = _resample_to_candles(
+            df,
+            resample_freq,
+            price_col="Price",
+            volume_col="Volume",
+            count_col="TradeCount",
+        )
 
         if progress:
-            print("Historical {} candles ready! {} candles across {} day(s) for {}".format(
-                interval, len(ohlcv), fetched_days, symbol))
+            print(
+                "Historical {} candles ready! {} candles across {} day(s) for {}".format(
+                    interval, len(ohlcv), fetched_days, symbol
+                )
+            )
         return ohlcv
 
     # ══════════════════════════════════════════════════════════════
@@ -369,14 +437,14 @@ def stock_intraday(symbol='شتران', interval='1min', start=None, end=None,
         return None
 
     # ── Return raw tick data if requested ─────────────────────────
-    if resample_freq == 'tick':
-        df_tick = df[['DateTime', 'TradeNo', 'Price', 'Volume']].copy()
-        df_tick.set_index('DateTime', inplace=True)
-        df_tick.index.name = 'DateTime'
+    if resample_freq == "tick":
+        df_tick = df[["DateTime", "TradeNo", "Price", "Volume"]].copy()
+        df_tick.set_index("DateTime", inplace=True)
+        df_tick.index.name = "DateTime"
 
         try:
             jdate = JalaliDate.today()
-            df_tick['J-Date'] = str(jdate)
+            df_tick["J-Date"] = str(jdate)
         except Exception:
             pass
 
@@ -385,12 +453,16 @@ def stock_intraday(symbol='شتران', interval='1min', start=None, end=None,
         return df_tick
 
     # ── Resample into OHLCV candles ───────────────────────────────
-    df.set_index('DateTime', inplace=True)
-    ohlcv = _resample_to_candles(df, resample_freq, price_col='Price',
-                                 volume_col='Volume', count_col='TradeNo')
+    df.set_index("DateTime", inplace=True)
+    ohlcv = _resample_to_candles(
+        df, resample_freq, price_col="Price", volume_col="Volume", count_col="TradeNo"
+    )
 
     if progress:
-        print("Intraday {} candles ready! {} candles for {}".format(
-            interval, len(ohlcv), symbol))
+        print(
+            "Intraday {} candles ready! {} candles for {}".format(
+                interval, len(ohlcv), symbol
+            )
+        )
 
     return ohlcv

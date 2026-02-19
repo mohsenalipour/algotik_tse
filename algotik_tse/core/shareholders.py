@@ -19,50 +19,75 @@ def shareholders(symbol="", date=None, include_id=False, **kwargs):
     :return: pandas dataframe
     """
     # Backward compatibility: accept deprecated keyword names
-    if not symbol and 'stock' in kwargs:
-        symbol = kwargs.pop('stock')
-    if 'shh_id' in kwargs:
-        include_id = kwargs.pop('shh_id')
+    if not symbol and "stock" in kwargs:
+        symbol = kwargs.pop("stock")
+    if "shh_id" in kwargs:
+        include_id = kwargs.pop("shh_id")
     web_id = search_stock(search_txt=symbol)
     if web_id is not None and len(web_id) != 0:
         try:
             if date is None:
-                share_holder_id_name = 'shareHolderShareID'
+                share_holder_id_name = "shareHolderShareID"
                 _shareholders_base_url = settings.url_last_share_holders
                 response = safe_get(_shareholders_base_url.format(web_id))
             else:
-                share_holder_id_name = 'shareHolderID'
+                share_holder_id_name = "shareHolderID"
                 new_start, new_end = date_fix(start=date)
                 new_start = new_start.replace("-", "")
                 _shareholders_base_url = settings.url_share_holders_history
                 url = _shareholders_base_url.format(web_id, new_start)
                 response = safe_get(url)
             if response.status_code == 200:
-                share_holders = response.json()['shareHolder'] if date is None else response.json()['shareShareholder']
+                share_holders = (
+                    response.json()["shareHolder"]
+                    if date is None
+                    else response.json()["shareShareholder"]
+                )
                 share_holders_df = pd.DataFrame(share_holders)
-                share_holders_columns = ['shareHolderName', 'numberOfShares', 'perOfShares', 'change', 'changeAmount',
-                                         'dEven']
+                share_holders_columns = [
+                    "shareHolderName",
+                    "numberOfShares",
+                    "perOfShares",
+                    "change",
+                    "changeAmount",
+                    "dEven",
+                ]
 
                 share_holders_columns.append(share_holder_id_name)
                 share_holders_df = share_holders_df.loc[:, share_holders_columns]
-                share_holders_df.rename(columns={'shareHolderName': 'share_holder_name',
-                                                 'numberOfShares': 'number_of_shares',
-                                                 'perOfShares': 'percentage_of_shares', 'change': 'change_state',
-                                                 'changeAmount': 'change_amount', 'dEven': 'date',
-                                                 share_holder_id_name: 'share_holder_id'}, inplace=True)
+                share_holders_df.rename(
+                    columns={
+                        "shareHolderName": "share_holder_name",
+                        "numberOfShares": "number_of_shares",
+                        "perOfShares": "percentage_of_shares",
+                        "change": "change_state",
+                        "changeAmount": "change_amount",
+                        "dEven": "date",
+                        share_holder_id_name: "share_holder_id",
+                    },
+                    inplace=True,
+                )
 
                 if date is not None:
-                    share_holders_df['first_row'] = share_holders_df.groupby('share_holder_id')['number_of_shares'].transform('first')
-                    share_holders_df['last_row'] = share_holders_df.groupby('share_holder_id')[
-                        'number_of_shares'].transform('last')
-                    share_holders_df['change_amount'] = share_holders_df['first_row'] - share_holders_df['last_row']
-                    share_holders_df = share_holders_df.drop(['first_row', 'last_row'], axis=1)
-                    share_holders_df = share_holders_df.loc[share_holders_df['date'] == share_holders_df['date'].max(),
-                                       :]
+                    share_holders_df["first_row"] = share_holders_df.groupby(
+                        "share_holder_id"
+                    )["number_of_shares"].transform("first")
+                    share_holders_df["last_row"] = share_holders_df.groupby(
+                        "share_holder_id"
+                    )["number_of_shares"].transform("last")
+                    share_holders_df["change_amount"] = (
+                        share_holders_df["first_row"] - share_holders_df["last_row"]
+                    )
+                    share_holders_df = share_holders_df.drop(
+                        ["first_row", "last_row"], axis=1
+                    )
+                    share_holders_df = share_holders_df.loc[
+                        share_holders_df["date"] == share_holders_df["date"].max(), :
+                    ]
                 else:
-                    share_holders_df['date'] = settings.today.replace('-', '')
+                    share_holders_df["date"] = settings.today.replace("-", "")
                 if not include_id:
-                    share_holders_df.drop(columns=['share_holder_id'], inplace=True)
+                    share_holders_df.drop(columns=["share_holder_id"], inplace=True)
                 return share_holders_df
         except requests.exceptions.RequestException:
             print("Connection Error!!!")

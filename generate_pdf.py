@@ -2,79 +2,91 @@
 Generate PDF guide: README.md → Beautiful HTML → PDF via Edge headless.
 Usage: python generate_pdf.py
 """
+
 import markdown
 import re
 import os
 import subprocess
 import base64
 
-README_PATH = 'README.md'
-OUTPUT_HTML = 'AlgoTik_TSE_Guide.html'
-OUTPUT_PDF = 'AlgoTik_TSE_Guide.pdf'
-VERSION = '1.0.0'
+README_PATH = "README.md"
+OUTPUT_HTML = "AlgoTik_TSE_Guide.html"
+OUTPUT_PDF = "AlgoTik_TSE_Guide.pdf"
+VERSION = "1.0.0"
 
 # ── Persian/Arabic character detection ──────────────────────────
-PERSIAN_RE = re.compile(r'[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]')
-LATIN_RE = re.compile(r'[A-Za-z]')
+PERSIAN_RE = re.compile(r"[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]")
+LATIN_RE = re.compile(r"[A-Za-z]")
+
 
 def is_predominantly_persian(text):
     """Check if text is predominantly Persian, ignoring code snippets."""
-    clean = re.sub(r'<code>.*?</code>', '', text, flags=re.DOTALL)  # strip code elements
-    clean = re.sub(r'<[^>]+>', '', clean)   # strip HTML tags
-    clean = re.sub(r'`[^`]*`', '', clean)   # strip inline code in markdown
+    clean = re.sub(
+        r"<code>.*?</code>", "", text, flags=re.DOTALL
+    )  # strip code elements
+    clean = re.sub(r"<[^>]+>", "", clean)  # strip HTML tags
+    clean = re.sub(r"`[^`]*`", "", clean)  # strip inline code in markdown
     # Remove anything that looks like code (function calls, etc.)
-    clean = re.sub(r'[A-Za-z_]\w*\([^)]*\)', '', clean)
+    clean = re.sub(r"[A-Za-z_]\w*\([^)]*\)", "", clean)
     persian_count = len(PERSIAN_RE.findall(clean))
     latin_count = len(LATIN_RE.findall(clean))
     return persian_count > 0 and persian_count >= latin_count
 
+
 def is_code_only(text):
     """Check if text is only a code element with no significant Persian text outside it."""
-    without_code = re.sub(r'<code>.*?</code>', '', text, flags=re.DOTALL)
-    without_tags = re.sub(r'<[^>]+>', '', without_code).strip()
+    without_code = re.sub(r"<code>.*?</code>", "", text, flags=re.DOTALL)
+    without_tags = re.sub(r"<[^>]+>", "", without_code).strip()
     return len(without_tags) < 3  # basically only code
+
 
 def add_rtl_attrs(html_body):
     """Add dir=rtl and text-align:right to elements with predominantly Persian text."""
+
     def _rtl_element(match):
         tag = match.group(1)
-        attrs = match.group(2) or ''
+        attrs = match.group(2) or ""
         content = match.group(3)
-        if 'dir=' in attrs:
+        if "dir=" in attrs:
             return match.group(0)
         # Skip if content is essentially just code (no Persian text outside code)
-        if '<code>' in content and is_code_only(content):
+        if "<code>" in content and is_code_only(content):
             return match.group(0)
         if is_predominantly_persian(content):
             return '<{}{} dir="rtl" style="text-align:right">{}</{}>'.format(
-                tag, attrs, content, tag)
+                tag, attrs, content, tag
+            )
         return match.group(0)
 
     # Block-level elements
-    for tag in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li', 'th', 'td']:
+    for tag in ["h1", "h2", "h3", "h4", "h5", "h6", "p", "li", "th", "td"]:
         html_body = re.sub(
-            r'<(' + tag + r')((?:\s[^>]*)?)>(.*?)</' + tag + r'>',
-            _rtl_element, html_body, flags=re.DOTALL)
+            r"<(" + tag + r")((?:\s[^>]*)?)>(.*?)</" + tag + r">",
+            _rtl_element,
+            html_body,
+            flags=re.DOTALL,
+        )
     return html_body
 
+
 # ── Read README ──────────────────────────────────────────────────
-with open(README_PATH, 'r', encoding='utf-8') as f:
+with open(README_PATH, "r", encoding="utf-8") as f:
     md_text = f.read()
 
 # ── Clean up markdown for PDF ───────────────────────────────────
-md_text = re.sub(r'\[!\[.*?\]\(.*?\)\]\(.*?\)\n?', '', md_text)
-md_text = re.sub(r'<div[^>]*>', '', md_text)
-md_text = re.sub(r'</div>', '', md_text)
-md_text = re.sub(r'<details>\s*', '', md_text)
-md_text = re.sub(r'</details>\s*', '', md_text)
-md_text = re.sub(r'<summary>(.*?)</summary>\s*', r'**\1**\n\n', md_text)
-md_text = re.sub(r'<code>(.*?)</code>', r'`\1`', md_text)
+md_text = re.sub(r"\[!\[.*?\]\(.*?\)\]\(.*?\)\n?", "", md_text)
+md_text = re.sub(r"<div[^>]*>", "", md_text)
+md_text = re.sub(r"</div>", "", md_text)
+md_text = re.sub(r"<details>\s*", "", md_text)
+md_text = re.sub(r"</details>\s*", "", md_text)
+md_text = re.sub(r"<summary>(.*?)</summary>\s*", r"**\1**\n\n", md_text)
+md_text = re.sub(r"<code>(.*?)</code>", r"`\1`", md_text)
 
 # ── Convert Markdown to HTML ────────────────────────────────────
 html_body = markdown.markdown(
     md_text,
-    extensions=['tables', 'fenced_code', 'toc', 'attr_list'],
-    output_format='html5',
+    extensions=["tables", "fenced_code", "toc", "attr_list"],
+    output_format="html5",
 )
 
 # ── Add RTL to Persian content ──────────────────────────────────
@@ -82,17 +94,18 @@ print("Adding RTL attributes to Persian content...")
 html_body = add_rtl_attrs(html_body)
 
 # ── Read Vazirmatn font and base64 encode for embedding ─────────
-FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
-font_regular_path = os.path.join(FONT_DIR, 'Vazirmatn-Regular.ttf')
-font_bold_path = os.path.join(FONT_DIR, 'Vazirmatn-Bold.ttf')
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+font_regular_path = os.path.join(FONT_DIR, "Vazirmatn-Regular.ttf")
+font_bold_path = os.path.join(FONT_DIR, "Vazirmatn-Bold.ttf")
 
-with open(font_regular_path, 'rb') as f:
-    font_regular_b64 = base64.b64encode(f.read()).decode('ascii')
-with open(font_bold_path, 'rb') as f:
-    font_bold_b64 = base64.b64encode(f.read()).decode('ascii')
+with open(font_regular_path, "rb") as f:
+    font_regular_b64 = base64.b64encode(f.read()).decode("ascii")
+with open(font_bold_path, "rb") as f:
+    font_bold_b64 = base64.b64encode(f.read()).decode("ascii")
 
 # ── Full HTML document ──────────────────────────────────────────
-html_doc = """<!DOCTYPE html>
+html_doc = (
+    """<!DOCTYPE html>
 <html lang="fa" dir="ltr">
 <head>
 <meta charset="utf-8">
@@ -100,13 +113,17 @@ html_doc = """<!DOCTYPE html>
 <style>
 @font-face {
     font-family: 'Vazirmatn';
-    src: url(data:font/truetype;base64,""" + font_regular_b64 + """) format('truetype');
+    src: url(data:font/truetype;base64,"""
+    + font_regular_b64
+    + """) format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 @font-face {
     font-family: 'Vazirmatn';
-    src: url(data:font/truetype;base64,""" + font_bold_b64 + """) format('truetype');
+    src: url(data:font/truetype;base64,"""
+    + font_bold_b64
+    + """) format('truetype');
     font-weight: bold;
     font-style: normal;
 }
@@ -377,7 +394,9 @@ p > strong:only-child {
     <hr>
     <p class="tags">Stocks &bull; Options &bull; ETFs &bull; Bonds &bull; Funds &bull; Currency</p>
     <p class="tags-fa">سهام &bull; اختیار معامله &bull; صندوق ETF &bull; اوراق بدهی &bull; صندوق‌ها &bull; ارز و سکه</p>
-    <p class="version">Version """ + VERSION + """ &mdash; Python 3.8+</p>
+    <p class="version">Version """
+    + VERSION
+    + """ &mdash; Python 3.8+</p>
     <p class="website">algotik.com</p>
     <p class="author">
         Author: Mohsen Alipour &mdash; alipour@algotik.ir<br>
@@ -386,17 +405,20 @@ p > strong:only-child {
 </div>
 
 <!-- Main Content -->
-""" + html_body + """
+"""
+    + html_body
+    + """
 
 </body>
 </html>
 """
+)
 
 # ── Save HTML ───────────────────────────────────────────────────
 print("Saving HTML...")
-with open(OUTPUT_HTML, 'w', encoding='utf-8') as f:
+with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
     f.write(html_doc)
-print("HTML saved: %s (%.0f KB)" % (OUTPUT_HTML, os.path.getsize(OUTPUT_HTML)/1024))
+print("HTML saved: %s (%.0f KB)" % (OUTPUT_HTML, os.path.getsize(OUTPUT_HTML) / 1024))
 
 # ── Convert to PDF via Playwright (full control, NO browser header/footer) ──
 from playwright.sync_api import sync_playwright
@@ -404,22 +426,22 @@ from playwright.sync_api import sync_playwright
 print("Generating PDF via Playwright...")
 html_abs = os.path.abspath(OUTPUT_HTML)
 pdf_abs = os.path.abspath(OUTPUT_PDF)
-file_url = 'file:///' + html_abs.replace('\\', '/')
+file_url = "file:///" + html_abs.replace("\\", "/")
 
 with sync_playwright() as p:
     browser = p.chromium.launch()
     page = browser.new_page()
-    page.goto(file_url, wait_until='networkidle')
+    page.goto(file_url, wait_until="networkidle")
     page.pdf(
         path=pdf_abs,
-        format='A4',
+        format="A4",
         display_header_footer=False,
         print_background=True,
         margin={
-            'top': '2.5cm',
-            'bottom': '2cm',
-            'left': '2cm',
-            'right': '2cm',
+            "top": "2.5cm",
+            "bottom": "2cm",
+            "left": "2cm",
+            "right": "2cm",
         },
     )
     browser.close()
@@ -447,11 +469,11 @@ reader = PdfReader(OUTPUT_PDF)
 total_pages = len(reader.pages)
 writer = PdfWriter()
 
-LEFT_MARGIN = 56.7    # 2cm in points
-RIGHT_EDGE = 538.6    # A4 width (595.27) - 2cm
-HEADER_Y = 808        # ~1.2cm from top edge
-FOOTER_Y = 25         # ~0.9cm from bottom edge
-LINE_Y = 801          # underline below header text
+LEFT_MARGIN = 56.7  # 2cm in points
+RIGHT_EDGE = 538.6  # A4 width (595.27) - 2cm
+HEADER_Y = 808  # ~1.2cm from top edge
+FOOTER_Y = 25  # ~0.9cm from bottom edge
+LINE_Y = 801  # underline below header text
 
 for i, page in enumerate(reader.pages):
     page_num = i + 1
@@ -461,21 +483,21 @@ for i, page in enumerate(reader.pages):
 
     # ── Header: "AlgoTik TSE" left, "v1.0.0" right ──
     c.setFont("Helvetica", 7)
-    c.setFillColor(HexColor('#999999'))
+    c.setFillColor(HexColor("#999999"))
     c.drawString(LEFT_MARGIN, HEADER_Y, "AlgoTik TSE")
     c.drawRightString(RIGHT_EDGE, HEADER_Y, "v" + VERSION)
     # thin line under header
-    c.setStrokeColor(HexColor('#e0e0e0'))
+    c.setStrokeColor(HexColor("#e0e0e0"))
     c.setLineWidth(0.5)
     c.line(LEFT_MARGIN, LINE_Y, RIGHT_EDGE, LINE_Y)
 
     # ── Footer: page number centered ──
-    c.setFillColor(HexColor('#999999'))
+    c.setFillColor(HexColor("#999999"))
     c.setFont("Helvetica", 7)
     footer_text = "%d / %d" % (page_num, total_pages)
     c.drawCentredString(w / 2, FOOTER_Y, footer_text)
     # thin line above footer
-    c.setStrokeColor(HexColor('#e0e0e0'))
+    c.setStrokeColor(HexColor("#e0e0e0"))
     c.line(LEFT_MARGIN, FOOTER_Y + 12, RIGHT_EDGE, FOOTER_Y + 12)
 
     c.save()
@@ -485,7 +507,7 @@ for i, page in enumerate(reader.pages):
     page.merge_page(overlay_reader.pages[0])
     writer.add_page(page)
 
-with open(OUTPUT_PDF, 'wb') as f:
+with open(OUTPUT_PDF, "wb") as f:
     writer.write(f)
 
 final_kb = os.path.getsize(OUTPUT_PDF) / 1024

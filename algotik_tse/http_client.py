@@ -87,12 +87,12 @@ def safe_get(url, **kwargs):
             time.sleep(settings.rate_limit_delay - elapsed)
 
     # Apply defaults from settings (caller can override any of these)
-    kwargs.setdefault('headers', settings.headers)
-    kwargs.setdefault('timeout', settings.timeout)
-    kwargs.setdefault('verify', settings.ssl_verify)
+    kwargs.setdefault("headers", settings.headers)
+    kwargs.setdefault("timeout", settings.timeout)
+    kwargs.setdefault("verify", settings.ssl_verify)
 
     # Suppress SSL warnings when verification is disabled
-    if not kwargs.get('verify', True):
+    if not kwargs.get("verify", True):
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     session = _get_session()

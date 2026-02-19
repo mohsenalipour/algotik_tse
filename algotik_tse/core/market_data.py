@@ -20,6 +20,7 @@ from ..exceptions import ConnectionError, DataParsingError
 
 # ── helpers ───────────────────────────────────────────────────
 
+
 def _heven_to_time_str(heven):
     """Convert hEven integer (e.g. 125205) to 'HH:MM:SS' string."""
     try:
@@ -57,6 +58,7 @@ def _safe_float(val, default=0.0):
 
 # ── backward-compat shim ─────────────────────────────────────
 
+
 def market_data():
     """Deprecated — use :func:`market_watch` instead.
 
@@ -75,6 +77,7 @@ def market_data():
 # ══════════════════════════════════════════════════════════════
 #  market_watch()
 # ══════════════════════════════════════════════════════════════
+
 
 def market_watch():
     """Get live market data for all instruments in one API call.
@@ -127,7 +130,7 @@ def market_watch():
     if not text:
         raise DataParsingError("Empty response from market watch endpoint")
 
-    parts = text.split('@')
+    parts = text.split("@")
     if len(parts) < 3:
         raise DataParsingError(
             f"Unexpected market watch format: expected at least 3 "
@@ -136,11 +139,11 @@ def market_watch():
 
     # ── Header / market time & index (part 1) ─────────────────
     # Format: "04/11/29 14:11:39,P,3806768.04,..."
-    market_time = ''
+    market_time = ""
     index_value = 0.0
     try:
-        header_text = parts[1].replace('\n', ',').replace('\r', '')
-        header_fields = header_text.split(',')
+        header_text = parts[1].replace("\n", ",").replace("\r", "")
+        header_fields = header_text.split(",")
         if header_fields:
             market_time = header_fields[0].strip()
         if len(header_fields) >= 3:
@@ -176,61 +179,68 @@ def market_watch():
     # 24: (empty)
     # 25: MarketCode       — Market identifier (N1, N2, Z1, P1, ...)
     stock_records = []
-    stock_data = parts[2].strip() if len(parts) > 2 else ''
+    stock_data = parts[2].strip() if len(parts) > 2 else ""
     if stock_data:
-        for item in stock_data.split(';'):
-            fields = item.split(',')
+        for item in stock_data.split(";"):
+            fields = item.split(",")
             if len(fields) < 22:
                 continue
             try:
-                stock_records.append({
-                    'InsCode':        fields[0].strip(),
-                    'ISIN':           fields[1].strip(),
-                    'Symbol':         fields[2].strip(),
-                    'Name':           fields[3].strip(),
-                    'Time':           _heven_to_time_str(fields[4]),
-                    'Yesterday':      _safe_int(fields[5]),
-                    'Close':          _safe_int(fields[6]),
-                    'Last':           _safe_int(fields[7]),
-                    'TradeCount':     _safe_int(fields[8]),
-                    'Volume':         _safe_int(fields[9]),
-                    'Value':          _safe_int(fields[10]),
-                    'Low':            _safe_int(fields[11]),
-                    'High':           _safe_int(fields[12]),
-                    'EPS':            _safe_int(fields[14]),
-                    'PriceYesterday': _safe_int(fields[13]) if len(fields) > 13 else 0,
-                    'Flow':           _safe_int(fields[17]) if len(fields) > 17 else 0,
-                    'SectorCode':     fields[18].strip() if len(fields) > 18 else '',
-                    'MaxAllowed':     _safe_int(fields[19]) if len(fields) > 19 else 0,
-                    'MinAllowed':     _safe_int(fields[20]) if len(fields) > 20 else 0,
-                    'BaseVolume':     _safe_int(fields[21]) if len(fields) > 21 else 0,
-                    'InstrumentType': _safe_int(fields[22]) if len(fields) > 22 else 0,
-                    'NAV':            _safe_int(fields[23]) if len(fields) > 23 else 0,
-                    'MarketCode':     fields[25].strip() if len(fields) > 25 else '',
-                })
+                stock_records.append(
+                    {
+                        "InsCode": fields[0].strip(),
+                        "ISIN": fields[1].strip(),
+                        "Symbol": fields[2].strip(),
+                        "Name": fields[3].strip(),
+                        "Time": _heven_to_time_str(fields[4]),
+                        "Yesterday": _safe_int(fields[5]),
+                        "Close": _safe_int(fields[6]),
+                        "Last": _safe_int(fields[7]),
+                        "TradeCount": _safe_int(fields[8]),
+                        "Volume": _safe_int(fields[9]),
+                        "Value": _safe_int(fields[10]),
+                        "Low": _safe_int(fields[11]),
+                        "High": _safe_int(fields[12]),
+                        "EPS": _safe_int(fields[14]),
+                        "PriceYesterday": (
+                            _safe_int(fields[13]) if len(fields) > 13 else 0
+                        ),
+                        "Flow": _safe_int(fields[17]) if len(fields) > 17 else 0,
+                        "SectorCode": fields[18].strip() if len(fields) > 18 else "",
+                        "MaxAllowed": _safe_int(fields[19]) if len(fields) > 19 else 0,
+                        "MinAllowed": _safe_int(fields[20]) if len(fields) > 20 else 0,
+                        "BaseVolume": _safe_int(fields[21]) if len(fields) > 21 else 0,
+                        "InstrumentType": (
+                            _safe_int(fields[22]) if len(fields) > 22 else 0
+                        ),
+                        "NAV": _safe_int(fields[23]) if len(fields) > 23 else 0,
+                        "MarketCode": fields[25].strip() if len(fields) > 25 else "",
+                    }
+                )
             except Exception:
                 continue
 
     stocks_df = pd.DataFrame(stock_records)
 
     if not stocks_df.empty:
-        stocks_df['Change'] = stocks_df['Close'] - stocks_df['Yesterday']
-        stocks_df['ChangePct'] = (
-            stocks_df['Change'] / stocks_df['Yesterday'].replace(0, float('nan')) * 100
+        stocks_df["Change"] = stocks_df["Close"] - stocks_df["Yesterday"]
+        stocks_df["ChangePct"] = (
+            stocks_df["Change"] / stocks_df["Yesterday"].replace(0, float("nan")) * 100
         ).round(2)
         # Ensure Change is int (int - int = int, but be safe)
-        stocks_df['Change'] = stocks_df['Change'].astype(int)
+        stocks_df["Change"] = stocks_df["Change"].astype(int)
 
     return {
-        'stocks':      stocks_df,
-        'market_time': market_time,
-        'index_value': index_value,
+        "stocks": stocks_df,
+        "market_time": market_time,
+        "index_value": index_value,
     }
 
 
 # ══════════════════════════════════════════════════════════════
 #  market_client_type()
 # ══════════════════════════════════════════════════════════════
+
 
 def market_client_type():
     """Get individual vs institutional trade data for all instruments.
@@ -274,38 +284,38 @@ def market_client_type():
     url = settings.url_client_type_all
     response = safe_get(url)
     if response is None:
-        raise ConnectionError(
-            f"Failed to fetch client type data from {url}"
-        )
+        raise ConnectionError(f"Failed to fetch client type data from {url}")
 
     text = response.text.strip()
     if not text:
         raise DataParsingError("Empty response from client type endpoint")
 
     records = []
-    for item in text.split(';'):
-        fields = item.split(',')
+    for item in text.split(";"):
+        fields = item.split(",")
         if len(fields) < 9:
             continue
         try:
-            records.append({
-                'InsCode':      fields[0],
-                'Buy_I_Count':  _safe_int(fields[1]),
-                'Buy_N_Count':  _safe_int(fields[2]),
-                'Buy_I_Volume': _safe_int(fields[3]),
-                'Buy_N_Volume': _safe_int(fields[4]),
-                'Sell_I_Count': _safe_int(fields[5]),
-                'Sell_N_Count': _safe_int(fields[6]),
-                'Sell_I_Volume':_safe_int(fields[7]),
-                'Sell_N_Volume':_safe_int(fields[8]),
-            })
+            records.append(
+                {
+                    "InsCode": fields[0],
+                    "Buy_I_Count": _safe_int(fields[1]),
+                    "Buy_N_Count": _safe_int(fields[2]),
+                    "Buy_I_Volume": _safe_int(fields[3]),
+                    "Buy_N_Volume": _safe_int(fields[4]),
+                    "Sell_I_Count": _safe_int(fields[5]),
+                    "Sell_N_Count": _safe_int(fields[6]),
+                    "Sell_I_Volume": _safe_int(fields[7]),
+                    "Sell_N_Volume": _safe_int(fields[8]),
+                }
+            )
         except Exception:
             continue
 
     df = pd.DataFrame(records)
 
     if not df.empty:
-        df['Net_I_Volume'] = df['Buy_I_Volume'] - df['Sell_I_Volume']
-        df['Net_N_Volume'] = df['Buy_N_Volume'] - df['Sell_N_Volume']
+        df["Net_I_Volume"] = df["Buy_I_Volume"] - df["Sell_I_Volume"]
+        df["Net_N_Volume"] = df["Buy_N_Volume"] - df["Sell_N_Volume"]
 
     return df
