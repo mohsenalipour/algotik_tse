@@ -17,7 +17,6 @@ from ..http_client import safe_get
 from ..settings import settings
 from ..exceptions import ConnectionError, DataParsingError
 
-
 # ── helpers ───────────────────────────────────────────────────
 
 
