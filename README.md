@@ -20,7 +20,8 @@ All outputs are returned as **Pandas DataFrames** with Jalali (Shamsi) date supp
 - دسترسی به داده‌ها با استفاده از **نماد فارسی** سهم
 - **تعدیل قیمت** خودکار (افزایش سرمایه + سود نقدی)
 - تشخیص هوشمند **جابجایی نماد** بین بازارها
-- دسترسی به **همه شاخص‌های بازار** (صنایع و کل)
+- دسترسی به **همه شاخص‌های بازار** (صنایع و کل) — پشتیبانی از **۴۵ شاخص صنعت**
+- لیست **شاخص‌های بورس** و شرکت‌های هر شاخص صنعت
 - قابلیت دانلود **دسته‌جمعی** سابقه قیمت
 - دریافت اطلاعات **حقیقی‌/حقوقی**
 - دریافت لیست **سهامداران عمده**
@@ -45,41 +46,111 @@ All outputs are returned as **Pandas DataFrames** with Jalali (Shamsi) date supp
 
 ## Table of Contents
 
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [API Reference](#api-reference)
-  - [get_history()](#get_history) — Historical price data
-  - [get_client_type()](#get_client_type) — Retail / Institutional data
-  - [get_capital_increase()](#get_capital_increase) — Capital increase history
-  - [get_detail()](#get_detail) — Full stock detail
-  - [get_info()](#get_info) — Instrument information
-  - [get_stats()](#get_stats) — Instrument statistics
-  - [get_symbols()](#get_symbols) — List all market symbols
-  - [get_shareholders()](#get_shareholders) — Major shareholders
-  - [get_currency()](#get_currency) — Currency & coin prices
-  - [get_intraday()](#get_intraday) — Intraday tick & candle data
-  - [get_market_snapshot()](#get_market_snapshot) — Live market snapshot (all instruments)
-  - [get_market_client_type()](#get_market_client_type) — Bulk individual/institutional data
-  - [list_options()](#list_options) — List all active options
-  - [get_options_chain()](#get_options_chain) — Options chain with Open Interest
-  - [list_etfs()](#list_etfs) — List ETFs with NAV discount
-  - [list_bonds()](#list_bonds) — List bonds & treasury bills with maturity
-  - [list_funds()](#list_funds) — List all investment funds with NAV, returns & portfolio
-- [Legacy Aliases](#legacy-aliases)
-- [Configuration](#configuration)
-- [Examples](#examples)
-  - [Market Screening](#market-screening) — Top volume, gainers & losers
-  - [ETF Discount/Premium](#etf-discountpremium-analysis) — NAV arbitrage
-  - [Currency & Gold](#currency--gold-prices) — Dollar, Euro, Gold Coin
-  - [Options Overview](#options-overview) — Active options & top traded
-  - [Fund Comparison](#fund-comparison) — Equity vs Fixed Income funds
-  - [Bond Maturity](#bond-maturity-analysis) — Sukuk & treasury maturity
-  - [Institutional Money Flow](#institutional-money-flow) — Net buying/selling
-  - [All Asset Types](#all-asset-types-overview) — Market instrument breakdown
-  - [Intraday Candles](#intraday-candle-analysis) — 5min & 1h candles
-  - [Stock Detail & Shareholders](#stock-detail--shareholders) — Company info
-- [Data Sources](#data-sources)
-- [License](#license)
+- [AlgoTik TSE](#algotik-tse)
+    - [🇮🇷 فارسی](#-فارسی)
+      - [ویژگی‌ها:](#ویژگیها)
+        - [🌐 وبسایت: algotik.com | 📱 تلگرام: t.me/algotik](#-وبسایت-algotikcom---تلگرام-tmealgotik)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Quick Start](#quick-start)
+      - [📖 شروع سریع — توضیحات فارسی](#-شروع-سریع--توضیحات-فارسی)
+  - [API Reference](#api-reference)
+    - [`get_history()`](#get_history)
+      - [📖 توضیحات فارسی — `get_history()`](#-توضیحات-فارسی--get_history)
+      - [Standard output (default)](#standard-output-default)
+      - [Full output](#full-output)
+      - [Gregorian dates](#gregorian-dates)
+      - [Auto-adjust off](#auto-adjust-off)
+      - [TSE format](#tse-format)
+      - [Return calculation](#return-calculation)
+      - [Multi-stock](#multi-stock)
+      - [Index support](#index-support)
+    - [`get_client_type()`](#get_client_type)
+      - [📖 توضیحات فارسی — `get_client_type()`](#-توضیحات-فارسی--get_client_type)
+      - [Standard output (12 columns)](#standard-output-12-columns)
+      - [Full output (20 columns)](#full-output-20-columns)
+      - [Date range \& Gregorian](#date-range--gregorian)
+    - [`get_capital_increase()`](#get_capital_increase)
+      - [📖 توضیحات فارسی — `get_capital_increase()`](#-توضیحات-فارسی--get_capital_increase)
+    - [`get_detail()`](#get_detail)
+      - [📖 توضیحات فارسی — `get_detail()`](#-توضیحات-فارسی--get_detail)
+    - [`get_info()`](#get_info)
+      - [📖 توضیحات فارسی — `get_info()`](#-توضیحات-فارسی--get_info)
+    - [`get_stats()`](#get_stats)
+      - [📖 توضیحات فارسی — `get_stats()`](#-توضیحات-فارسی--get_stats)
+    - [`get_shareholders()`](#get_shareholders)
+      - [📖 توضیحات فارسی — `get_shareholders()`](#-توضیحات-فارسی--get_shareholders)
+      - [Current shareholders](#current-shareholders)
+      - [Historical shareholders](#historical-shareholders)
+      - [With shareholder IDs](#with-shareholder-ids)
+    - [`get_symbols()`](#get_symbols)
+      - [📖 توضیحات فارسی — `get_symbols()`](#-توضیحات-فارسی--get_symbols)
+      - [Default: all regular stocks](#default-all-regular-stocks)
+      - [Filter by market](#filter-by-market)
+      - [Filter Payeh by color (تابلو)](#filter-payeh-by-color-تابلو)
+      - [Include additional asset types](#include-additional-asset-types)
+      - [Output as list](#output-as-list)
+    - [`get_currency()`](#get_currency)
+      - [📖 توضیحات فارسی — `get_currency()`](#-توضیحات-فارسی--get_currency)
+      - [Supported names](#supported-names)
+      - [Standard output](#standard-output)
+      - [Persian names work too](#persian-names-work-too)
+      - [With Gregorian dates](#with-gregorian-dates)
+      - [With return calculation](#with-return-calculation)
+      - [Multiple currencies](#multiple-currencies)
+      - [Date range](#date-range)
+    - [`get_intraday()`](#get_intraday)
+      - [📖 توضیحات فارسی — `get_intraday()`](#-توضیحات-فارسی--get_intraday)
+      - [Today's candles (no start/end)](#todays-candles-no-startend)
+      - [4-hour \& 12-hour candles (new intervals)](#4-hour--12-hour-candles-new-intervals)
+      - [Today's raw ticks](#todays-raw-ticks)
+      - [Historical candles (with start/end)](#historical-candles-with-startend)
+      - [Historical raw snapshots](#historical-raw-snapshots)
+    - [`get_market_snapshot()`](#get_market_snapshot)
+      - [📖 توضیحات فارسی — `get_market_snapshot()`](#-توضیحات-فارسی--get_market_snapshot)
+      - [Full output](#full-output-1)
+      - [Stocks DataFrame columns (25 columns)](#stocks-dataframe-columns-25-columns)
+      - [Filter by instrument type](#filter-by-instrument-type)
+      - [Practical examples](#practical-examples)
+    - [`get_market_client_type()`](#get_market_client_type)
+      - [📖 توضیحات فارسی — `get_market_client_type()`](#-توضیحات-فارسی--get_market_client_type)
+      - [Join with get\_market\_snapshot](#join-with-get_market_snapshot)
+    - [`list_options()`](#list_options)
+      - [📖 توضیحات فارسی — `list_options()`](#-توضیحات-فارسی--list_options)
+    - [`get_options_chain()`](#get_options_chain)
+      - [📖 توضیحات فارسی — `get_options_chain()`](#-توضیحات-فارسی--get_options_chain)
+    - [`list_etfs()`](#list_etfs)
+      - [📖 توضیحات فارسی — `list_etfs()`](#-توضیحات-فارسی--list_etfs)
+    - [`list_bonds()`](#list_bonds)
+      - [📖 توضیحات فارسی — `list_bonds()`](#-توضیحات-فارسی--list_bonds)
+      - [Bonds expiring soon](#bonds-expiring-soon)
+    - [`list_funds()`](#list_funds)
+      - [📖 توضیحات فارسی — `list_funds()`](#-توضیحات-فارسی--list_funds)
+      - [All funds](#all-funds)
+      - [Filter by fund type](#filter-by-fund-type)
+      - [Top performers](#top-performers)
+      - [Portfolio analysis](#portfolio-analysis)
+      - [Compare NAVs](#compare-navs)
+  - [Legacy Aliases](#legacy-aliases)
+      - [📖 توضیحات فارسی — نام‌های قدیمی](#-توضیحات-فارسی--نامهای-قدیمی)
+    - [Legacy Parameter Names](#legacy-parameter-names)
+  - [Configuration](#configuration)
+      - [📖 توضیحات فارسی — تنظیمات](#-توضیحات-فارسی--تنظیمات)
+  - [Examples](#examples)
+    - [Market Screening](#market-screening)
+    - [ETF Discount/Premium Analysis](#etf-discountpremium-analysis)
+    - [Currency \& Gold Prices](#currency--gold-prices)
+    - [Options Overview](#options-overview)
+    - [Fund Comparison](#fund-comparison)
+    - [Bond Maturity Analysis](#bond-maturity-analysis)
+    - [Institutional Money Flow](#institutional-money-flow)
+    - [All Asset Types Overview](#all-asset-types-overview)
+    - [Intraday Candle Analysis](#intraday-candle-analysis)
+    - [Stock Detail \& Shareholders](#stock-detail--shareholders)
+  - [Data Sources](#data-sources)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Credits](#credits)
 
 ---
 
@@ -118,6 +189,8 @@ pip install algotik-tse --upgrade
 | `att.list_etfs()` | لیست صندوق‌های ETF با تخفیف/حباب NAV |
 | `att.list_bonds()` | لیست اوراق بدهی (مرابحه، اجاره، خزانه) با سررسید |
 | `att.list_funds()` | لیست صندوق‌های سرمایه‌گذاری با NAV، بازدهی و ترکیب پرتفوی |
+| `att.list_indices()` | لیست همه شاخص‌های بازار (صنایع و کل) با مقادیر لحظه‌ای |
+| `att.get_index_companies('فلزات اساسی')` | لیست شرکت‌های عضو یک شاخص صنعت |
 
 </div>
 
@@ -177,6 +250,13 @@ print(bonds[['Symbol', 'Ticker', 'BondType', 'MaturityJalali', 'DaysToMaturity']
 # Investment funds — NAV, returns, portfolio composition
 funds = att.list_funds()
 equity_funds = att.list_funds(fund_type='equity')
+
+# All market indices (45 industry sectors + general indices)
+indices = att.list_indices()
+
+# Companies in an industry index
+companies = att.get_index_companies('فلزات اساسی')
+companies = att.get_index_companies('بانک')
 ```
 
 ---
@@ -2012,6 +2092,149 @@ print(high_stock[['fund_name', 'pct_stock', 'pct_top5', 'return_365d']])
 # All fixed income funds sorted by redemption NAV
 fixed = att.list_funds(fund_type='fixed_income')
 print(fixed.sort_values('nav_redemption', ascending=False)[['fund_name', 'nav_redemption', 'return_365d', 'net_asset']])
+```
+
+---
+
+### `list_indices()`
+
+Get all market indices with their current values — both industry-sector and general market indices.
+
+<div dir="rtl" align="right">
+
+#### 📖 توضیحات فارسی — `list_indices()`
+
+تابع `list_indices()` **تمام شاخص‌های بازار** (شاخص‌های صنایع و شاخص‌های کلی) را با مقادیر لحظه‌ای برمی‌گرداند.
+
+**ستون‌های خروجی:**
+
+| ستون | توضیح |
+|---|---|
+| `Name` | نام شاخص به فارسی |
+| `InsCode` | کد شناسه منحصربه‌فرد |
+| `Value` | مقدار فعلی شاخص |
+| `High` | بیشترین مقدار امروز |
+| `Low` | کمترین مقدار امروز |
+| `Change` | تغییر مقدار شاخص |
+| `ChangePct` | درصد تغییر |
+
+</div>
+
+```python
+att.list_indices(
+    progress=True,      # bool — show progress messages
+)
+```
+
+```python
+import algotik_tse as att
+
+indices = att.list_indices()
+print(indices.head(10))
+```
+```
+                        Name             InsCode       Value        High         Low     Change  ChangePct
+0                  شاخص کل   32097828799138957  3806743.94  3821044.37  3800000.12  -15301.06      -0.40
+1            شاخص کل هم وزن   67130298613737946   863421.32   868912.54   862100.00   -5491.22      -0.63
+2              27-فلزات اساسی  32453344048876642  4090060.00  4090060.00  3986100.00  -96194.00      -2.36
+3                   28-سیمان  70077233737515808    19350.50    19387.20    19200.10     -37.30      -0.19
+4   30-محصولات شیمیایی         33626672012415176   142530.00   143200.00   141800.00    -670.00      -0.47
+```
+
+```python
+# Filter for industry indices
+industry = indices[indices['Name'].str.match(r'^\d{2}-')]
+print(f"Industry indices: {len(industry)}")
+
+# Find a specific index
+metal = indices[indices['Name'].str.contains('فلزات')]
+print(metal[['Name', 'Value', 'ChangePct']])
+```
+
+---
+
+### `get_index_companies()`
+
+Get the list of companies belonging to a specific industry index.
+
+<div dir="rtl" align="right">
+
+#### 📖 توضیحات فارسی — `get_index_companies()`
+
+تابع `get_index_companies()` لیست **شرکت‌های عضو** یک شاخص صنعت را برمی‌گرداند.
+
+**ورودی:** نام شاخص صنعت به فارسی — انعطاف‌پذیر:
+- نام ساده: `'فلزات اساسی'`، `'بانک'`، `'دارو'`
+- با پیشوند شاخص: `'شاخص فلزات اساسی'`
+- با پیشوند شاخص صنعت: `'شاخص صنعت فلزات اساسی'`
+- با حروف عربی: `'شيميايي'`، `'بانك'` — تبدیل خودکار انجام می‌شود
+- با کد مستقیم: `'32453344048876642'`
+
+**۴۵ صنعت پشتیبانی‌شده:** زراعت، ذغال سنگ، استخراج نفت، کانه فلزی، سایر معادن، منسوجات، محصولات چرمی، محصولات چوبی، محصولات کاغذ، انتشار و چاپ، فراورده نفتی، لاستیک، فلزات اساسی، محصولات فلزی، ماشین آلات، دستگاههای برقی، وسایل ارتباطی، ابزار پزشکی، خودرو، حمل و نقل، مبلمان، قند و شکر، چند رشته ای صنعتی، آب/برق/گاز، غذایی، دارویی، شیمیایی، پیمانکاری، خرده فروشی، کاشی و سرامیک، سیمان، کانی غیرفلزی، هتل و رستوران، سرمایه‌گذاری، بانک، سایرمالی، حمل و نقل آبی، رادیویی/مخابرات، مالی، بیمه، اداره بازارهای مالی، انبوه‌سازی، رایانه، اطلاعات و ارتباطات، فنی مهندسی
+
+**ستون‌های خروجی:**
+
+| ستون | توضیح |
+|---|---|
+| `Symbol` | نماد فارسی (مثلاً `'فولاد'`) |
+| `Name` | نام کامل شرکت |
+| `InsCode` | کد شناسه نماد |
+| `Close` | قیمت پایانی |
+| `Yesterday` | قیمت دیروز |
+| `Last` | آخرین قیمت معامله |
+
+</div>
+
+```python
+att.get_index_companies(
+    index_name='فلزات اساسی',  # str — industry name or InsCode
+    progress=True,              # bool — show progress messages
+)
+```
+
+```python
+import algotik_tse as att
+
+# By bare name
+companies = att.get_index_companies('فلزات اساسی')
+print(companies)
+```
+```
+   Symbol                    Name             InsCode   Close  Yesterday   Last
+0   فولاد        فولاد مباركه اصفهان   46348559193224090   19990      20510  19780
+1   فملی     ملی صنایع مس ایران        35425587644337450   14030      14310  14030
+2   کاوه    فولاد کاوه جنوب کیش         7745894403636165   18150      18870  17890
+...
+```
+
+```python
+# Different name formats — all equivalent
+att.get_index_companies('بانک')                      # bare alias
+att.get_index_companies('شاخص بانکها')               # with شاخص prefix
+att.get_index_companies('شاخص صنعت بانکها')          # with شاخص صنعت prefix
+att.get_index_companies('بانك')                      # Arabic ك — auto-normalized
+
+# More examples
+att.get_index_companies('دارو')                      # Pharmaceutical
+att.get_index_companies('سیمان')                     # Cement
+att.get_index_companies('شیمیایی')                   # Chemical
+att.get_index_companies('رایانه')                    # Computer
+att.get_index_companies('32453344048876642')          # By InsCode directly
+```
+
+#### Industry index history + member companies
+
+```python
+import algotik_tse as att
+
+# Get industry index price history
+idx = att.get_history('شاخص صنعت فلزات اساسی', limit=30)
+print(idx.tail())
+
+# Get companies in that index
+companies = att.get_index_companies('فلزات اساسی')
+print(f"\n{len(companies)} companies in Basic Metals index:")
+print(companies[['Symbol', 'Close', 'Last']])
 ```
 
 ---

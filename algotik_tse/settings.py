@@ -92,6 +92,12 @@ class Settings:
         self.url_industry_intra = (
             "https://cdn.tsetmc.com/api/Index/GetIndexB1LastDay/{}"
         )
+        self.url_all_indices = (
+            "https://cdn.tsetmc.com/api/Index/GetIndexB1LastAll/All/1"
+        )
+        self.url_index_companies = (
+            "https://cdn.tsetmc.com/api/ClosingPrice/GetIndexCompany/{}"
+        )
         self.url_client_type = "http://old.tsetmc.com/tsev2/data/clienttype.aspx?i={}"
         self.url_last_share_holders = (
             "https://cdn.tsetmc.com/api/Shareholder/GetInstrumentShareHolderLast/{}"

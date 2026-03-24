@@ -739,3 +739,161 @@ def list_funds(fund_type=None, progress=True):
         print(f"Done. {len(df)} funds total ({summary}).")
 
     return df
+
+
+# ══════════════════════════════════════════════════════════════
+#  Indices
+# ══════════════════════════════════════════════════════════════
+
+
+def list_indices(progress=True):
+    """Get all market indices with their current values.
+
+    Fetches data from the TSETMC Index API and returns a DataFrame of
+    all available indices (both industry-sector and general market indices).
+
+    Parameters
+    ----------
+    progress : bool, default True
+        Print progress messages.
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns:
+
+        - ``Name`` — Index name in Persian (e.g. ``'27-فلزات اساسی'``)
+        - ``InsCode`` — Unique instrument code (str)
+        - ``Value`` — Current index value
+        - ``High`` — Highest value today
+        - ``Low`` — Lowest value today
+        - ``Change`` — Index change value
+        - ``ChangePct`` — Change percentage
+
+    Examples
+    --------
+    >>> import algotik_tse as att
+    >>> indices = att.list_indices()
+    >>> indices[indices['Name'].str.contains('فلزات')]
+    """
+    if progress:
+        print("Fetching indices data...")
+
+    try:
+        resp = safe_get(settings.url_all_indices)
+        data = resp.json()["indexB1"]
+    except Exception as e:
+        print("Error fetching indices: {}".format(e))
+        return pd.DataFrame()
+
+    rows = []
+    for item in data:
+        rows.append(
+            {
+                "Name": item.get("lVal30", ""),
+                "InsCode": str(item.get("insCode", "")),
+                "Value": item.get("xDrNivJIdx004", 0),
+                "High": item.get("xPhNivJIdx004", 0),
+                "Low": item.get("xPbNivJIdx004", 0),
+                "Change": item.get("xVarIdxJRfV", 0),
+                "ChangePct": item.get("indexChange", 0),
+            }
+        )
+
+    df = pd.DataFrame(rows)
+
+    if progress:
+        print("Done. {} indices returned.".format(len(df)))
+
+    return df
+
+
+def get_index_companies(index_name, progress=True):
+    """Get companies belonging to a specific index.
+
+    Parameters
+    ----------
+    index_name : str
+        Name of the index in Persian (e.g. ``'شاخص صنعت فلزات اساسی'``,
+        ``'فلزات اساسی'``, ``'بانک'``) or InsCode directly (all digits).
+    progress : bool, default True
+        Print progress messages.
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns:
+
+        - ``Symbol`` — Stock symbol (e.g. ``'فولاد'``)
+        - ``Name`` — Full company name
+        - ``InsCode`` — Instrument code (str)
+        - ``Close`` — Closing price
+        - ``Yesterday`` — Yesterday's closing price
+        - ``Last`` — Last traded price
+
+    Examples
+    --------
+    >>> import algotik_tse as att
+    >>> companies = att.get_index_companies('فلزات اساسی')
+    >>> companies = att.get_index_companies('شاخص بانک')
+    """
+    from algotik_tse.core.search import (
+        search_stock,
+        _normalize_fa,
+        _INDUSTRY_DICT,
+    )
+
+    # Resolve index name to web_id
+    web_id = None
+
+    # Check if it's already a web_id (all digits)
+    if index_name.isdigit():
+        web_id = index_name
+    else:
+        # Try industry lookup with normalization
+        normalized = _normalize_fa(index_name)
+        if normalized in _INDUSTRY_DICT:
+            web_id = _INDUSTRY_DICT[normalized]
+        else:
+            # Try general index via search_stock
+            result = search_stock(index_name)
+            if result and result.endswith("industry"):
+                web_id = result[:-8]
+            elif result and result.endswith("index"):
+                web_id = result[:-5]
+            else:
+                print("Index '{}' not found.".format(index_name))
+                return pd.DataFrame()
+
+    if progress:
+        print("Fetching companies for index {}...".format(web_id))
+
+    try:
+        resp = safe_get(settings.url_index_companies.format(web_id))
+        data = resp.json()
+    except Exception as e:
+        print("Error fetching index companies: {}".format(e))
+        return pd.DataFrame()
+
+    companies = data.get("indexCompany", [])
+
+    rows = []
+    for item in companies:
+        inst = item.get("instrument") or {}
+        rows.append(
+            {
+                "Symbol": inst.get("lVal18AFC", ""),
+                "Name": inst.get("lVal30", ""),
+                "InsCode": str(item.get("insCode", "")),
+                "Close": item.get("pClosing", 0),
+                "Yesterday": item.get("priceYesterday", 0),
+                "Last": item.get("pDrCotVal", 0),
+            }
+        )
+
+    df = pd.DataFrame(rows)
+
+    if progress:
+        print("Done. {} companies returned.".format(len(df)))
+
+    return df

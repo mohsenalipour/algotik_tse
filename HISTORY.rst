@@ -2,6 +2,14 @@
 History
 =======
 
+1.0.2 (2026-03-24)
+------------------
+* Expanded industry index support from 11 to 44 sectors — all TSETMC industry indices are now supported.
+* Added Arabic/Persian character normalization for index name matching (ي/ی, ك/ک).
+* Added ``list_indices()`` — get all market indices with current values.
+* Added ``get_index_companies()`` — get companies belonging to a specific index.
+* Users can now query any industry index by name variants (e.g. ``'بانک'``, ``'شاخص بانک'``, ``'شاخص صنعت بانکها'``).
+
 1.0.1 (2026-02-19)
 ------------------
 * Added ``lxml`` and ``openpyxl`` to install requirements.

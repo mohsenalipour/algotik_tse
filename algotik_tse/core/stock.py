@@ -6,7 +6,7 @@ import pandas as pd
 from persiantools import characters
 
 from algotik_tse.settings import settings
-from algotik_tse.core.search import search_stock
+from algotik_tse.core.search import search_stock, INDUSTRY_NAMES
 from algotik_tse.core.helper import (
     date_fix,
     add_date_columns,
@@ -152,19 +152,6 @@ def stock(
         if new_start is not None or new_end is not None:
             mvalues = 0
         if isIndustry:
-            industry_name = {
-                "32453344048876642": "Basic Metals",
-                "70077233737515808": "Cement",
-                "20213770409093165": "Automobile",
-                "33626672012415176": "Chemical",
-                "24733701189547084": "Communication",
-                "25163959460949732": "Other Financial",
-                "59288237226302898": "Textiles",
-                "57616105980228781": "Tile and Ceramic",
-                "25766336681098389": "Publishing",
-                "62691002126902464": "Mines",
-                "69306841376553334": "Leather Products",
-            }
             try:
                 data = {
                     "<TICKER>": [],
@@ -184,7 +171,9 @@ def stock(
                     for value in fopen["indexB2"]
                 }
                 for key, value in day_dict.items():
-                    data["<TICKER>"].append(industry_name[web_id])
+                    data["<TICKER>"].append(
+                        INDUSTRY_NAMES.get(web_id, "Unknown Industry")
+                    )
                     date_str = str(key)
                     date_iso = date_str[:4] + "-" + date_str[4:6] + "-" + date_str[6:]
                     data["<DTYYYYMMDD>"].append(datetime.date.fromisoformat(date_iso))

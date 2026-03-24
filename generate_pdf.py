@@ -12,7 +12,7 @@ import base64
 README_PATH = "README.md"
 OUTPUT_HTML = "AlgoTik_TSE_Guide.html"
 OUTPUT_PDF = "AlgoTik_TSE_Guide.pdf"
-VERSION = "1.0.0"
+VERSION = "1.0.2"
 
 # ── Persian/Arabic character detection ──────────────────────────
 PERSIAN_RE = re.compile(r"[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]")

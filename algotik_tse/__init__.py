@@ -63,7 +63,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 from algotik_tse.settings import settings
 from algotik_tse.core.stock_detail import (
@@ -83,6 +83,8 @@ from algotik_tse.core.instruments import (
     list_etfs,
     list_bonds,
     list_funds,
+    list_indices,
+    get_index_companies,
 )
 
 # ── Standard API aliases (recommended) ────────────────────────
@@ -311,6 +313,9 @@ __all__ = [
     "list_etfs",
     "list_bonds",
     "list_funds",
+    # ── Indices ──
+    "list_indices",
+    "get_index_companies",
     # ── Legacy names (backward compatible) ──
     "stock",
     "stock_RI",
