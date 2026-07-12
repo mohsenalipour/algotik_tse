@@ -178,3 +178,30 @@ def search_stock(search_txt="شتران"):
         print("Search Error: {}".format(e))
         return None
     return stock_id
+
+
+def search_stock_symbol(search_txt="فملی"):
+    """Resolve the canonical TSETMC symbol string for a search term.
+
+    Some TSETMC/Codal endpoints are keyed by the *symbol* (as TSETMC stores
+    it, using Arabic ك/ي) rather than by ``insCode``/``web_id``. This helper
+    returns the canonical symbol (the ``lVal18AFC`` field of the first search
+    hit), which also transparently maps Persian ک/ی → Arabic and validates
+    that the instrument exists.
+
+    :param search_txt: symbol name in Persian (e.g. ``'فملی'``).
+    :return: canonical symbol ``str`` (e.g. ``'فملي'``), or ``None`` if not found.
+    """
+    try:
+        res_search = safe_get(settings.url_search.format(search_txt)).json()[
+            "instrumentSearch"
+        ]
+        if len(res_search) > 0:
+            return res_search[0].get("lVal18AFC")
+        return None
+    except requests.exceptions.RequestException:
+        print("Connection Error!")
+        return None
+    except (ValueError, KeyError, IndexError, TypeError) as e:
+        print("Search Error: {}".format(e))
+        return None

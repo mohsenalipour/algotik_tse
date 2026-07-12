@@ -112,6 +112,9 @@ class Settings:
         self.url_instrument_statistics = (
             "https://cdn.tsetmc.com/api/MarketData/GetInstrumentStatistic/{}"
         )
+        self.url_codal_publisher = (
+            "https://cdn.tsetmc.com/api/Codal/GetCodalPublisherBySymbol/{}"
+        )
         self.url_currency_from_tgju = (
             "https://api.tgju.org/v1/market/indicator/summary-table-data/{}"
         )

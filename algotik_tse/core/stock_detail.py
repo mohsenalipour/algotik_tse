@@ -1,9 +1,10 @@
 import warnings
+import urllib.parse
 from io import StringIO
 import pandas as pd
 from persiantools import characters
 from algotik_tse.settings import settings
-from algotik_tse.core.search import search_stock
+from algotik_tse.core.search import search_stock, search_stock_symbol
 from algotik_tse.http_client import safe_get
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -125,4 +126,50 @@ def stock_statistics(symbol="", **kwargs):
                 return None
     else:
         print("Stock Not Found, Please try again ...")
+        return None
+
+
+def stock_introduction(symbol="", **kwargs):
+    """Get the company introduction / profile (معرفی) for a symbol.
+
+    Fetches the Codal *publisher* record for a stock from TSETMC, which
+    contains company identity data: full name, ISIC code, executive and
+    financial managers, activity subject, addresses, contact info, auditor,
+    listed capital, financial year-end, national ID, and more.
+
+    The Codal endpoint is keyed by the *symbol* (not ``web_id``), so the
+    canonical symbol is first resolved via
+    :func:`algotik_tse.core.search.search_stock_symbol` (which also maps
+    Persian ک/ی → Arabic ك/ي as the endpoint expects).
+
+    :param symbol: symbol name in Persian (e.g. ``'فملی'``).
+    :return: pandas DataFrame with raw fields (index ``key``, column
+        ``value``), or ``None`` if the symbol is not found / has no publisher
+        record (e.g. indices).
+    """
+    # Backward compatibility: accept deprecated 'stock' keyword
+    if not symbol and "stock" in kwargs:
+        symbol = kwargs.pop("stock")
+    canonical = search_stock_symbol(search_txt=symbol)
+    if canonical is None or len(canonical) == 0:
+        print("Stock Not Found, Please try again ...")
+        return None
+    encoded = urllib.parse.quote(canonical)
+    detail = safe_get(settings.url_codal_publisher.format(encoded))
+    if detail.status_code == 200:
+        try:
+            publisher = detail.json().get("codalPublisher")
+        except ValueError:
+            print("Connection Error!!!")
+            return None
+        if not publisher:
+            print("No introduction (Codal publisher) data found for this symbol!")
+            return None
+        df = pd.DataFrame([publisher]).T
+        df.reset_index(inplace=True)
+        df.rename(columns={"index": "key", 0: "value"}, inplace=True)
+        df.set_index("key", inplace=True)
+        return df
+    else:
+        print("Connection Error!!!")
         return None

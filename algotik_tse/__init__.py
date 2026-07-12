@@ -27,6 +27,9 @@ Quick Start
     att.get_info('شتران')
     att.get_stats('شتران')
 
+    # Company introduction / profile (Codal publisher)
+    att.get_introduction('شتران')
+
     # Shareholders & capital increases
     att.get_shareholders('شتران')
     att.get_capital_increase('شتران')
@@ -63,13 +66,14 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 from algotik_tse.settings import settings
 from algotik_tse.core.stock_detail import (
     stockdetail,
     stock_information,
     stock_statistics,
+    stock_introduction,
 )
 from algotik_tse.core.stock_list import stocklist
 from algotik_tse.core.stock import stock, stock_RI, stock_RL, stock_capital_increase
@@ -198,6 +202,11 @@ def get_stats(symbol="", **kwargs):
     return stock_statistics(symbol=symbol, **kwargs)
 
 
+def get_introduction(symbol="", **kwargs):
+    """Get company introduction / profile (معرفی) — Codal publisher record."""
+    return stock_introduction(symbol=symbol, **kwargs)
+
+
 def get_symbols(
     bourse=True,
     farabourse=True,
@@ -302,6 +311,7 @@ __all__ = [
     "get_detail",
     "get_info",
     "get_stats",
+    "get_introduction",
     "get_symbols",
     "get_shareholders",
     "get_currency",
@@ -325,6 +335,7 @@ __all__ = [
     "stockdetail",
     "stock_information",
     "stock_statistics",
+    "stock_introduction",
     "stocklist",
     "shareholders",
     "currency_coin",

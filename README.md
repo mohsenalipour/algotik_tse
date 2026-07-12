@@ -78,6 +78,8 @@ All outputs are returned as **Pandas DataFrames** with Jalali (Shamsi) date supp
       - [📖 توضیحات فارسی — `get_info()`](#-توضیحات-فارسی--get_info)
     - [`get_stats()`](#get_stats)
       - [📖 توضیحات فارسی — `get_stats()`](#-توضیحات-فارسی--get_stats)
+    - [`get_introduction()`](#get_introduction)
+      - [📖 توضیحات فارسی — `get_introduction()`](#-توضیحات-فارسی--get_introduction)
     - [`get_shareholders()`](#get_shareholders)
       - [📖 توضیحات فارسی — `get_shareholders()`](#-توضیحات-فارسی--get_shareholders)
       - [Current shareholders](#current-shareholders)
@@ -180,6 +182,7 @@ pip install algotik-tse --upgrade
 |---|---|
 | `att.get_history('شتران')` | دریافت سابقه قیمت تعدیل شده سهم |
 | `att.get_client_type('شتران')` | دریافت اطلاعات حقیقی/حقوقی |
+| `att.get_introduction('شتران')` | معرفی/شناسنامه شرکت (مدیرعامل، موضوع فعالیت، سرمایه و ...) |
 | `att.get_symbols()` | لیست تمام نمادهای بازار (سهام، اوراق، اختیار، صندوق و ...) |
 | `att.get_currency('dollar')` | قیمت دلار آمریکا |
 | `att.get_intraday('شتران')` | کندل‌های ۱ دقیقه‌ای امروز |
@@ -749,6 +752,74 @@ key
 - **Shape:** (88, 1) — 88 key-value rows
 - **Index:** `key` (str) — Persian statistic names
 - **Column:** `value`
+
+---
+
+### `get_introduction()`
+
+Get the **company introduction / profile** (معرفی شرکت) — the Codal *publisher*
+record from TSETMC. Contains company identity data: full name, ISIC code,
+executive & financial managers, activity subject, addresses, contact info,
+auditor, listed capital, financial year-end, and national ID.
+
+<div dir="rtl" align="right">
+
+#### 📖 توضیحات فارسی — `get_introduction()`
+
+تابع `get_introduction()` **معرفی/شناسنامه‌ی شرکت** را از سرویس کدال سایت TSETMC برمی‌گرداند — همان بخش «معرفی» در صفحه‌ی نماد.
+
+**نکته‌ی فنی:** این endpoint با **خودِ نماد** کار می‌کند (نه `web_id`)، بنابراین نماد ابتدا از طریق جست‌وجوی TSETMC به شکل استاندارد (کاراکتر عربی) تبدیل می‌شود؛ پس هم `'فملی'` و هم `'فملي'` کار می‌کنند.
+
+**فیلدهای مهم خروجی:**
+
+| کلید | توضیح |
+|---|---|
+| `name` | نام کامل شرکت |
+| `symbol` / `displaySymbol` | نماد |
+| `isic` | کد آیسیک (ISIC) |
+| `executiveManager` | مدیرعامل |
+| `financialManager` | مدیر مالی |
+| `activitySubject` | موضوع فعالیت |
+| `address` | نشانی مجتمع/کارخانه |
+| `officeAddress` | نشانی دفتر مرکزی |
+| `shareOfficeAddress` | نشانی امور سهام |
+| `telNo` / `faxNo` | تلفن / فکس |
+| `website` / `email` | وبسایت / ایمیل |
+| `inspector` | بازرس قانونی |
+| `auditorName` | حسابرس |
+| `listedCapital` | سرمایه ثبت‌شده |
+| `financialYear` | پایان سال مالی (مثلاً `12/29`) |
+| `nationalCode` | شناسه ملی |
+
+- خروجی: دیتافریم کلید-مقدار (ایندکس `key`، ستون `value`) — تمام فیلدها با نام خام انگلیسی، هم‌شکل `get_info()`
+- برای **شاخص‌ها** یا نمادهایی که رکورد ناشر ندارند، مقدار `None` برمی‌گردد
+
+</div>
+
+```python
+df = att.get_introduction('فملی')
+```
+```
+                                                             value
+key
+id                                                            8954
+symbol                                                        فملي
+displaySymbol                                                 فملي
+name                                            ملی صنایع مس ایران
+isic                                                        272006
+executiveManager                             سيدمصطفي فيض اردکاني
+financialManager                                    بهنام عبادی ابلی
+telNo                                                 021-88724410
+website                                             www.nicico.com
+email                                            office@nicico.com
+listedCapital                                          1050000000
+financialYear                                                12/29
+nationalCode                                          10100582059
+...
+```
+- **Index:** `key` (str) — raw Codal field names
+- **Column:** `value`
+- Works with either Persian (`'فملی'`) or Arabic (`'فملي'`) spelling.
 
 ---
 
@@ -2260,6 +2331,7 @@ For **backward compatibility**, the original function names are still available 
 | `get_detail()` | `stockdetail()` | Full stock detail |
 | `get_info()` | `stock_information()` | Instrument information |
 | `get_stats()` | `stock_statistics()` | Instrument statistics |
+| `get_introduction()` | `stock_introduction()` | Company introduction / profile |
 | `get_symbols()` | `stocklist()` | List all symbols |
 | `get_shareholders()` | `shareholders()` | Major shareholders |
 | `get_currency()` | `currency_coin()` | Currency & coin prices |

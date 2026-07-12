@@ -239,6 +239,15 @@ def test_stock_statistics_2():
     return att.stock_statistics(stock="شتران")
 
 
+# ─── stock_introduction() / get_introduction() ───────────────
+def test_stock_introduction():
+    return att.stock_introduction(stock="فملی")
+
+
+def test_get_introduction_alias():
+    return att.get_introduction("شتران")
+
+
 # ─── 29-31. shareholders() ───────────────────────────────────
 def test_shareholders_latest():
     return att.shareholders(stock="شتران")
@@ -896,6 +905,9 @@ if __name__ == "__main__":
         (88, "NEW: list_funds(multi types)", test_list_funds_multi),
         (89, "NEW: list_funds nav & returns", test_list_funds_nav_data),
         (90, "NEW: list_funds invalid type", test_list_funds_invalid),
+        # ── Company introduction (Codal publisher) ──
+        (91, "NEW: stock_introduction(فملی)", test_stock_introduction),
+        (92, "NEW: get_introduction() alias", test_get_introduction_alias),
     ]
 
     total_start = time.time()

@@ -2,6 +2,13 @@
 History
 =======
 
+1.0.3 (2026-07-12)
+------------------
+* Added ``get_introduction()`` (and legacy alias ``stock_introduction()``) — fetches the company introduction / profile (معرفی) from the Codal publisher endpoint, returning identity data such as full name, ISIC code, executive/financial managers, activity subject, addresses, auditor, listed capital, financial year-end, and national ID.
+* Added ``search_stock_symbol()`` helper — resolves the canonical TSETMC symbol (with Persian ک/ی → Arabic ك/ي mapping) for symbol-keyed endpoints.
+* Added ``url_codal_publisher`` setting for the Codal publisher endpoint.
+* Indices (e.g. ``'شاخص کل'``) correctly return ``None`` as they have no Codal publisher record.
+
 1.0.2 (2026-03-24)
 ------------------
 * Expanded industry index support from 11 to 44 sectors — all TSETMC industry indices are now supported.
