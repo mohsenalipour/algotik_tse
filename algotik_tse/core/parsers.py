@@ -8,7 +8,6 @@ Name string (e.g. option type, strike price, expiry date).
 import re
 from persiantools.jdatetime import JalaliDate
 
-
 # ══════════════════════════════════════════════════════════════
 #  Option name parsing
 # ══════════════════════════════════════════════════════════════

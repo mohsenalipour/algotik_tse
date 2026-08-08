@@ -6,8 +6,8 @@ from algotik_tse.http_client import safe_get
 def _normalize_fa(text):
     """Normalize Arabic/Persian character variants for matching."""
     text = text.strip()
-    text = text.replace("\u0643", "\u06A9")  # Arabic ك → Persian ک
-    text = text.replace("\u064A", "\u06CC")  # Arabic ي → Persian ی
+    text = text.replace("\u0643", "\u06a9")  # Arabic ك → Persian ک
+    text = text.replace("\u064a", "\u06cc")  # Arabic ي → Persian ی
     text = text.replace("\u200c", " ")  # half-space → space
     text = " ".join(text.split())  # collapse whitespace
     return text
