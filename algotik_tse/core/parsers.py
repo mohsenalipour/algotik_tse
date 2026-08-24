@@ -6,7 +6,12 @@ Name string (e.g. option type, strike price, expiry date).
 """
 
 import re
+from persiantools import characters
 from persiantools.jdatetime import JalaliDate
+
+from algotik_tse._clock import tehran_today
+
+_PERSIAN_ARABIC_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -162,6 +167,46 @@ def parse_bond_name(name):
 # The maturity is the trailing 6-digit date at end of name (or before parenthesis).
 _TREASURY_MATURITY_RE = re.compile(r"(\d{6})\s*(?:\(|$)")
 _TREASURY_TICKER_RE = re.compile(r"\(([^)]+)\)")
+_TREASURY_SYMBOL_MATURITY_RE = re.compile(r"اخزا([0-9]{6})")
+
+
+def parse_treasury_maturity(symbol):
+    """Parse the authoritative Jalali maturity encoded in an اخزا symbol.
+
+    TSETMC treasury symbols encode maturity immediately after ``اخزا`` as
+    ``YYMMDD``. Years ``00``--``79`` map to 1400--1479 and years ``80``--``99``
+    to 1380--1399. Persian and Arabic digits and common separators are
+    normalized. ``None`` is returned for a non-matching or invalid Jalali date.
+
+    Examples
+    --------
+    ``اخزا020322`` maps to 1402/03/22 and ``اخزا991117`` to 1399/11/17.
+    """
+    if symbol is None:
+        return None
+    normalized = (
+        characters.ar_to_fa(str(symbol))
+        .translate(_PERSIAN_ARABIC_DIGITS)
+        .replace("\u200c", "")
+        .strip()
+    )
+    match = _TREASURY_SYMBOL_MATURITY_RE.fullmatch(normalized)
+    if not match:
+        return None
+    value = match.group(1)
+    year_two = int(value[:2])
+    year = 1400 + year_two if year_two <= 79 else 1300 + year_two
+    month, day = int(value[2:4]), int(value[4:6])
+    try:
+        jalali = JalaliDate(year, month, day)
+        gregorian = jalali.to_gregorian()
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return {
+        "maturity_jalali": "{:04d}/{:02d}/{:02d}".format(year, month, day),
+        "maturity_gregorian": gregorian,
+        "maturity_source": "user_confirmed_symbol_jalali_yymmdd",
+    }
 
 
 def parse_treasury_name(name):
@@ -304,7 +349,4 @@ def _days_until(target_date):
     int
         Number of days (negative if in the past).
     """
-    import datetime
-
-    today = datetime.date.today()
-    return (target_date - today).days
+    return (target_date - tehran_today()).days

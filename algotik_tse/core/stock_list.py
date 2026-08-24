@@ -1,13 +1,9 @@
 import requests
-import warnings
 from io import StringIO
 import pandas as pd
 from persiantools import characters
 from algotik_tse.settings import settings
 from algotik_tse.http_client import safe_get
-
-warnings.simplefilter(action="ignore", category=FutureWarning)
-
 
 # ── ISIN prefix → asset type mapping ─────────────────────────
 _ISIN_STOCKS = ["IRO1", "IRO2", "IRO3", "IRO4", "IRO5", "IRO7"]

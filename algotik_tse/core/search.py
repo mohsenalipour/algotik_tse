@@ -1,13 +1,8 @@
-import requests
-from algotik_tse.settings import settings
-from algotik_tse.http_client import safe_get
-
-
 def _normalize_fa(text):
     """Normalize Arabic/Persian character variants for matching."""
     text = text.strip()
-    text = text.replace("\u0643", "\u06A9")  # Arabic ك → Persian ک
-    text = text.replace("\u064A", "\u06CC")  # Arabic ي → Persian ی
+    text = text.replace("\u0643", "\u06a9")  # Arabic ك → Persian ک
+    text = text.replace("\u064a", "\u06cc")  # Arabic ي → Persian ی
     text = text.replace("\u200c", " ")  # half-space → space
     text = " ".join(text.split())  # collapse whitespace
     return text
@@ -124,84 +119,117 @@ INDUSTRY_NAMES = {
 }
 
 
-def search_stock(search_txt="شتران"):
-    index_names = settings.index_names
-    stock_id = ""
-    if search_txt in index_names:
-        webid_dict = {
-            index_names[0]: 32097828799138957,
-            index_names[1]: 67130298613737946,
-            index_names[2]: 67130298613737946,
-            index_names[3]: 67130298613737946,
-            index_names[4]: 67130298613737946,
-            index_names[5]: 67130298613737946,
-            index_names[6]: 5798407779416661,
-            index_names[7]: 8384385859414435,
-            index_names[8]: 8384385859414435,
-            index_names[9]: 8384385859414435,
-            index_names[10]: 49579049405614711,
-            index_names[11]: 49579049405614711,
-            index_names[12]: 62752761908615603,
-            index_names[13]: 71704845530629737,
-            index_names[14]: 43754960038275285,
-            index_names[15]: 10523825119011581,
-            index_names[16]: 10523825119011581,
-            index_names[17]: 10523825119011581,
-            index_names[18]: 46342955726788357,
-            index_names[19]: 46342955726788357,
-            index_names[20]: 46342955726788357,
-            index_names[21]: 46342955726788357,
-            index_names[22]: 46342955726788357,
-            index_names[23]: 46342955726788357,
-        }
-        return str(webid_dict[search_txt]) + "index"
+def search_stock(
+    search_txt="شتران",
+    *,
+    ins_code=None,
+    asset_type="auto",
+    snapshot=None,
+    require_active=True,
+):
+    """Return the legacy web-id string using exact central resolution.
 
-    # Check industry indices (44 sectors) with Arabic/Persian normalization
-    normalized = _normalize_fa(search_txt)
-    if normalized in _INDUSTRY_DICT:
-        return _INDUSTRY_DICT[normalized] + "industry"
-
-    # Fallback: search API
-    try:
-        res_search = safe_get(settings.url_search.format(search_txt)).json()[
-            "instrumentSearch"
-        ]
-
-        if len(res_search) > 0:
-            stock_id = res_search[0]["insCode"]
-        else:
-            return None
-    except requests.exceptions.RequestException:
-        print("Connection Error!")
-        return None
-    except (ValueError, KeyError, IndexError, TypeError) as e:
-        print("Search Error: {}".format(e))
-        return None
-    return stock_id
-
-
-def search_stock_symbol(search_txt="فملی"):
-    """Resolve the canonical TSETMC symbol string for a search term.
-
-    Some TSETMC/Codal endpoints are keyed by the *symbol* (as TSETMC stores
-    it, using Arabic ك/ي) rather than by ``insCode``/``web_id``. This helper
-    returns the canonical symbol (the ``lVal18AFC`` field of the first search
-    hit), which also transparently maps Persian ک/ی → Arabic and validates
-    that the instrument exists.
-
-    :param search_txt: symbol name in Persian (e.g. ``'فملی'``).
-    :return: canonical symbol ``str`` (e.g. ``'فملي'``), or ``None`` if not found.
+    Index and industry suffixes are retained so every pre-1.1 caller keeps its
+    established return type.  Ambiguity and invalid selectors intentionally
+    raise their typed exceptions instead of silently selecting the first fuzzy
+    search result.
     """
+    from algotik_tse.core.resolver import (
+        normalize_instrument_text,
+        resolve_instrument,
+        validate_ins_code,
+    )
+    from algotik_tse.exceptions import (
+        ConnectionError,
+        DataParsingError,
+        StockNotFoundError,
+    )
+
+    normalized_selector = normalize_instrument_text(search_txt)
+    normalized_code = None if ins_code is None else validate_ins_code(ins_code)
+    # History/detail endpoints already use the canonical numeric ID directly.
+    # Avoid an unnecessary InstrumentInfo call when no identity/type data is
+    # requested, while still validating an explicitly conflicting ID.
+    if (
+        snapshot is None
+        and asset_type == "auto"
+        and normalized_selector.isascii()
+        and normalized_selector.isdigit()
+    ):
+        selector_code = validate_ins_code(search_txt)
+        if normalized_code is not None and normalized_code != normalized_selector:
+            from algotik_tse.exceptions import InvalidParameterError
+
+            raise InvalidParameterError(
+                "selector and ins_code refer to different instruments"
+            )
+        ref = resolve_instrument(
+            selector_code,
+            ins_code=normalized_code,
+            asset_type="auto",
+            snapshot={},
+            require_active=require_active,
+        )
+        if ref.asset_type == "index":
+            return ref.ins_code + "index"
+        if ref.asset_type == "industry":
+            return ref.ins_code + "industry"
+        return ref.ins_code
     try:
-        res_search = safe_get(settings.url_search.format(search_txt)).json()[
-            "instrumentSearch"
-        ]
-        if len(res_search) > 0:
-            return res_search[0].get("lVal18AFC")
+        ref = resolve_instrument(
+            search_txt,
+            ins_code=ins_code,
+            asset_type=asset_type,
+            snapshot=snapshot,
+            require_active=require_active,
+        )
+    except StockNotFoundError:
         return None
-    except requests.exceptions.RequestException:
-        print("Connection Error!")
+    except (ConnectionError, DataParsingError) as exc:
+        print("Search Error: {}".format(exc))
         return None
-    except (ValueError, KeyError, IndexError, TypeError) as e:
-        print("Search Error: {}".format(e))
+    if ref.asset_type == "index":
+        return ref.ins_code + "index"
+    if ref.asset_type == "industry":
+        return ref.ins_code + "industry"
+    return ref.ins_code
+
+
+def search_stock_symbol(
+    search_txt="فملی",
+    *,
+    ins_code=None,
+    asset_type="auto",
+    snapshot=None,
+    require_active=True,
+):
+    """Return the verified canonical provider symbol for an exact identity.
+
+    Some TSETMC/Codal endpoints use ``lVal18AFC`` rather than ``InsCode``.
+    Resolution follows the central exact/active/type rules and never returns a
+    fuzzy first hit. ``snapshot`` is authoritative when supplied; otherwise
+    identity may be enriched through InstrumentInfo. Ambiguous and invalid
+    inputs raise their typed exceptions, while the legacy no-match result
+    remains ``None``.
+    """
+    from algotik_tse.core.resolver import resolve_instrument
+    from algotik_tse.exceptions import (
+        ConnectionError,
+        DataParsingError,
+        StockNotFoundError,
+    )
+
+    try:
+        ref = resolve_instrument(
+            search_txt,
+            ins_code=ins_code,
+            asset_type=asset_type,
+            snapshot=snapshot,
+            require_active=require_active,
+        )
+    except StockNotFoundError:
         return None
+    except (ConnectionError, DataParsingError) as exc:
+        print("Search Error: {}".format(exc))
+        return None
+    return ref.symbol

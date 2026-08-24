@@ -37,6 +37,18 @@ class DataParsingError(AlgotikTSEError):
     pass
 
 
+class UnsupportedDataSourceError(AlgotikTSEError):
+    """Raised when an API would cross the package's supported source boundary."""
+
+    pass
+
+
+class AmbiguousSymbolError(AlgotikTSEError):
+    """Raised when a symbol selector resolves to more than one instrument."""
+
+    pass
+
+
 class RateLimitError(AlgotikTSEError):
     """Raised when the server rate-limits or blocks requests."""
 

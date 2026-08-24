@@ -1,42 +1,20 @@
-===========
 AlgoTik TSE
 ===========
 
-.. image:: https://img.shields.io/pypi/v/algotik_tse.svg
-        :target: https://pypi.python.org/pypi/algotik_tse
+Compatibility documentation stub
+--------------------------------
 
-.. image:: https://img.shields.io/pypi/pyversions/algotik_tse.svg
-        :target: https://pypi.python.org/pypi/algotik_tse
+``README.md`` is the single authoritative guide and API reference for this
+project.  It includes installation, contracts, live and historical data,
+order books, local archives, fixed income, options, settings, examples and
+representative outputs.
 
-.. image:: https://img.shields.io/pypi/l/algotik_tse.svg
-        :target: https://github.com/mohsenalipour/algotik_tse/blob/main/LICENSE
+Read the current documentation on GitHub:
+`README.md <https://github.com/mohsenalipour/algotik_tse/blob/master/README.md>`_.
 
+Installation::
 
-A comprehensive Python library for fetching Tehran Stock Exchange (TSETMC)
-and currency/coin market data.
+   pip install algotik-tse
 
-
-* Free software: GNU General Public License v3
-* Website: https://algotik.com
-* Documentation: https://github.com/mohsenalipour/algotik_tse#readme
-* Telegram: https://t.me/algotik
-
-
-Features
---------
-
-* Stock price history with Jalali date support
-* Options, ETFs, Bonds, and Fund data
-* Real/Legal (retail/institutional) client type data
-* Intraday trading details, order book, and market watch
-* Shareholders data and capital increase history
-* Currency and coin prices (TGJU)
-* Full-text search across all TSETMC symbols
-* Configurable settings (timeout, retries, rate limiting)
-
-
-Credits
--------
-
-Developed and maintained by `Mohsen Alipour <https://algotik.com>`_ (alipour@algotik.ir).
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+This short RST file is retained only for compatibility with older links and
+source distributions.  PyPI renders ``README.md`` directly.

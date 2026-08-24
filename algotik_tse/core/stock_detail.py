@@ -1,16 +1,13 @@
-import warnings
-import urllib.parse
 from io import StringIO
 import pandas as pd
 from persiantools import characters
 from algotik_tse.settings import settings
-from algotik_tse.core.search import search_stock, search_stock_symbol
+from algotik_tse.core.search import search_stock
+from algotik_tse.exceptions import UnsupportedDataSourceError
 from algotik_tse.http_client import safe_get
 
-warnings.simplefilter(action="ignore", category=FutureWarning)
 
-
-def stockdetail(symbol="", **kwargs):
+def stockdetail(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
     """
     Get all symbol detail
     :param symbol: symbol name in Persian
@@ -21,7 +18,9 @@ def stockdetail(symbol="", **kwargs):
     # Backward compatibility: accept deprecated 'stock' keyword
     if not symbol and "stock" in kwargs:
         symbol = kwargs.pop("stock")
-    web_id = search_stock(search_txt=symbol)
+    if not symbol and ins_code is not None:
+        symbol = str(ins_code)
+    web_id = search_stock(search_txt=symbol, ins_code=ins_code, asset_type=asset_type)
     if web_id is not None and len(web_id) != 0:
         if web_id[-5:] == "index":
             print("This is an index, no information found!")
@@ -54,7 +53,7 @@ def __flatten_dict(dd, separator="_", prefix=""):
     )
 
 
-def stock_information(symbol="", **kwargs):
+def stock_information(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
     """
     Get all stock information
     :param symbol: symbol name in Persian
@@ -65,7 +64,9 @@ def stock_information(symbol="", **kwargs):
     # Backward compatibility: accept deprecated 'stock' keyword
     if not symbol and "stock" in kwargs:
         symbol = kwargs.pop("stock")
-    web_id = search_stock(search_txt=symbol)
+    if not symbol and ins_code is not None:
+        symbol = str(ins_code)
+    web_id = search_stock(search_txt=symbol, ins_code=ins_code, asset_type=asset_type)
     if web_id is not None and len(web_id) != 0:
         if web_id[-5:] == "index":
             print("This is an index, no information found!")
@@ -87,7 +88,7 @@ def stock_information(symbol="", **kwargs):
         return None
 
 
-def stock_statistics(symbol="", **kwargs):
+def stock_statistics(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
     """
     Get all stock statistics
     :param symbol: symbol name in Persian
@@ -98,7 +99,9 @@ def stock_statistics(symbol="", **kwargs):
     # Backward compatibility: accept deprecated 'stock' keyword
     if not symbol and "stock" in kwargs:
         symbol = kwargs.pop("stock")
-    web_id = search_stock(search_txt=symbol)
+    if not symbol and ins_code is not None:
+        symbol = str(ins_code)
+    web_id = search_stock(search_txt=symbol, ins_code=ins_code, asset_type=asset_type)
     if web_id is not None and len(web_id) != 0:
         if web_id[-5:] == "index":
             print("This is an index, no statistics found!")
@@ -129,47 +132,16 @@ def stock_statistics(symbol="", **kwargs):
         return None
 
 
-def stock_introduction(symbol="", **kwargs):
-    """Get the company introduction / profile (معرفی) for a symbol.
+def stock_introduction(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
+    """Legacy introduction API retained without crossing into Codal.
 
-    Fetches the Codal *publisher* record for a stock from TSETMC, which
-    contains company identity data: full name, ISIC code, executive and
-    financial managers, activity subject, addresses, contact info, auditor,
-    listed capital, financial year-end, national ID, and more.
-
-    The Codal endpoint is keyed by the *symbol* (not ``web_id``), so the
-    canonical symbol is first resolved via
-    :func:`algotik_tse.core.search.search_stock_symbol` (which also maps
-    Persian ک/ی → Arabic ك/ي as the endpoint expects).
-
-    :param symbol: symbol name in Persian (e.g. ``'فملی'``).
-    :return: pandas DataFrame with raw fields (index ``key``, column
-        ``value``), or ``None`` if the symbol is not found / has no publisher
-        record (e.g. indices).
+    ``algotik-tse`` is a TSETMC market-data package.  Company-publisher
+    profiles are a Codal data product, even when proxied under a TSETMC host,
+    and therefore sit outside this package's source boundary.  The legacy
+    signature remains importable so existing applications fail explicitly
+    instead of making a hidden cross-provider request.
     """
-    # Backward compatibility: accept deprecated 'stock' keyword
-    if not symbol and "stock" in kwargs:
-        symbol = kwargs.pop("stock")
-    canonical = search_stock_symbol(search_txt=symbol)
-    if canonical is None or len(canonical) == 0:
-        print("Stock Not Found, Please try again ...")
-        return None
-    encoded = urllib.parse.quote(canonical)
-    detail = safe_get(settings.url_codal_publisher.format(encoded))
-    if detail.status_code == 200:
-        try:
-            publisher = detail.json().get("codalPublisher")
-        except ValueError:
-            print("Connection Error!!!")
-            return None
-        if not publisher:
-            print("No introduction (Codal publisher) data found for this symbol!")
-            return None
-        df = pd.DataFrame([publisher]).T
-        df.reset_index(inplace=True)
-        df.rename(columns={"index": "key", 0: "value"}, inplace=True)
-        df.set_index("key", inplace=True)
-        return df
-    else:
-        print("Connection Error!!!")
-        return None
+    raise UnsupportedDataSourceError(
+        "get_introduction/stock_introduction requires Codal data, which is "
+        "outside algotik-tse's TSETMC market-data source boundary"
+    )

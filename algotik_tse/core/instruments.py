@@ -14,6 +14,7 @@ import pandas as pd
 
 from algotik_tse.settings import settings
 from algotik_tse.http_client import safe_get
+from algotik_tse.exceptions import InvalidParameterError
 from algotik_tse.core.market_data import market_watch
 from algotik_tse.core.parsers import (
     parse_option_name,
@@ -22,6 +23,53 @@ from algotik_tse.core.parsers import (
     parse_treasury_name,
     _days_until,
 )
+
+LISTED_FUND_COLUMNS = [
+    "InsCode",
+    "ISIN",
+    "Symbol",
+    "Name",
+    "Last",
+    "Close",
+    "Yesterday",
+    "Volume",
+    "Value",
+    "TradeCount",
+    "Low",
+    "High",
+    "NAV",
+    "NAV_Discount",
+    "Change",
+    "ChangePct",
+    "MarketCode",
+]
+
+
+def _cast_listed_funds(frame):
+    """Give the additive listed-fund API one stable empty/non-empty schema."""
+    source_attrs = dict(frame.attrs)
+    result = frame.reindex(columns=LISTED_FUND_COLUMNS).copy()
+    for column in ("InsCode", "ISIN", "Symbol", "Name", "MarketCode"):
+        result[column] = result[column].astype("string")
+    for column in (
+        "Last",
+        "Close",
+        "Yesterday",
+        "Volume",
+        "Value",
+        "TradeCount",
+        "Low",
+        "High",
+        "NAV",
+        "Change",
+    ):
+        result[column] = pd.to_numeric(result[column], errors="coerce").astype("Int64")
+    for column in ("NAV_Discount", "ChangePct"):
+        result[column] = pd.to_numeric(result[column], errors="coerce").astype(
+            "Float64"
+        )
+    result.attrs.update(source_attrs)
+    return result.reset_index(drop=True)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -392,7 +440,21 @@ def list_etfs(progress=True):
     if etfs.empty:
         if progress:
             print("No ETFs found.")
-        return pd.DataFrame()
+        result = pd.DataFrame()
+        result.attrs.update(
+            {
+                "source": "tsetmc_market_watch",
+                "coverage": "current_listed_fund_universe",
+                "request_count": 1,
+                "no_fuzzy_join": True,
+                "no_backfill": True,
+                "as_of": data.get("fetched_at"),
+                "trade_date": data.get("trade_date"),
+                "is_realtime_fresh": data.get("is_realtime_fresh", False),
+                "is_stale": data.get("is_stale", True),
+            }
+        )
+        return result
 
     # Compute NAV discount/premium
     etfs["NAV_Discount"] = np.nan
@@ -428,7 +490,34 @@ def list_etfs(progress=True):
         nav_count = (result["NAV"] > 0).sum() if "NAV" in result.columns else 0
         print(f"Done. {len(result)} ETFs found ({nav_count} with NAV data).")
 
-    return result.reset_index(drop=True)
+    result = result.reset_index(drop=True)
+    result.attrs.update(
+        {
+            "source": "tsetmc_market_watch",
+            "coverage": "current_listed_fund_universe",
+            "request_count": 1,
+            "no_fuzzy_join": True,
+            "no_backfill": True,
+            "as_of": data.get("fetched_at"),
+            "trade_date": data.get("trade_date"),
+            "is_realtime_fresh": data.get("is_realtime_fresh", False),
+            "is_stale": data.get("is_stale", True),
+        }
+    )
+    return result
+
+
+def list_listed_funds(progress=True):
+    """Return the authoritative current exchange-listed fund universe.
+
+    This is an identity-bearing market view sourced with one bulk MarketWatch
+    request. It deliberately does not fuzzy-join TSETMC's separate fund
+    registry, whose names do not provide a stable exchange identity.
+    """
+    result = _cast_listed_funds(list_etfs(progress=progress))
+    result.attrs["api"] = "list_listed_funds"
+    result.attrs["registry_joined"] = False
+    return result
 
 
 # ══════════════════════════════════════════════════════════════
@@ -544,11 +633,15 @@ def list_bonds(progress=True):
 # ══════════════════════════════════════════════════════════════
 
 
-def list_funds(fund_type=None, progress=True):
+def list_funds(fund_type=None, progress=True, *, listed_only=False):
     """List investment funds with NAV, returns, portfolio composition and manager info.
 
     Fetches data from the TSETMC Fund API which provides rich information
-    not available in ``market_watch()`` or ``list_etfs()``.
+    not available in ``market_watch()`` or ``list_etfs()``. By default this is
+    a registry view: its rows are not guaranteed to be exchange-listed and do
+    not carry a canonical ticker/InsCode. Use ``listed_only=True`` (or
+    :func:`list_listed_funds`) for the exact current listed universe; the two
+    sources are never fuzzy-joined by name.
 
     Parameters
     ----------
@@ -572,6 +665,10 @@ def list_funds(fund_type=None, progress=True):
 
     progress : bool, default True
         Print progress messages.
+    listed_only : bool, keyword-only, default False
+        Return current exchange-listed funds from one MarketWatch snapshot.
+        Cannot be combined with ``fund_type`` because the registry has no
+        exact exchange identity suitable for that join.
 
     Returns
     -------
@@ -625,6 +722,16 @@ def list_funds(fund_type=None, progress=True):
     >>> gold = att.list_funds(fund_type='commodity')             # Gold/commodity
     >>> top = all_funds.nlargest(10, 'return_365d')              # Best annual return
     """
+    if not isinstance(listed_only, bool):
+        raise InvalidParameterError("listed_only must be bool")
+    if listed_only:
+        if fund_type is not None:
+            raise InvalidParameterError(
+                "fund_type cannot be combined with listed_only because the "
+                "fund registry has no exact exchange identity"
+            )
+        return list_listed_funds(progress=progress)
+
     # ── Determine which fund types to fetch ───────────────────
     all_type_ids = settings.fund_type_ids
     type_labels = settings.fund_type_labels

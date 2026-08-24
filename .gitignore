@@ -46,6 +46,18 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+.release-check/
+.release-tools/
+/.tmp_phase6_*
+/.tmp-*
+/.pytest-*
+/.tmp-review-*
+caches/
+tests/.tmp*/
+tests/.uv_cache_review/
+.claude/settings.local.json
+/AGENTS.md
+/market_profiles.xlsx
 
 # Translations
 *.mo

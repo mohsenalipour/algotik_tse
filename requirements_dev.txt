@@ -8,5 +8,6 @@ coverage>=7.0.0
 Sphinx>=5.0.0
 twine>=4.0.0
 pytest>=7.0.0
+pytest-timeout>=2.2.0
 black>=23.0.0
 build>=1.0.0

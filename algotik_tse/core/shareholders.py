@@ -2,11 +2,20 @@ import requests
 import pandas as pd
 from algotik_tse.core.search import search_stock
 from algotik_tse.settings import settings
+from algotik_tse._clock import tehran_today
 from algotik_tse.core.helper import date_fix
 from algotik_tse.http_client import safe_get
 
 
-def shareholders(symbol="", date=None, include_id=False, **kwargs):
+def shareholders(
+    symbol="",
+    date=None,
+    include_id=False,
+    *,
+    ins_code=None,
+    asset_type="auto",
+    **kwargs,
+):
     """
     Get all shareholders of an instrument (company)
     :param symbol: symbol name in Persian
@@ -21,9 +30,11 @@ def shareholders(symbol="", date=None, include_id=False, **kwargs):
     # Backward compatibility: accept deprecated keyword names
     if not symbol and "stock" in kwargs:
         symbol = kwargs.pop("stock")
+    if not symbol and ins_code is not None:
+        symbol = str(ins_code)
     if "shh_id" in kwargs:
         include_id = kwargs.pop("shh_id")
-    web_id = search_stock(search_txt=symbol)
+    web_id = search_stock(search_txt=symbol, ins_code=ins_code, asset_type=asset_type)
     if web_id is not None and len(web_id) != 0:
         try:
             if date is None:
@@ -85,7 +96,7 @@ def shareholders(symbol="", date=None, include_id=False, **kwargs):
                         share_holders_df["date"] == share_holders_df["date"].max(), :
                     ]
                 else:
-                    share_holders_df["date"] = settings.today.replace("-", "")
+                    share_holders_df["date"] = tehran_today().strftime("%Y%m%d")
                 if not include_id:
                     share_holders_df.drop(columns=["share_holder_id"], inplace=True)
                 return share_holders_df

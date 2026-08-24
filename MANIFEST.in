@@ -6,8 +6,7 @@ include README.rst
 include README.md
 include requirements.txt
 
-recursive-include tests *
-recursive-include algotik_tse *
+recursive-include algotik_tse *.py
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 
@@ -16,4 +15,14 @@ recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif
 exclude generate_pdf.py
 exclude AlgoTik_TSE_Guide.pdf
 exclude .travis.yml
+exclude AGENTS.md
+exclude market_profiles.xlsx
 recursive-exclude fonts *
+prune tests
+prune .claude
+prune .release-check
+prune .release-tools
+prune caches
+recursive-exclude * .tmp*
+recursive-exclude * *.pdf
+recursive-exclude * *.xlsx

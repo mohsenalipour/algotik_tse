@@ -17,6 +17,9 @@ from datetime import datetime
 from io import StringIO
 
 import pandas as pd
+import pytest
+
+pytestmark = pytest.mark.online
 
 # Ensure the package is importable from the repo root
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -93,7 +96,7 @@ def run_test(test_id, description, func, *args, **kwargs):
 
 # ─── 0. Version & Settings ───────────────────────────────────
 def test_version():
-    assert att.__version__ == "1.0.0", "Expected 1.0.0, got {}".format(att.__version__)
+    assert att.__version__ == "1.1.0", "Expected 1.1.0, got {}".format(att.__version__)
     return pd.DataFrame(
         {
             "version": [att.__version__],
@@ -241,11 +244,13 @@ def test_stock_statistics_2():
 
 # ─── stock_introduction() / get_introduction() ───────────────
 def test_stock_introduction():
-    return att.stock_introduction(stock="فملی")
+    with pytest.raises(att.UnsupportedDataSourceError):
+        att.stock_introduction(stock="فملی")
 
 
 def test_get_introduction_alias():
-    return att.get_introduction("شتران")
+    with pytest.raises(att.UnsupportedDataSourceError):
+        att.get_introduction("شتران")
 
 
 # ─── 29-31. shareholders() ───────────────────────────────────
@@ -905,9 +910,13 @@ if __name__ == "__main__":
         (88, "NEW: list_funds(multi types)", test_list_funds_multi),
         (89, "NEW: list_funds nav & returns", test_list_funds_nav_data),
         (90, "NEW: list_funds invalid type", test_list_funds_invalid),
-        # ── Company introduction (Codal publisher) ──
-        (91, "NEW: stock_introduction(فملی)", test_stock_introduction),
-        (92, "NEW: get_introduction() alias", test_get_introduction_alias),
+        # ── Explicit unsupported-provider boundary ──
+        (91, "BC: stock_introduction raises explicitly", test_stock_introduction),
+        (
+            92,
+            "BC: get_introduction alias raises explicitly",
+            test_get_introduction_alias,
+        ),
     ]
 
     total_start = time.time()

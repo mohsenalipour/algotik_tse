@@ -2,8 +2,10 @@ import io
 import datetime
 import requests
 import warnings
+import numpy as np
 import pandas as pd
 from persiantools import characters
+from persiantools.jdatetime import JalaliDate
 
 from algotik_tse.settings import settings
 from algotik_tse.core.search import search_stock, INDUSTRY_NAMES
@@ -15,8 +17,308 @@ from algotik_tse.core.helper import (
     filter_by_date_or_values,
 )
 from algotik_tse.http_client import safe_get
+from algotik_tse.exceptions import (
+    AlgotikTSEError,
+    AmbiguousSymbolError,
+    InvalidParameterError,
+)
 
-warnings.simplefilter(action="ignore", category=FutureWarning)
+
+def _tehran_today():
+    return pd.Timestamp.now(tz="Asia/Tehran").date()
+
+
+def _index_contains_date(index, value):
+    """Check Gregorian/Jalali output indices after final filtering."""
+    if value is None:
+        return False
+    if isinstance(index, pd.DatetimeIndex):
+        return any(item.date() == value for item in index)
+    gregorian = value.isoformat()
+    jalali = JalaliDate.to_jalali(value).isoformat()
+    return any(str(item) in {gregorian, jalali} for item in index)
+
+
+def _canonical_live_row(inscode, snapshot):
+    """Resolve exactly one current snapshot row by canonical InsCode."""
+    from algotik_tse.core.market_data import _is_current_snapshot
+
+    if not _is_current_snapshot(snapshot):
+        return None
+    matches = snapshot["stocks"].loc[
+        snapshot["stocks"]["InsCode"].astype(str).eq(str(inscode))
+    ]
+    if matches.empty:
+        return None
+    if len(matches) != 1:
+        raise AmbiguousSymbolError(
+            f"Canonical InsCode {inscode!r} matched {len(matches)} live rows"
+        )
+    item = matches.iloc[0]
+    required_positive = [
+        "TradeCount",
+        "Volume",
+        "FirstPrice",
+        "High",
+        "Low",
+        "Close",
+        "Last",
+    ]
+    values = pd.to_numeric(item[required_positive], errors="coerce")
+    if values.isna().any() or values.le(0).any():
+        return None
+    return item
+
+
+def _live_price_history_row(stock_name, inscode, snapshot):
+    """Build one TSETMC-compatible partial daily row from the live feed."""
+    item = _canonical_live_row(inscode, snapshot)
+    if item is None:
+        return None
+    values = {
+        "<TICKER>": item["Symbol"],
+        "<FIRST>": item["FirstPrice"],
+        "<HIGH>": item["High"],
+        "<LOW>": item["Low"],
+        "<CLOSE>": item["Close"],
+        "<VALUE>": item["Value"],
+        "<VOL>": item["Volume"],
+        "<OPENINT>": item["TradeCount"],
+        "<OPEN>": item["PreviousClose"],
+        "<LAST>": item["Last"],
+        "<PER>": "D",
+    }
+    return pd.DataFrame(
+        [values],
+        index=pd.DatetimeIndex([snapshot["trade_date"]], name="<DTYYYYMMDD>"),
+    )
+
+
+def _live_client_type_history_row(stock_name, inscode, snapshot, client_type):
+    """Build one history-compatible client-type row for partial today data."""
+    from algotik_tse.core.market_data import _client_volume_audit, _safe_divide
+
+    price = _canonical_live_row(inscode, snapshot)
+    if price is None or client_type is None:
+        return None
+    matches = client_type.loc[client_type["InsCode"].astype(str).eq(str(inscode))]
+    if matches.empty:
+        return None
+    if len(matches) != 1:
+        raise AmbiguousSymbolError(
+            f"Canonical InsCode {inscode!r} matched {len(matches)} client rows"
+        )
+    item = matches.iloc[0]
+    audit = _client_volume_audit(
+        pd.Series([item["Buy_I_Volume"]]),
+        pd.Series([item["Buy_N_Volume"]]),
+        pd.Series([item["Sell_I_Volume"]]),
+        pd.Series([item["Sell_N_Volume"]]),
+        pd.Series([price["Volume"]]),
+    )
+    if not bool(audit["client_snapshot_consistent"].iloc[0]):
+        raise ValueError(
+            f"inconsistent live client volumes for canonical InsCode {inscode}"
+        )
+    vwap = _safe_divide(pd.Series([price["Value"]]), pd.Series([price["Volume"]])).iloc[
+        0
+    ]
+    values = {
+        "<TICKER>": price["Symbol"],
+        "<N_BUY_RETAIL>": item["Buy_I_Count"],
+        "<N_BUY_INSTITUTIONAL>": item["Buy_N_Count"],
+        "<N_SELL_RETAIL>": item["Sell_I_Count"],
+        "<N_SELL_INSTITUTIONAL>": item["Sell_N_Count"],
+        "<VOL_BUY_RETAIL>": item["Buy_I_Volume"],
+        "<VOL_BUY_INSTITUTIONAL>": item["Buy_N_Volume"],
+        "<VOL_SELL_RETAIL>": item["Sell_I_Volume"],
+        "<VOL_SELL_INSTITUTIONAL>": item["Sell_N_Volume"],
+        # ClientTypeAll does not provide exact value split. Never place an
+        # estimate in the raw/actual TSETMC value fields.
+        "<VAL_BUY_RETAIL>": pd.NA,
+        "<VAL_BUY_INSTITUTIONAL>": pd.NA,
+        "<VAL_SELL_RETAIL>": pd.NA,
+        "<VAL_SELL_INSTITUTIONAL>": pd.NA,
+        "<EST_VAL_BUY_RETAIL>": item["Buy_I_Volume"] * vwap,
+        "<EST_VAL_BUY_INSTITUTIONAL>": item["Buy_N_Volume"] * vwap,
+        "<EST_VAL_SELL_RETAIL>": item["Sell_I_Volume"] * vwap,
+        "<EST_VAL_SELL_INSTITUTIONAL>": item["Sell_N_Volume"] * vwap,
+        "<VALUE_SOURCE>": "estimated_from_market_vwap",
+        "<IS_ESTIMATED>": True,
+        "<IS_PARTIAL>": snapshot.get("is_partial", pd.NA),
+        "<CLIENT_SNAPSHOT_CONSISTENT>": True,
+        "<CLIENT_BUY_VOLUME_DIFFERENCE>": audit["client_buy_volume_difference"].iloc[0],
+        "<CLIENT_SELL_VOLUME_DIFFERENCE>": audit["client_sell_volume_difference"].iloc[
+            0
+        ],
+        "<CLIENT_BUY_VOLUME_RATIO>": audit["client_buy_volume_ratio"].iloc[0],
+        "<CLIENT_SELL_VOLUME_RATIO>": audit["client_sell_volume_ratio"].iloc[0],
+        "<PER>": "D",
+    }
+    return pd.DataFrame(
+        [values],
+        index=pd.DatetimeIndex([snapshot["trade_date"]], name="<DTYYYYMMDD>"),
+    )
+
+
+def _live_index_history_row(stock_name, inscode, snapshot, index_rows, industry):
+    """Build a partial index row from the bulk live index endpoint."""
+    from algotik_tse.core.market_data import _is_current_snapshot
+
+    if not _is_current_snapshot(snapshot) or index_rows is None:
+        return None
+    matches = [row for row in index_rows if str(row.get("insCode")) == str(inscode)]
+    if not matches:
+        return None
+    if len(matches) != 1:
+        raise AmbiguousSymbolError(
+            f"Canonical index InsCode {inscode!r} matched {len(matches)} rows"
+        )
+    item = matches[0]
+    raw_trade_date = item.get("dEven")
+    date_text = str(raw_trade_date).strip()
+    if len(date_text) != 8 or not date_text.isdigit():
+        raise ValueError(
+            f"live index date provenance unavailable for canonical InsCode {inscode}"
+        )
+    try:
+        source_trade_date = datetime.date(
+            int(date_text[:4]), int(date_text[4:6]), int(date_text[6:])
+        )
+    except ValueError as exc:
+        raise ValueError(
+            f"invalid live index dEven for canonical InsCode {inscode}"
+        ) from exc
+    if source_trade_date != snapshot.get("trade_date"):
+        raise ValueError(
+            f"live index dEven {source_trade_date} does not match "
+            f"MarketWatch trade_date {snapshot.get('trade_date')}"
+        )
+    raw_trade_time = item.get("hEven")
+    if raw_trade_time is not None:
+        time_text = str(raw_trade_time).strip().zfill(6)
+        if (
+            len(time_text) != 6
+            or not time_text.isdigit()
+            or int(time_text[:2]) > 23
+            or int(time_text[2:4]) > 59
+            or int(time_text[4:]) > 59
+        ):
+            raise ValueError(
+                f"invalid live index hEven for canonical InsCode {inscode}"
+            )
+    numeric = pd.to_numeric(
+        pd.Series(
+            {
+                "current": item.get("xDrNivJIdx004", np.nan),
+                "high": item.get("xPhNivJIdx004", np.nan),
+                "low": item.get("xPbNivJIdx004", np.nan),
+            }
+        ),
+        errors="coerce",
+    )
+    if (
+        numeric.isna().any()
+        or not np.isfinite(numeric.to_numpy(dtype=float)).all()
+        or numeric.le(0).any()
+    ):
+        raise ValueError(f"invalid live index OHLC for canonical InsCode {inscode}")
+    current, high, low = numeric["current"], numeric["high"], numeric["low"]
+    common = {
+        "<TICKER>": stock_name,
+        "<HIGH>": high,
+        "<LOW>": low,
+        "<CLOSE>": current,
+        "<LIVE_SOURCE_TRADE_DATE>": source_trade_date,
+        "<LIVE_SOURCE_TIME>": raw_trade_time,
+        "<LIVE_SOURCE_DATE_PROVENANCE>": "indexB1.dEven",
+        "<PER>": "D",
+    }
+    if not industry:
+        absolute_change = pd.to_numeric(
+            pd.Series([item.get("indexChange")]), errors="coerce"
+        ).iloc[0]
+        previous_close = (
+            current - absolute_change
+            if pd.notna(current) and pd.notna(absolute_change)
+            else np.nan
+        )
+        common.update(
+            {
+                "<FIRST>": np.nan,
+                "<VOL>": np.nan,
+                "<OPEN>": np.nan,
+                "<PREVIOUS_CLOSE>": previous_close,
+                "<LAST>": current,
+            }
+        )
+    return pd.DataFrame(
+        [common],
+        index=pd.DatetimeIndex([snapshot["trade_date"]], name="<DTYYYYMMDD>"),
+    )
+
+
+def _append_partial_today(df, live_row):
+    """Append or source-aware merge today's row without losing actual data."""
+    result = df.copy(deep=True)
+    if live_row is None or live_row.empty:
+        return result
+    live_row = live_row.copy(deep=True)
+    today = live_row.index[0]
+    # Raw endpoints may gain columns over time.  Preserve their established
+    # schema and fill only the columns represented by the live contract.
+    for column in result.columns:
+        if column not in live_row.columns:
+            live_row[column] = pd.NA
+    for column in live_row.columns:
+        if column not in result.columns:
+            result[column] = pd.NA
+    if today in result.index:
+        existing = result.loc[[today]].iloc[-1].copy()
+        incoming = live_row.iloc[-1]
+        actual_value_columns = [
+            "<VAL_BUY_RETAIL>",
+            "<VAL_BUY_INSTITUTIONAL>",
+            "<VAL_SELL_RETAIL>",
+            "<VAL_SELL_INSTITUTIONAL>",
+        ]
+        has_historical_actual_values = all(
+            column in existing.index and pd.notna(existing[column])
+            for column in actual_value_columns
+        )
+        if has_historical_actual_values:
+            # Client-type rows are an atomic snapshot. Mixing historical
+            # actual values with live counts/volumes would create powers and
+            # per-capita values that never existed at either source time.
+            # Preserve the complete historical row and only add truthful
+            # provenance. Today alone is not evidence that the row is final.
+            if "<VALUE_SOURCE>" in existing.index:
+                existing["<VALUE_SOURCE>"] = "tsetmc_actual"
+            if "<IS_ESTIMATED>" in existing.index:
+                existing["<IS_ESTIMATED>"] = False
+            if "<IS_PARTIAL>" in existing.index and pd.isna(existing["<IS_PARTIAL>"]):
+                existing["<IS_PARTIAL>"] = pd.NA
+            merged = pd.DataFrame([existing], index=pd.DatetimeIndex([today]))
+            merged.index.name = result.index.name
+            result = result.drop(index=today, errors="ignore")
+            result = pd.concat([result, merged.loc[:, result.columns]]).sort_index()
+            result.attrs.update(df.attrs)
+            return result
+        for column in result.columns:
+            incoming_value = incoming.get(column, pd.NA)
+            if pd.isna(incoming_value):
+                continue
+            if has_historical_actual_values and column in actual_value_columns:
+                continue
+            existing[column] = incoming_value
+        merged = pd.DataFrame([existing], index=pd.DatetimeIndex([today]))
+        merged.index.name = result.index.name
+        result = result.drop(index=today, errors="ignore")
+        result = pd.concat([result, merged.loc[:, result.columns]]).sort_index()
+    else:
+        result = pd.concat([result, live_row.loc[:, result.columns]]).sort_index()
+    result.attrs.update(df.attrs)
+    return result
 
 
 def stock(
@@ -35,7 +337,11 @@ def stock(
     return_type=None,
     ascending=True,
     save_path=None,
-    **kwargs
+    include_today=False,
+    *,
+    ins_code=None,
+    asset_type="auto",
+    **kwargs,
 ):
     """
     Get symbol or symbols price history from tsetmc
@@ -95,6 +401,8 @@ def stock(
     :param adjust_volume:   if True, when output_type='complete' you can get
                                 'Adj Volume' in output.
                             Default value is False.
+    :param include_today:   if True, append/replace today's partial live row.
+                            Default is False, preserving historical behaviour.
     :param return_type:     you can choose between 'simple', 'log' and 'both', or enter ['simple', 'Close', 5] format.
                             if return_type='simple', you get simple return in 1 day on Adj Close.
                                 with simple return 'returns' in complete mode in output.
@@ -108,8 +416,19 @@ def stock(
     :return: pandas dataframe or None
     """
     # Backward compatibility: accept deprecated keyword names
+    # Private, canonical resolver hook used by APIs that already obtained an
+    # authoritative TSETMC InsCode and must not re-run fuzzy symbol search.
+    _resolved_inscode = kwargs.pop("_resolved_inscode", None)
+    if _resolved_inscode is not None:
+        _resolved_inscode = str(_resolved_inscode).strip()
+        if not _resolved_inscode.isdigit():
+            raise ValueError("_resolved_inscode must be a canonical numeric InsCode")
     if not symbol and "stock" in kwargs:
         symbol = kwargs.pop("stock")
+    if not symbol and (ins_code is not None or _resolved_inscode is not None):
+        symbol = str(ins_code if ins_code is not None else _resolved_inscode)
+    if ins_code is not None and not isinstance(symbol, str):
+        raise InvalidParameterError("ins_code can only be used with one symbol")
     if "values" in kwargs:
         limit = kwargs.pop("values")
     if "tse_format" in kwargs:
@@ -126,6 +445,79 @@ def stock(
     tse_format = raw
     multi_stock_drop = dropna
 
+    live_cache = {
+        "market_attempted": False,
+        "market": None,
+        "index_attempted": False,
+        "indices": None,
+    }
+    include_status = {
+        "include_today_requested": bool(include_today),
+        "include_today_appended": [],
+        "include_today_warning": None,
+        "live_trade_date": None,
+        "live_is_partial": None,
+        "live_is_history_eligible": None,
+        "live_is_realtime_fresh": None,
+        "live_snapshot_age_seconds": None,
+    }
+    append_candidates = {}
+
+    def _warn_live_fallback(message):
+        include_status["include_today_warning"] = message
+        warnings.warn(message, RuntimeWarning, stacklevel=3)
+
+    def _market_snapshot_once():
+        if live_cache["market_attempted"]:
+            return live_cache["market"]
+        live_cache["market_attempted"] = True
+        try:
+            from algotik_tse.core.market_data import market_watch
+
+            live_cache["market"] = market_watch()
+            include_status["live_trade_date"] = live_cache["market"].get("trade_date")
+            include_status["live_is_partial"] = live_cache["market"].get("is_partial")
+            include_status["live_is_history_eligible"] = live_cache["market"].get(
+                "is_history_eligible"
+            )
+            include_status["live_is_realtime_fresh"] = live_cache["market"].get(
+                "is_realtime_fresh"
+            )
+            include_status["live_snapshot_age_seconds"] = live_cache["market"].get(
+                "snapshot_age_seconds"
+            )
+            from algotik_tse.core.market_data import _is_current_snapshot
+
+            if not _is_current_snapshot(live_cache["market"]):
+                _warn_live_fallback(
+                    "include_today skipped; MarketWatch snapshot is stale or "
+                    "does not represent Tehran today"
+                )
+        except (AlgotikTSEError, requests.exceptions.RequestException) as exc:
+            _warn_live_fallback(
+                f"include_today skipped; live market unavailable: {exc}"
+            )
+        return live_cache["market"]
+
+    def _index_snapshot_once():
+        if live_cache["index_attempted"]:
+            return live_cache["indices"]
+        live_cache["index_attempted"] = True
+        try:
+            response = safe_get(settings.url_all_indices)
+            live_cache["indices"] = response.json()["indexB1"]
+        except (
+            requests.exceptions.RequestException,
+            AttributeError,
+            KeyError,
+            TypeError,
+            ValueError,
+        ) as exc:
+            _warn_live_fallback(
+                f"include_today skipped; live index feed unavailable: {exc}"
+            )
+        return live_cache["indices"]
+
     def _get_stock(
         stock_name,
         mstart,
@@ -136,7 +528,19 @@ def stock(
         moutput_type,
         mdate_format,
     ):
-        web_id = search_stock(search_txt=stock_name)
+        if _resolved_inscode is not None:
+            web_id = _resolved_inscode
+        elif ins_code is None and asset_type == "auto":
+            web_id = search_stock(search_txt=stock_name)
+        else:
+            web_id = search_stock(
+                search_txt=stock_name,
+                ins_code=ins_code,
+                asset_type=asset_type,
+            )
+        if web_id is None or len(str(web_id)) == 0:
+            print("Stock Not Found, Please try again ...")
+            return None
         _price_base_url = settings.url_price_history
         isIndex = False
         isIndustry = False
@@ -189,6 +593,37 @@ def stock(
                 )
                 df.index.names = ["<DTYYYYMMDD>"]
                 df.drop(columns=["<DTYYYYMMDD>"], inplace=True)
+                if include_today:
+                    market_snapshot = _market_snapshot_once()
+                    from algotik_tse.core.market_data import _is_current_snapshot
+
+                    try:
+                        live_row = (
+                            _live_index_history_row(
+                                stock_name,
+                                web_id,
+                                market_snapshot,
+                                _index_snapshot_once(),
+                                industry=True,
+                            )
+                            if _is_current_snapshot(market_snapshot)
+                            else None
+                        )
+                    except AmbiguousSymbolError:
+                        raise
+                    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+                        _warn_live_fallback(
+                            f"include_today skipped; invalid live index schema: {exc}"
+                        )
+                        live_row = None
+                    df = _append_partial_today(df, live_row)
+                    if live_row is not None:
+                        append_candidates[stock_name] = live_row.index[0].date()
+                    elif include_status["include_today_warning"] is None:
+                        _warn_live_fallback(
+                            f"include_today skipped; canonical index {web_id} "
+                            "was not present in the live index feed"
+                        )
 
                 if mvalues is not None or mstart is not None or mend is not None:
                     df = filter_by_date_or_values(df, mvalues, new_start, new_end)
@@ -238,6 +673,8 @@ def stock(
             except requests.exceptions.RequestException:
                 print("Connection Error!")
                 return None
+            except AmbiguousSymbolError:
+                raise
             except Exception as e:
                 print("Error processing industry data: {}".format(e))
                 return None
@@ -289,6 +726,37 @@ def stock(
                 )
                 df.index.names = ["<DTYYYYMMDD>"]
                 df.drop(columns=["<DTYYYYMMDD>"], inplace=True)
+                if include_today:
+                    market_snapshot = _market_snapshot_once()
+                    from algotik_tse.core.market_data import _is_current_snapshot
+
+                    try:
+                        live_row = (
+                            _live_index_history_row(
+                                stock_name,
+                                web_id,
+                                market_snapshot,
+                                _index_snapshot_once(),
+                                industry=False,
+                            )
+                            if _is_current_snapshot(market_snapshot)
+                            else None
+                        )
+                    except AmbiguousSymbolError:
+                        raise
+                    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+                        _warn_live_fallback(
+                            f"include_today skipped; invalid live index schema: {exc}"
+                        )
+                        live_row = None
+                    df = _append_partial_today(df, live_row)
+                    if live_row is not None:
+                        append_candidates[stock_name] = live_row.index[0].date()
+                    elif include_status["include_today_warning"] is None:
+                        _warn_live_fallback(
+                            f"include_today skipped; canonical index {web_id} "
+                            "was not present in the live index feed"
+                        )
 
                 if mvalues is not None or mstart is not None or mend is not None:
                     df = filter_by_date_or_values(df, mvalues, new_start, new_end)
@@ -362,6 +830,8 @@ def stock(
             except requests.exceptions.RequestException:
                 print("Connection Error!")
                 return None
+            except AmbiguousSymbolError:
+                raise
             except Exception as e:
                 print("Error processing index data: {}".format(e))
                 return None
@@ -374,6 +844,26 @@ def stock(
                     parse_dates=True,
                 )
                 df = df[::-1]
+                if include_today:
+                    try:
+                        live_row = _live_price_history_row(
+                            stock_name, web_id, _market_snapshot_once()
+                        )
+                    except AmbiguousSymbolError:
+                        raise
+                    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+                        _warn_live_fallback(
+                            f"include_today skipped; invalid live schema: {exc}"
+                        )
+                        live_row = None
+                    df = _append_partial_today(df, live_row)
+                    if live_row is not None:
+                        append_candidates[stock_name] = live_row.index[0].date()
+                    elif include_status["include_today_warning"] is None:
+                        _warn_live_fallback(
+                            f"include_today skipped; canonical InsCode {web_id} "
+                            "was not present in MarketWatch"
+                        )
                 if mvalues is not None or mstart is not None or mend is not None:
                     df = filter_by_date_or_values(df, mvalues, new_start, new_end)
 
@@ -579,6 +1069,8 @@ def stock(
             except requests.exceptions.RequestException:
                 print("Connection Error!")
                 return None
+            except AmbiguousSymbolError:
+                raise
             except Exception as e:
                 print("Stock Not Found or data error: {}".format(e))
                 return None
@@ -596,8 +1088,18 @@ def stock(
 
     def _apply_ascending(df):
         """Sort by index ascending/descending based on user preference."""
+        if df is not None and include_today:
+            include_status["include_today_appended"] = [
+                name
+                for name, trade_date in append_candidates.items()
+                if _index_contains_date(df.index, trade_date)
+            ]
+            df.attrs.update(include_status)
         if df is not None and not ascending:
-            return df.iloc[::-1]
+            result = df.iloc[::-1]
+            if include_today:
+                result.attrs.update(include_status)
+            return result
         return df
 
     if symbol == "":
@@ -716,7 +1218,11 @@ def stock_RI(
     dropna=True,
     ascending=True,
     save_path=None,
-    **kwargs
+    include_today=False,
+    *,
+    ins_code=None,
+    asset_type="auto",
+    **kwargs,
 ):
     """
     Get symbol or symbols retail/institutional history from tsetmc
@@ -768,12 +1274,17 @@ def stock_RI(
     :param multi_stock_drop:if True, when you enter stocks list, it will delete
                                 rows of none data (dropna) in combined historical df.
                             Default value is True.
+    :param include_today:   if True, append/replace today's partial live row.
+                            Value fields for today are estimated using live VWAP.
+                            Default is False, preserving historical behaviour.
 
     :return: pandas dataframe or None
     """
     # Backward compatibility: accept deprecated keyword names
     if not symbol and "stock" in kwargs:
         symbol = kwargs.pop("stock")
+    if not symbol and ins_code is not None:
+        symbol = str(ins_code)
     if "values" in kwargs:
         limit = kwargs.pop("values")
     if "tse_format" in kwargs:
@@ -790,10 +1301,88 @@ def stock_RI(
     tse_format = raw
     multi_stock_drop = dropna
 
+    # One bulk snapshot per public call, reused by every requested symbol.
+    live_cache = {
+        "market_attempted": False,
+        "market": None,
+        "client_attempted": False,
+        "client": None,
+    }
+    include_status = {
+        "include_today_requested": bool(include_today),
+        "include_today_appended": [],
+        "include_today_warning": None,
+        "live_trade_date": None,
+        "live_is_partial": None,
+        "live_is_history_eligible": None,
+        "live_is_realtime_fresh": None,
+        "live_snapshot_age_seconds": None,
+    }
+    append_candidates = {}
+
+    def _warn_ri_fallback(message):
+        include_status["include_today_warning"] = message
+        warnings.warn(message, RuntimeWarning, stacklevel=3)
+
+    def _ri_market_snapshot_once():
+        if live_cache["market_attempted"]:
+            return live_cache["market"]
+        live_cache["market_attempted"] = True
+        try:
+            from algotik_tse.core.market_data import market_watch, _is_current_snapshot
+
+            live_cache["market"] = market_watch()
+            include_status["live_trade_date"] = live_cache["market"].get("trade_date")
+            include_status["live_is_partial"] = live_cache["market"].get("is_partial")
+            include_status["live_is_history_eligible"] = live_cache["market"].get(
+                "is_history_eligible"
+            )
+            include_status["live_is_realtime_fresh"] = live_cache["market"].get(
+                "is_realtime_fresh"
+            )
+            include_status["live_snapshot_age_seconds"] = live_cache["market"].get(
+                "snapshot_age_seconds"
+            )
+            if not _is_current_snapshot(live_cache["market"]):
+                _warn_ri_fallback(
+                    "include_today skipped; MarketWatch snapshot is stale or "
+                    "does not represent Tehran today"
+                )
+        except (AlgotikTSEError, requests.exceptions.RequestException) as exc:
+            _warn_ri_fallback(f"include_today skipped; live market unavailable: {exc}")
+        return live_cache["market"]
+
+    def _ri_client_snapshot_once():
+        if live_cache["client_attempted"]:
+            return live_cache["client"]
+        live_cache["client_attempted"] = True
+        try:
+            from algotik_tse.core.market_data import market_client_type
+
+            live_cache["client"] = market_client_type()
+        except (AlgotikTSEError, requests.exceptions.RequestException) as exc:
+            _warn_ri_fallback(
+                f"include_today skipped; live client feed unavailable: {exc}"
+            )
+        return live_cache["client"]
+
     def _get_stock_RI(
         stock_name, mstart, mend, mvalues, mtse_format, moutput_type, mdate_format
     ):
-        web_id = search_stock(search_txt=stock_name)
+        selector_ins_code = ins_code if isinstance(symbol, str) else None
+        if ins_code is not None and not isinstance(symbol, str):
+            raise InvalidParameterError("ins_code can only be used with one symbol")
+        if selector_ins_code is None and asset_type == "auto":
+            web_id = search_stock(search_txt=stock_name)
+        else:
+            web_id = search_stock(
+                search_txt=stock_name,
+                ins_code=selector_ins_code,
+                asset_type=asset_type,
+            )
+        if web_id is None or len(str(web_id)) == 0:
+            print("Stock Not Found, Please try again ...")
+            return None
         client_type_base_url = settings.url_client_type
         if web_id[-5:] == "index" or web_id[-8:] == "industry":
             print("{} is an index, Please enter a valid stock name!".format(stock_name))
@@ -847,10 +1436,89 @@ def stock_RI(
             df.drop(columns=["<DTYYYYMMDD>"], inplace=True)
 
             df = df[::-1]
+            if include_today:
+                market_snapshot = _ri_market_snapshot_once()
+                from algotik_tse.core.market_data import _is_current_snapshot
+
+                if _is_current_snapshot(market_snapshot):
+                    try:
+                        live_row = _live_client_type_history_row(
+                            stock_name,
+                            web_id,
+                            market_snapshot,
+                            _ri_client_snapshot_once(),
+                        )
+                    except AmbiguousSymbolError:
+                        raise
+                    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+                        _warn_ri_fallback(
+                            f"include_today skipped; invalid live schema: {exc}"
+                        )
+                        live_row = None
+                else:
+                    live_row = None
+                df = _append_partial_today(df, live_row)
+                if live_row is not None:
+                    append_candidates[stock_name] = live_row.index[0].date()
+                elif include_status["include_today_warning"] is None:
+                    _warn_ri_fallback(
+                        f"include_today skipped; canonical InsCode {web_id} was "
+                        "not present in both live feeds"
+                    )
             if mvalues is not None or mstart is not None or mend is not None:
                 df = filter_by_date_or_values(df, mvalues, new_start, new_end)
 
             if mtse_format:
+                if include_today:
+                    raw_provenance_defaults = {
+                        "<EST_VAL_BUY_RETAIL>": np.nan,
+                        "<EST_VAL_BUY_INSTITUTIONAL>": np.nan,
+                        "<EST_VAL_SELL_RETAIL>": np.nan,
+                        "<EST_VAL_SELL_INSTITUTIONAL>": np.nan,
+                        "<VALUE_SOURCE>": pd.NA,
+                        "<IS_ESTIMATED>": pd.NA,
+                        "<IS_PARTIAL>": pd.NA,
+                        "<CLIENT_SNAPSHOT_CONSISTENT>": pd.NA,
+                        "<CLIENT_BUY_VOLUME_DIFFERENCE>": np.nan,
+                        "<CLIENT_SELL_VOLUME_DIFFERENCE>": np.nan,
+                        "<CLIENT_BUY_VOLUME_RATIO>": np.nan,
+                        "<CLIENT_SELL_VOLUME_RATIO>": np.nan,
+                    }
+                    for column, default in raw_provenance_defaults.items():
+                        if column not in df:
+                            df[column] = default
+                    historical_mask = df["<VALUE_SOURCE>"].isna()
+                    for column in [
+                        "<VAL_BUY_RETAIL>",
+                        "<VAL_BUY_INSTITUTIONAL>",
+                        "<VAL_SELL_RETAIL>",
+                        "<VAL_SELL_INSTITUTIONAL>",
+                    ]:
+                        df[column] = pd.to_numeric(df[column], errors="coerce").astype(
+                            "Int64"
+                        )
+                    df["<VALUE_SOURCE>"] = df["<VALUE_SOURCE>"].where(
+                        df["<VALUE_SOURCE>"].notna(), "tsetmc_actual"
+                    )
+                    df["<IS_ESTIMATED>"] = (
+                        df["<IS_ESTIMATED>"]
+                        .where(~historical_mask, False)
+                        .astype("boolean")
+                    )
+                    df.loc[historical_mask, "<IS_PARTIAL>"] = False
+                    df["<IS_PARTIAL>"] = df["<IS_PARTIAL>"].astype("boolean")
+                    df["<CLIENT_SNAPSHOT_CONSISTENT>"] = df[
+                        "<CLIENT_SNAPSHOT_CONSISTENT>"
+                    ].astype("boolean")
+                    for column in [
+                        "<CLIENT_BUY_VOLUME_DIFFERENCE>",
+                        "<CLIENT_SELL_VOLUME_DIFFERENCE>",
+                        "<CLIENT_BUY_VOLUME_RATIO>",
+                        "<CLIENT_SELL_VOLUME_RATIO>",
+                    ]:
+                        df[column] = pd.to_numeric(df[column], errors="coerce").astype(
+                            "Float64"
+                        )
                 return df
             else:
                 df.index.rename("Date_base", inplace=True)
@@ -869,55 +1537,172 @@ def stock_RI(
                         "<VAL_BUY_INSTITUTIONAL>": "Val_buy_institutional",
                         "<VAL_SELL_RETAIL>": "Val_sell_retail",
                         "<VAL_SELL_INSTITUTIONAL>": "Val_sell_institutional",
+                        "<EST_VAL_BUY_RETAIL>": "Estimated_val_buy_retail",
+                        "<EST_VAL_BUY_INSTITUTIONAL>": (
+                            "Estimated_val_buy_institutional"
+                        ),
+                        "<EST_VAL_SELL_RETAIL>": "Estimated_val_sell_retail",
+                        "<EST_VAL_SELL_INSTITUTIONAL>": (
+                            "Estimated_val_sell_institutional"
+                        ),
+                        "<VALUE_SOURCE>": "Value_source",
+                        "<IS_ESTIMATED>": "Is_estimated",
+                        "<IS_PARTIAL>": "Is_partial",
+                        "<CLIENT_SNAPSHOT_CONSISTENT>": ("Client_snapshot_consistent"),
+                        "<CLIENT_BUY_VOLUME_DIFFERENCE>": (
+                            "Client_buy_volume_difference"
+                        ),
+                        "<CLIENT_SELL_VOLUME_DIFFERENCE>": (
+                            "Client_sell_volume_difference"
+                        ),
+                        "<CLIENT_BUY_VOLUME_RATIO>": "Client_buy_volume_ratio",
+                        "<CLIENT_SELL_VOLUME_RATIO>": "Client_sell_volume_ratio",
                     },
                     inplace=True,
                 )
 
-                df["Per_capita_buy_retail"] = round(
-                    df["Val_buy_retail"] / df["N_buy_retail"]
-                )
-                df["Per_capita_sell_retail"] = round(
-                    df["Val_sell_retail"] / df["N_sell_retail"]
-                )
-                df["Per_capita_buy_institutional"] = round(
-                    df["Val_buy_institutional"] / df["N_buy_institutional"]
-                )
-                df["Per_capita_sell_institutional"] = round(
-                    df["Val_sell_institutional"] / df["N_sell_institutional"]
-                )
-                df["Power_retail"] = round(
-                    df["Per_capita_buy_retail"] / df["Per_capita_sell_retail"], 3
-                )
-                df["Power_institutional"] = round(
-                    df["Per_capita_buy_institutional"]
-                    / df["Per_capita_sell_institutional"],
-                    3,
-                )
+                if include_today:
+                    from algotik_tse.core.market_data import _safe_divide
+
+                    provenance_columns = {
+                        "Estimated_val_buy_retail": np.nan,
+                        "Estimated_val_buy_institutional": np.nan,
+                        "Estimated_val_sell_retail": np.nan,
+                        "Estimated_val_sell_institutional": np.nan,
+                        "Value_source": pd.NA,
+                        "Is_estimated": pd.NA,
+                        "Is_partial": pd.NA,
+                        "Client_snapshot_consistent": pd.NA,
+                        "Client_buy_volume_difference": np.nan,
+                        "Client_sell_volume_difference": np.nan,
+                        "Client_buy_volume_ratio": np.nan,
+                        "Client_sell_volume_ratio": np.nan,
+                    }
+                    for column, default in provenance_columns.items():
+                        if column not in df:
+                            df[column] = default
+                    historical_mask = df["Value_source"].isna()
+                    df["Value_source"] = df["Value_source"].where(
+                        ~historical_mask, "tsetmc_actual"
+                    )
+                    df["Is_estimated"] = df["Is_estimated"].where(
+                        ~historical_mask, False
+                    )
+                    df.loc[historical_mask, "Is_partial"] = False
+                    effective_buy_retail = df["Val_buy_retail"].combine_first(
+                        df["Estimated_val_buy_retail"]
+                    )
+                    effective_sell_retail = df["Val_sell_retail"].combine_first(
+                        df["Estimated_val_sell_retail"]
+                    )
+                    effective_buy_institutional = df[
+                        "Val_buy_institutional"
+                    ].combine_first(df["Estimated_val_buy_institutional"])
+                    effective_sell_institutional = df[
+                        "Val_sell_institutional"
+                    ].combine_first(df["Estimated_val_sell_institutional"])
+                    df["Per_capita_buy_retail"] = _safe_divide(
+                        effective_buy_retail, df["N_buy_retail"]
+                    ).round()
+                    df["Per_capita_sell_retail"] = _safe_divide(
+                        effective_sell_retail, df["N_sell_retail"]
+                    ).round()
+                    df["Per_capita_buy_institutional"] = _safe_divide(
+                        effective_buy_institutional, df["N_buy_institutional"]
+                    ).round()
+                    df["Per_capita_sell_institutional"] = _safe_divide(
+                        effective_sell_institutional, df["N_sell_institutional"]
+                    ).round()
+                    df["Power_retail"] = _safe_divide(
+                        df["Per_capita_buy_retail"],
+                        df["Per_capita_sell_retail"],
+                    ).round(3)
+                    df["Power_institutional"] = _safe_divide(
+                        df["Per_capita_buy_institutional"],
+                        df["Per_capita_sell_institutional"],
+                    ).round(3)
+                    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+                    integer_columns = [
+                        "N_buy_retail",
+                        "N_buy_institutional",
+                        "N_sell_retail",
+                        "N_sell_institutional",
+                        "Vol_buy_retail",
+                        "Vol_buy_institutional",
+                        "Vol_sell_retail",
+                        "Vol_sell_institutional",
+                        "Val_buy_retail",
+                        "Val_buy_institutional",
+                        "Val_sell_retail",
+                        "Val_sell_institutional",
+                    ]
+                    for column in integer_columns:
+                        df[column] = pd.to_numeric(df[column], errors="coerce").astype(
+                            "Int64"
+                        )
+                    for column in provenance_columns:
+                        if (
+                            column.startswith("Estimated_")
+                            or column.startswith("Client_")
+                            and column != "Client_snapshot_consistent"
+                        ):
+                            df[column] = pd.to_numeric(
+                                df[column], errors="coerce"
+                            ).astype("Float64")
+                    df["Value_source"] = df["Value_source"].astype("string")
+                    df["Is_estimated"] = df["Is_estimated"].astype("boolean")
+                    df["Is_partial"] = df["Is_partial"].astype("boolean")
+                    df["Client_snapshot_consistent"] = df[
+                        "Client_snapshot_consistent"
+                    ].astype("boolean")
+                else:
+                    # Preserve the pre-1.1 full-mode calculations and fill
+                    # behaviour exactly when live augmentation is not opted in.
+                    df["Per_capita_buy_retail"] = round(
+                        df["Val_buy_retail"] / df["N_buy_retail"]
+                    )
+                    df["Per_capita_sell_retail"] = round(
+                        df["Val_sell_retail"] / df["N_sell_retail"]
+                    )
+                    df["Per_capita_buy_institutional"] = round(
+                        df["Val_buy_institutional"] / df["N_buy_institutional"]
+                    )
+                    df["Per_capita_sell_institutional"] = round(
+                        df["Val_sell_institutional"] / df["N_sell_institutional"]
+                    )
+                    df["Power_retail"] = round(
+                        df["Per_capita_buy_retail"] / df["Per_capita_sell_retail"],
+                        3,
+                    )
+                    df["Power_institutional"] = round(
+                        df["Per_capita_buy_institutional"]
+                        / df["Per_capita_sell_institutional"],
+                        3,
+                    )
 
                 df = add_date_columns(df, stock_name)
-                df.fillna(value=0, inplace=True)
+                if not include_today:
+                    df.fillna(value=0, inplace=True)
 
                 df = apply_date_format(df, mdate_format)
                 if df is None:
                     return None
                 if moutput_type == "standard":
-                    df = df.loc[
-                        :,
-                        [
-                            "N_buy_retail",
-                            "N_buy_institutional",
-                            "N_sell_retail",
-                            "N_sell_institutional",
-                            "Vol_buy_retail",
-                            "Vol_buy_institutional",
-                            "Vol_sell_retail",
-                            "Vol_sell_institutional",
-                            "Val_buy_retail",
-                            "Val_buy_institutional",
-                            "Val_sell_retail",
-                            "Val_sell_institutional",
-                        ],
+                    standard_columns = [
+                        "N_buy_retail",
+                        "N_buy_institutional",
+                        "N_sell_retail",
+                        "N_sell_institutional",
+                        "Vol_buy_retail",
+                        "Vol_buy_institutional",
+                        "Vol_sell_retail",
+                        "Vol_sell_institutional",
+                        "Val_buy_retail",
+                        "Val_buy_institutional",
+                        "Val_sell_retail",
+                        "Val_sell_institutional",
                     ]
+                    df = df.loc[:, standard_columns]
                 elif moutput_type == "full":
                     pass
                 else:
@@ -927,6 +1712,8 @@ def stock_RI(
         except requests.exceptions.RequestException:
             print("Connection Error!")
             return None
+        except AmbiguousSymbolError:
+            raise
         except Exception as e:
             print("Stock Not Found or data error: {}".format(e))
             return None
@@ -944,8 +1731,18 @@ def stock_RI(
 
     def _apply_ascending_ri(df):
         """Sort by index ascending/descending based on user preference."""
+        if df is not None and include_today:
+            include_status["include_today_appended"] = [
+                name
+                for name, trade_date in append_candidates.items()
+                if _index_contains_date(df.index, trade_date)
+            ]
+            df.attrs.update(include_status)
         if df is not None and not ascending:
-            return df.iloc[::-1]
+            result = df.iloc[::-1]
+            if include_today:
+                result.attrs.update(include_status)
+            return result
         return df
 
     if symbol == "":
@@ -1046,7 +1843,16 @@ def stock_RI(
                 df.columns = new_index
 
                 if multi_stock_drop:
-                    df.dropna(inplace=True)
+                    if include_today:
+                        structural = [
+                            column
+                            for column in df.columns
+                            if str(column[0]).startswith(("N_", "Vol_"))
+                        ]
+                        if structural:
+                            df.dropna(subset=structural, inplace=True)
+                    else:
+                        df.dropna(inplace=True)
                 if save_to_file and df is not None:
                     if progress:
                         print(
@@ -1071,7 +1877,11 @@ def stock_RL(
     dropna=True,
     ascending=True,
     save_path=None,
-    **kwargs
+    include_today=False,
+    *,
+    ins_code=None,
+    asset_type="auto",
+    **kwargs,
 ):
     # Backward compat
     if not symbol and "stock" in kwargs:
@@ -1095,11 +1905,14 @@ def stock_RL(
         dropna=dropna,
         ascending=ascending,
         save_path=save_path,
+        include_today=include_today,
+        ins_code=ins_code,
+        asset_type=asset_type,
     )
 
 
 # symbol capital increase version 1
-def stock_capital_increase(symbol="", **kwargs):
+def stock_capital_increase(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
     """
     Get every capital increase in selected asset.
     :param symbol:   symbol name in persian, or a list of symbol in
@@ -1110,7 +1923,12 @@ def stock_capital_increase(symbol="", **kwargs):
     # Backward compatibility: accept deprecated 'stock' keyword
     if not symbol and "stock" in kwargs:
         symbol = kwargs.pop("stock")
-    web_id = search_stock(search_txt=symbol)
+    if not symbol and ins_code is not None:
+        symbol = str(ins_code)
+    web_id = search_stock(search_txt=symbol, ins_code=ins_code, asset_type=asset_type)
+    if web_id is None or len(str(web_id)) == 0:
+        print("Stock Not Found, Please try again ...")
+        return None
     _capital_increase_url = settings.url_capital_increase
     if web_id[-5:] == "index":
         print("Indexes don't have capital increase!")

@@ -1,4 +1,4 @@
-.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint lint/flake8 lint/black
+.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint lint/flake8 lint/black release publish
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
@@ -77,7 +77,10 @@ docs: ## generate Sphinx HTML documentation, including API docs
 servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
-release: dist ## package and upload a release
+release: dist ## build release artifacts locally (never uploads)
+
+publish: ## MANUAL: upload already-built artifacts (requires explicit confirmation)
+	@test "$$CONFIRM_PYPI_UPLOAD" = "yes" || (echo "Set CONFIRM_PYPI_UPLOAD=yes to upload"; exit 1)
 	twine upload dist/*
 
 dist: clean ## builds source and wheel package

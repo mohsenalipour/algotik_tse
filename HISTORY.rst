@@ -2,12 +2,41 @@
 History
 =======
 
+1.1.0 (2026-08-24)
+------------------
+* Added live/history symmetry for prices and حقیقی/حقوقی data, including an
+  opt-in ``include_today=True`` live row with explicit source and freshness.
+* Added reconstructed five-level order-book and queue history, live market
+  watcher/events, breadth, sector flow, market messages and state changes.
+* Added opt-in SQLite market/event snapshot history. Coverage starts when the
+  user records data; the package does not claim historical backfill.
+* Added exact ``InstrumentRef``/``InsCode`` resolution with explicit ambiguity
+  errors, live and historical individual trades, same-snapshot EPS/P/E
+  fundamentals, and an exact-identity listed-funds view.
+* Added TSETMC price-adjustment history and latest-event helpers. Raw corporate
+  type codes are retained, while price discontinuities are never inferred to
+  be confirmed cash dividends.
+* Added Iranian treasury analytics (effective/simple yields, duration,
+  convexity, DV01), IFB reference parsing and current/historical yield curves.
+* Added professional European Black--Scholes option analytics: IV by quote
+  side, unit-labelled Greeks, parity diagnostics, PCR/liquidity and explicit
+  user-saved option snapshot history.
+* Preserved 1.0.x public defaults and aliases; all new behavior is additive or
+  opt-in.
+* Enforced the supported-source boundary at the final HTTP layer, including
+  redirect origin pinning. Legacy company-introduction imports remain present
+  but now fail explicitly before resolution or network access because their
+  former data source is outside the package boundary.
+* Hardened transport defaults: HTTPS TSETMC endpoints, certificate verification
+  enabled by default and thread-safe rate limiting/session reset. Calendar-
+  sensitive computations now share the Tehran-aware clock helper.
+* Added offline-first CI through Python 3.14, bounded online tests, release
+  metadata and artifact checks.
+
 1.0.3 (2026-07-12)
 ------------------
-* Added ``get_introduction()`` (and legacy alias ``stock_introduction()``) — fetches the company introduction / profile (معرفی) from the Codal publisher endpoint, returning identity data such as full name, ISIC code, executive/financial managers, activity subject, addresses, auditor, listed capital, financial year-end, and national ID.
-* Added ``search_stock_symbol()`` helper — resolves the canonical TSETMC symbol (with Persian ک/ی → Arabic ك/ي mapping) for symbol-keyed endpoints.
-* Added ``url_codal_publisher`` setting for the Codal publisher endpoint.
-* Indices (e.g. ``'شاخص کل'``) correctly return ``None`` as they have no Codal publisher record.
+* Added ``search_stock_symbol()`` helper for canonical TSETMC symbol spelling,
+  including Persian/Arabic character normalization.
 
 1.0.2 (2026-03-24)
 ------------------
@@ -94,16 +123,16 @@ History
 * bug fix in shareholders change_amount.
 
 0.3.10 (2024-03-15)
-------------------
+-------------------
 * tenth release on PyPI.
 * bug fix in currency, dollar sana and nima buy and sell.
 
 0.3.11 (2024-03-15)
-------------------
+-------------------
 * eleventh release on PyPI.
 * add a few index of industry to package.
 
 0.3.12 (2024-12-07)
-------------------
+-------------------
 * Twelfth release on PyPI.
 * fix stock list error.

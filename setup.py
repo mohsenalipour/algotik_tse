@@ -10,11 +10,6 @@ def read_readme():
         return f.read()
 
 
-def read_history():
-    with open("HISTORY.rst", encoding="utf-8") as f:
-        return f.read()
-
-
 requirements = [
     "requests>=2.25.0",
     "pandas>=1.3.0",
@@ -27,6 +22,7 @@ requirements = [
 
 test_requirements = [
     "pytest>=7.0",
+    "pytest-timeout>=2.2.0",
 ]
 
 setup(
@@ -52,7 +48,7 @@ setup(
     description="A comprehensive Python library for fetching Tehran Stock Exchange (TSETMC) and currency/coin market data.",
     install_requires=requirements,
     license="GNU General Public License v3",
-    long_description=read_readme() + "\n\n" + read_history(),
+    long_description=read_readme(),
     long_description_content_type="text/markdown",
     include_package_data=True,
     keywords="tse, tsetmc, tehran stock exchange, bourse, algotik, stock, market data, iran",
@@ -65,6 +61,6 @@ setup(
         "Documentation": "https://github.com/mohsenalipour/algotik_tse#readme",
         "Telegram": "https://t.me/algotik",
     },
-    version="1.0.3",
+    version="1.1.0",
     zip_safe=False,
 )

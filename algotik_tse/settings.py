@@ -1,9 +1,22 @@
-import datetime
+from algotik_tse._clock import tehran_today
 
 
 class Settings:
     def __init__(self):
-        self.today = datetime.date.today().isoformat()
+        # Backward-compatible snapshot of the Tehran calendar date at settings
+        # construction time. Callers that need a live date use tehran_today().
+        self.today = tehran_today().isoformat()
+        # MarketWatch freshness only governs real-time-sensitive derivatives
+        # (for example queue estimates).  Same-day history eligibility is a
+        # separate date/instrument validation.
+        self.market_snapshot_freshness_seconds = 120.0
+        self.market_clock_skew_tolerance_seconds = 5.0
+        self.client_volume_consistency_tolerance = 0.05
+        self.order_book_max_requests = 250
+        self.trade_max_requests = 250
+        # Used only when ``limit`` is requested without an explicit range.
+        # The public limit is applied to final snapshots/rows, never dates.
+        self.order_book_discovery_lookback_days = 10
         self.headers = {
             "User-Agent": "Mozilla/108.0.1 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
         }
@@ -78,13 +91,13 @@ class Settings:
         ]
 
         self.url_search = "https://cdn.tsetmc.com/api/Instrument/GetInstrumentSearch/{}"
-        self.url_detail = "http://old.tsetmc.com/Loader.aspx?Partree=15131M&i={}"
-        self.url_stock_list = "http://old.tsetmc.com/Loader.aspx?ParTree=151114"
+        self.url_detail = "https://old.tsetmc.com/Loader.aspx?Partree=15131M&i={}"
+        self.url_stock_list = "https://old.tsetmc.com/Loader.aspx?ParTree=151114"
         self.url_price_history = (
-            "http://old.tsetmc.com/tsev2/data/Export-txt.aspx?t=i&a=1&b=0&i={}"
+            "https://old.tsetmc.com/tsev2/data/Export-txt.aspx?t=i&a=1&b=0&i={}"
         )
         self.url_index_history = (
-            "http://old.tsetmc.com/tsev2/chart/data/IndexFinancial.aspx?i={}&t=ph"
+            "https://old.tsetmc.com/tsev2/chart/data/IndexFinancial.aspx?i={}&t=ph"
         )
         self.url_industry_history = (
             "https://cdn.tsetmc.com/api/Index/GetIndexB2History/{}"
@@ -98,7 +111,7 @@ class Settings:
         self.url_index_companies = (
             "https://cdn.tsetmc.com/api/ClosingPrice/GetIndexCompany/{}"
         )
-        self.url_client_type = "http://old.tsetmc.com/tsev2/data/clienttype.aspx?i={}"
+        self.url_client_type = "https://old.tsetmc.com/tsev2/data/clienttype.aspx?i={}"
         self.url_last_share_holders = (
             "https://cdn.tsetmc.com/api/Shareholder/GetInstrumentShareHolderLast/{}"
         )
@@ -112,9 +125,6 @@ class Settings:
         self.url_instrument_statistics = (
             "https://cdn.tsetmc.com/api/MarketData/GetInstrumentStatistic/{}"
         )
-        self.url_codal_publisher = (
-            "https://cdn.tsetmc.com/api/Codal/GetCodalPublisherBySymbol/{}"
-        )
         self.url_currency_from_tgju = (
             "https://api.tgju.org/v1/market/indicator/summary-table-data/{}"
         )
@@ -124,23 +134,57 @@ class Settings:
         self.url_market_data_live = (
             "https://old.tsetmc.com/tsev2/data/MarketWatchPlus.aspx"
         )
+        self.url_market_watch_plus = (
+            "https://old.tsetmc.com/tsev2/data/MarketWatchPlus.aspx?h={}&r={}"
+        )
         self.url_market_watch_init = (
             "https://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0"
         )
         self.url_client_type_all = (
             "https://old.tsetmc.com/tsev2/data/ClientTypeAll.aspx"
         )
+        self.url_market_messages = "https://cdn.tsetmc.com/api/Msg/GetMsgByFlow/{}/{}"
+        self.url_instrument_state_top = (
+            "https://cdn.tsetmc.com/api/MarketData/GetInstrumentStateTop/{}"
+        )
+        self.url_market_overview = (
+            "https://cdn.tsetmc.com/api/MarketData/GetMarketOverview/{}"
+        )
+        # Five-level order-book endpoints.  The dated response is a delta
+        # stream and must be reconstructed independently for each trading day.
+        self.url_best_limits = "https://cdn.tsetmc.com/api/BestLimits/{}"
+        self.url_best_limits_history = "https://cdn.tsetmc.com/api/BestLimits/{}/{}"
+        self.url_static_threshold = (
+            "https://cdn.tsetmc.com/api/MarketData/GetStaticThreshold/{}/{}"
+        )
         self.url_closing_price_all = (
             "https://members.tsetmc.com/tsev2/data/ClosingPriceAll.aspx"
         )
         self.url_intraday_trades = "https://cdn.tsetmc.com/api/Trade/GetTrade/{}"
+        # Individual transactions.  The final literal ``false`` on the dated
+        # endpoint is part of TSETMC's lossless contract; ``true`` returns a
+        # truncated view and must not be used for archival trade retrieval.
+        self.url_trade_history = (
+            "https://cdn.tsetmc.com/api/Trade/GetTradeHistory/{}/{}/false"
+        )
         self.url_intraday_history = (
             "https://cdn.tsetmc.com/api/ClosingPrice/GetClosingPriceHistory/{}/{}"
+        )
+        self.url_closing_price_info = (
+            "https://cdn.tsetmc.com/api/ClosingPrice/GetClosingPriceInfo/{}"
+        )
+        self.url_price_adjustments = (
+            "https://cdn.tsetmc.com/api/ClosingPrice/GetPriceAdjustList/{}"
         )
         self.url_option_info = (
             "https://cdn.tsetmc.com/api/Instrument/GetInstrumentOptionByInstrumentID/{}"
         )
+        self.url_option_market_watch = (
+            "https://cdn.tsetmc.com/api/Instrument/GetInstrumentOptionMarketWatch/{}"
+        )
         self.url_fund_list = "https://cdn.tsetmc.com/api/Fund/GetFunds/{}"
+        # Official Iran Fara Bourse reference YTM tables (server-rendered).
+        self.url_ifb_yield_table = "https://ifb.ir/ytm.aspx"
 
         self.fund_type_ids = {
             "equity": 6,
@@ -227,7 +271,9 @@ class Settings:
         ]
 
         # ── HTTP Client Settings ──────────────────────────────────────
-        self.ssl_verify = False  # Set True to enable SSL certificate verification
+        self.ssl_verify = (
+            True  # Explicit opt-out is supported; HTTPS is never downgraded
+        )
         self.timeout = 10  # Request timeout in seconds
         self.max_retries = 3  # Number of retries on transient HTTP errors
         self.retry_backoff_factor = 0.3  # Exponential backoff factor between retries

@@ -1,15 +1,22 @@
 import datetime
 import requests
-import warnings
 import pandas as pd
 from persiantools.jdatetime import JalaliDate
+
+from algotik_tse._clock import tehran_today
 
 from algotik_tse.settings import settings
 from algotik_tse.core.search import search_stock
 from algotik_tse.core.helper import date_fix
 from algotik_tse.http_client import safe_get
 
-warnings.simplefilter(action="ignore", category=FutureWarning)
+
+class _DefaultIntradaySymbol:
+    def __repr__(self):
+        return "'شتران'"
+
+
+_INTRADAY_DEFAULT_SYMBOL = _DefaultIntradaySymbol()
 
 # ── Interval mapping (shared) ────────────────────────────────
 _INTERVAL_MAP = {
@@ -71,9 +78,9 @@ def _validate_interval(interval):
     return _INTERVAL_MAP[interval_key]
 
 
-def _resolve_web_id(symbol, progress=True):
+def _resolve_web_id(symbol, progress=True, *, ins_code=None, asset_type="auto"):
     """Search for stock and return web_id, or None on failure."""
-    web_id = search_stock(search_txt=symbol)
+    web_id = search_stock(search_txt=symbol, ins_code=ins_code, asset_type=asset_type)
     if web_id is None or len(web_id) == 0:
         print("Stock Not Found, Please try again ...")
         return None
@@ -156,7 +163,7 @@ def _fetch_today_trades(web_id):
         return None
 
     df["Time"] = df["Time_raw"].apply(_heven_to_time_str)
-    today_str = pd.Timestamp.now().strftime("%Y-%m-%d")
+    today_str = tehran_today().isoformat()
     df["DateTime"] = pd.to_datetime(today_str + " " + df["Time"])
     df.sort_values("TradeNo", inplace=True)
     df.reset_index(drop=True, inplace=True)
@@ -270,7 +277,12 @@ def _generate_date_range(start_greg, end_greg):
 # PUBLIC API
 # ──────────────────────────────────────────────────────────────
 def stock_intraday(
-    symbol="شتران", interval="1min", start=None, end=None, progress=True, **kwargs
+    symbol=_INTRADAY_DEFAULT_SYMBOL,
+    interval="1min",
+    start=None,
+    end=None,
+    progress=True,
+    **kwargs,
 ):
     """
     Get intraday trade data for a symbol and aggregate into OHLCV candles.
@@ -322,8 +334,15 @@ def stock_intraday(
                                 start='1404-11-01', end='1404-11-06')
     """
     # Backward compatibility: accept deprecated 'stock_name' keyword
-    if symbol == "شتران" and "stock_name" in kwargs:
+    ins_code = kwargs.pop("ins_code", None)
+    asset_type = kwargs.pop("asset_type", "auto")
+    symbol_was_omitted = symbol is _INTRADAY_DEFAULT_SYMBOL
+    if symbol_was_omitted and "stock_name" in kwargs:
         symbol = kwargs.pop("stock_name")
+    elif symbol_was_omitted and ins_code is not None:
+        symbol = str(ins_code)
+    elif symbol_was_omitted:
+        symbol = "شتران"
 
     # ── Validate interval ─────────────────────────────────────────
     resample_freq = _validate_interval(interval)
@@ -338,7 +357,7 @@ def stock_intraday(
             msg = "Getting intraday data for {}...".format(symbol)
         print(msg, flush=True)
 
-    web_id = _resolve_web_id(symbol, progress)
+    web_id = _resolve_web_id(symbol, progress, ins_code=ins_code, asset_type=asset_type)
     if web_id is None:
         return None
 
@@ -443,7 +462,7 @@ def stock_intraday(
         df_tick.index.name = "DateTime"
 
         try:
-            jdate = JalaliDate.today()
+            jdate = JalaliDate(tehran_today())
             df_tick["J-Date"] = str(jdate)
         except Exception:
             pass

@@ -27,9 +27,6 @@ Quick Start
     att.get_info('شتران')
     att.get_stats('شتران')
 
-    # Company introduction / profile (Codal publisher)
-    att.get_introduction('شتران')
-
     # Shareholders & capital increases
     att.get_shareholders('شتران')
     att.get_capital_increase('شتران')
@@ -66,9 +63,18 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.0.3"
+__version__ = "1.1.0"
 
 from algotik_tse.settings import settings
+from algotik_tse.exceptions import (
+    AlgotikTSEError,
+    AmbiguousSymbolError,
+    ConnectionError,
+    DataParsingError,
+    InvalidParameterError,
+    StockNotFoundError,
+    UnsupportedDataSourceError,
+)
 from algotik_tse.core.stock_detail import (
     stockdetail,
     stock_information,
@@ -79,16 +85,104 @@ from algotik_tse.core.stock_list import stocklist
 from algotik_tse.core.stock import stock, stock_RI, stock_RL, stock_capital_increase
 from algotik_tse.core.shareholders import shareholders
 from algotik_tse.core.currency import currency_coin
-from algotik_tse.core.intraday import stock_intraday
-from algotik_tse.core.market_data import market_watch, market_client_type, market_data
+from algotik_tse.core.intraday import stock_intraday, _INTRADAY_DEFAULT_SYMBOL
+from algotik_tse.core.market_data import (
+    market_watch,
+    market_client_type,
+    market_data,
+    get_order_book,
+    get_live_market,
+    get_live_symbol,
+)
+from algotik_tse.core.order_book import (
+    get_queue,
+    get_order_book_history,
+    get_orderbook_history,
+    get_queue_history,
+)
+from algotik_tse.core.market_stream import (
+    MarketEvent,
+    MarketWatcher,
+    watch_market,
+    get_market_messages,
+    get_instrument_state_changes,
+    get_market_overview,
+    get_market_breadth,
+    get_sector_flow,
+)
+from algotik_tse.core.market_history import (
+    MARKET_HISTORY_SCHEMA_VERSION,
+    MARKET_HISTORY_APPLICATION_ID,
+    check_market_history,
+    save_market_snapshot,
+    load_market_snapshots,
+    get_live_market_history,
+    get_market_overview_history,
+    get_market_snapshot_summary_history,
+    get_market_breadth_history,
+    get_sector_flow_history,
+    record_market_event,
+    get_market_event_history,
+    archive_market_records,
+    get_market_messages_history,
+    get_instrument_state_changes_history,
+)
 from algotik_tse.core.instruments import (
     list_options,
     get_options_chain,
     list_etfs,
     list_bonds,
     list_funds,
+    list_listed_funds,
     list_indices,
     get_index_companies,
+)
+from algotik_tse.core.options_math import (
+    black_scholes_price,
+    black_scholes_greeks,
+    option_price_bounds,
+    implied_volatility,
+)
+from algotik_tse.core.options import (
+    OPTION_SNAPSHOT_SCHEMA_VERSION,
+    get_option_market,
+    analyze_option_chain,
+    option_put_call_ratios,
+    get_option_history,
+    save_option_snapshot,
+    load_option_snapshots,
+)
+from algotik_tse.core.parsers import parse_treasury_maturity
+from algotik_tse.core.conventions import day_count_fraction
+from algotik_tse.core.fixed_income import (
+    IRAN_TREASURY_FACE_VALUE,
+    YieldCurve,
+    treasury_yield,
+    bond_price,
+    yield_to_maturity,
+    bond_analytics,
+    build_yield_curve,
+    get_ifb_yield_table,
+    get_treasury_yields,
+    get_treasury_yield_history,
+    get_treasury_yields_history,
+    get_yield_curve,
+    get_yield_curve_history,
+)
+from algotik_tse.core.resolver import (
+    InstrumentRef,
+    normalize_instrument_text,
+    resolve_instrument,
+    validate_ins_code,
+)
+from algotik_tse.core.trades import get_trades, get_live_trades
+from algotik_tse.core.fundamentals import (
+    get_market_fundamentals,
+    get_market_fundamentals_history,
+)
+from algotik_tse.core.price_adjustments import (
+    get_price_adjustments,
+    get_latest_price_adjustment,
 )
 
 # ── Standard API aliases (recommended) ────────────────────────
@@ -112,7 +206,11 @@ def get_history(
     return_type=None,
     ascending=True,
     save_path=None,
-    **kwargs
+    include_today=False,
+    *,
+    ins_code=None,
+    asset_type="auto",
+    **kwargs,
 ):
     """Get historical OHLCV price data for one or more symbols."""
     return stock(
@@ -131,7 +229,10 @@ def get_history(
         return_type=return_type,
         ascending=ascending,
         save_path=save_path,
-        **kwargs
+        include_today=include_today,
+        ins_code=ins_code,
+        asset_type=asset_type,
+        **kwargs,
     )
 
 
@@ -148,7 +249,11 @@ def get_client_type(
     dropna=True,
     ascending=True,
     save_path=None,
-    **kwargs
+    include_today=False,
+    *,
+    ins_code=None,
+    asset_type="auto",
+    **kwargs,
 ):
     """Get retail/institutional (حقیقی/حقوقی) trade data per symbol."""
     return stock_RI(
@@ -164,17 +269,27 @@ def get_client_type(
         dropna=dropna,
         ascending=ascending,
         save_path=save_path,
-        **kwargs
+        include_today=include_today,
+        ins_code=ins_code,
+        asset_type=asset_type,
+        **kwargs,
     )
 
 
-def get_capital_increase(symbol="", **kwargs):
+def get_capital_increase(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
     """Get capital increase history for a symbol."""
-    return stock_capital_increase(symbol=symbol, **kwargs)
+    return stock_capital_increase(
+        symbol=symbol, ins_code=ins_code, asset_type=asset_type, **kwargs
+    )
 
 
 def get_intraday(
-    symbol="شتران", interval="1min", start=None, end=None, progress=True, **kwargs
+    symbol=_INTRADAY_DEFAULT_SYMBOL,
+    interval="1min",
+    start=None,
+    end=None,
+    progress=True,
+    **kwargs,
 ):
     """Get intraday tick/candle data for a symbol."""
     return stock_intraday(
@@ -183,28 +298,36 @@ def get_intraday(
         start=start,
         end=end,
         progress=progress,
-        **kwargs
+        **kwargs,
     )
 
 
-def get_detail(symbol="", **kwargs):
+def get_detail(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
     """Get full stock detail page."""
-    return stockdetail(symbol=symbol, **kwargs)
+    return stockdetail(
+        symbol=symbol, ins_code=ins_code, asset_type=asset_type, **kwargs
+    )
 
 
-def get_info(symbol="", **kwargs):
+def get_info(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
     """Get instrument information."""
-    return stock_information(symbol=symbol, **kwargs)
+    return stock_information(
+        symbol=symbol, ins_code=ins_code, asset_type=asset_type, **kwargs
+    )
 
 
-def get_stats(symbol="", **kwargs):
+def get_stats(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
     """Get instrument statistics."""
-    return stock_statistics(symbol=symbol, **kwargs)
+    return stock_statistics(
+        symbol=symbol, ins_code=ins_code, asset_type=asset_type, **kwargs
+    )
 
 
-def get_introduction(symbol="", **kwargs):
-    """Get company introduction / profile (معرفی) — Codal publisher record."""
-    return stock_introduction(symbol=symbol, **kwargs)
+def get_introduction(symbol="", *, ins_code=None, asset_type="auto", **kwargs):
+    """Legacy API that raises because company profiles require Codal data."""
+    return stock_introduction(
+        symbol=symbol, ins_code=ins_code, asset_type=asset_type, **kwargs
+    )
 
 
 def get_symbols(
@@ -221,7 +344,7 @@ def get_symbols(
     payeh_color=None,
     output="dataframe",
     progress=True,
-    **kwargs
+    **kwargs,
 ):
     """Get list of all market symbols.
 
@@ -248,13 +371,28 @@ def get_symbols(
         payeh_color=payeh_color,
         output=output,
         progress=progress,
-        **kwargs
+        **kwargs,
     )
 
 
-def get_shareholders(symbol="", date=None, include_id=False, **kwargs):
+def get_shareholders(
+    symbol="",
+    date=None,
+    include_id=False,
+    *,
+    ins_code=None,
+    asset_type="auto",
+    **kwargs,
+):
     """Get major shareholders for a symbol."""
-    return shareholders(symbol=symbol, date=date, include_id=include_id, **kwargs)
+    return shareholders(
+        symbol=symbol,
+        date=date,
+        include_id=include_id,
+        ins_code=ins_code,
+        asset_type=asset_type,
+        **kwargs,
+    )
 
 
 def get_currency(
@@ -270,7 +408,7 @@ def get_currency(
     return_type=None,
     ascending=True,
     save_path=None,
-    **kwargs
+    **kwargs,
 ):
     """Get currency/coin price history."""
     return currency_coin(
@@ -286,7 +424,7 @@ def get_currency(
         return_type=return_type,
         ascending=ascending,
         save_path=save_path,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -303,11 +441,24 @@ def get_market_client_type(*args, **kwargs):
 __all__ = [
     # Settings
     "settings",
+    "AlgotikTSEError",
+    "AmbiguousSymbolError",
+    "ConnectionError",
+    "DataParsingError",
+    "InvalidParameterError",
+    "StockNotFoundError",
+    "UnsupportedDataSourceError",
+    "InstrumentRef",
+    "normalize_instrument_text",
+    "resolve_instrument",
+    "validate_ins_code",
     # ── Standard API (recommended) ──
     "get_history",
     "get_client_type",
     "get_capital_increase",
     "get_intraday",
+    "get_trades",
+    "get_live_trades",
     "get_detail",
     "get_info",
     "get_stats",
@@ -317,12 +468,74 @@ __all__ = [
     "get_currency",
     "get_market_snapshot",
     "get_market_client_type",
+    "get_market_fundamentals",
+    "get_market_fundamentals_history",
+    "get_price_adjustments",
+    "get_latest_price_adjustment",
+    "get_order_book",
+    "get_live_market",
+    "get_live_symbol",
+    "get_order_book_history",
+    "get_orderbook_history",
+    "get_queue",
+    "get_queue_history",
+    "MarketEvent",
+    "MarketWatcher",
+    "watch_market",
+    "get_market_messages",
+    "get_instrument_state_changes",
+    "get_market_overview",
+    "get_market_breadth",
+    "get_sector_flow",
+    "MARKET_HISTORY_SCHEMA_VERSION",
+    "MARKET_HISTORY_APPLICATION_ID",
+    "check_market_history",
+    "save_market_snapshot",
+    "load_market_snapshots",
+    "get_live_market_history",
+    "get_market_overview_history",
+    "get_market_snapshot_summary_history",
+    "get_market_breadth_history",
+    "get_sector_flow_history",
+    "record_market_event",
+    "get_market_event_history",
+    "archive_market_records",
+    "get_market_messages_history",
+    "get_instrument_state_changes_history",
+    # ── Fixed income / Iranian treasury bills ──
+    "IRAN_TREASURY_FACE_VALUE",
+    "YieldCurve",
+    "parse_treasury_maturity",
+    "day_count_fraction",
+    "treasury_yield",
+    "bond_price",
+    "yield_to_maturity",
+    "bond_analytics",
+    "build_yield_curve",
+    "get_ifb_yield_table",
+    "get_treasury_yields",
+    "get_treasury_yield_history",
+    "get_treasury_yields_history",
+    "get_yield_curve",
+    "get_yield_curve_history",
     # ── Instruments ──
     "list_options",
     "get_options_chain",
+    "OPTION_SNAPSHOT_SCHEMA_VERSION",
+    "black_scholes_price",
+    "black_scholes_greeks",
+    "option_price_bounds",
+    "implied_volatility",
+    "get_option_market",
+    "analyze_option_chain",
+    "option_put_call_ratios",
+    "get_option_history",
+    "save_option_snapshot",
+    "load_option_snapshots",
     "list_etfs",
     "list_bonds",
     "list_funds",
+    "list_listed_funds",
     # ── Indices ──
     "list_indices",
     "get_index_companies",
