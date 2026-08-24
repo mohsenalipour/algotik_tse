@@ -21,10 +21,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_version_is_synchronized():
-    assert att.__version__ == "1.1.0"
-    assert 'version="1.1.0"' in (ROOT / "setup.py").read_text(encoding="utf-8")
-    assert "current_version = 1.1.0" in (ROOT / "setup.cfg").read_text(encoding="utf-8")
-    assert "1.1.0 (2026-08-24)" in (ROOT / "HISTORY.rst").read_text(encoding="utf-8")
+    assert att.__version__ == "1.1.1"
+    assert 'version="1.1.1"' in (ROOT / "setup.py").read_text(encoding="utf-8")
+    assert "current_version = 1.1.1" in (ROOT / "setup.cfg").read_text(encoding="utf-8")
+    history = (ROOT / "HISTORY.rst").read_text(encoding="utf-8")
+    assert "1.1.1 (2026-08-25)" in history
+    assert "1.1.0 (2026-08-24)" in history
 
 
 @pytest.mark.parametrize(
@@ -314,7 +316,17 @@ def test_build_metadata_declares_supported_python_and_primary_readme():
 def test_markdown_is_single_authoritative_reference_and_covers_public_exports():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "README.md` سند مرجع واحد" in readme
-    assert "## Version 1.1.0" not in readme
+    assert "## Version 1.1.1" not in readme
+    assert readme.count('<div dir="rtl" align="right">') == 1
+    assert readme.rstrip().endswith("</div>")
+    for badge in (
+        "img.shields.io/pypi/v/algotik-tse.svg?cacheSeconds=300",
+        "img.shields.io/pypi/pyversions/algotik-tse.svg",
+        "static.pepy.tech/personalized-badge/algotik-tse",
+        "img.shields.io/pypi/l/algotik-tse.svg",
+        "results.pre-commit.ci/badge/github/mohsenalipour/algotik_tse/master.svg",
+    ):
+        assert badge in readme
     assert "get_codal_disclosures" not in readme
     assert 'notifications=("messages", "state", "codal")' not in readme
     assert "فقط برای حفظ import/signature قدیمی" in readme

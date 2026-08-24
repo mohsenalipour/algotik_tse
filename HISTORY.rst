@@ -2,6 +2,14 @@
 History
 =======
 
+1.1.1 (2026-08-25)
+------------------
+* Improved the unified README presentation for Persian readers with an
+  explicit right-to-left container while preserving Markdown examples and
+  API contracts.
+* Restored the complete project badge set: PyPI version, supported Python
+  versions, total downloads, PyPI license and pre-commit.ci status.
+
 1.1.0 (2026-08-24)
 ------------------
 * Added live/history symmetry for prices and حقیقی/حقوقی data, including an

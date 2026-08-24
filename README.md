@@ -1,9 +1,12 @@
 # AlgoTik TSE
 
 [![PyPI](https://img.shields.io/pypi/v/algotik-tse.svg?cacheSeconds=300)](https://pypi.org/project/algotik-tse/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
-[![Python](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/mohsenalipour/algotik_tse/master.svg)](https://results.pre-commit.ci/latest/github/mohsenalipour/algotik_tse/master)
+
+<div dir="rtl" align="right">
 
 کتابخانهٔ پایتونی داده و تحلیل بازار سرمایهٔ ایران با تمرکز بر TSETMC. این پکیج دادهٔ تاریخی و زندهٔ قیمت، حقیقی/حقوقی، معاملات، پنج سطح سفارش، صف، پیام و وضعیت بازار، صندوق و اوراق بدهی را دریافت می‌کند و ابزارهای تحلیل اخزا و اختیار معامله را در اختیار پژوهشگر و معامله‌گر الگوریتمی می‌گذارد.
 
@@ -1922,3 +1925,5 @@ python -m pytest -m "not online" -q
 - وب‌سایت: [algotik.com](https://algotik.com)
 - تلگرام: [t.me/algotik](https://t.me/algotik)
 - نویسنده: Mohsen Alipour — `alipour@algotik.ir`
+
+</div>
