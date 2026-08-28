@@ -2,6 +2,15 @@
 History
 =======
 
+1.1.2 (2026-08-28)
+------------------
+* Redesigned the primary README around ordinary user workflows, with a
+  prominent quick API map and a separate detailed reference layer.
+* Added per-function input and option guidance beside the most-used APIs,
+  including defaults, accepted values, outputs and important behavior.
+* Preserved complete documentation coverage for all public exports, legacy
+  aliases, data contracts and the analytical APIs introduced in 1.1.0.
+
 1.1.1 (2026-08-25)
 ------------------
 * Improved the unified README presentation for Persian readers with an
