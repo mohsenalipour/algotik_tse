@@ -2,6 +2,14 @@
 History
 =======
 
+1.1.3 (2026-08-28)
+------------------
+* Replaced the cached dynamic PyPI version badge with an explicit 1.1.3 badge
+  so the displayed release always matches the documentation release.
+* Rebuilt the bilingual PDF user guide from the current README with the
+  official AlgoTik logo, clickable internal navigation, improved RTL layout,
+  clearer tables, code samples and print readability.
+
 1.1.2 (2026-08-28)
 ------------------
 * Redesigned the primary README around ordinary user workflows, with a

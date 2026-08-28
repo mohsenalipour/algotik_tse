@@ -63,7 +63,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (

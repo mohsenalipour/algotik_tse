@@ -55,6 +55,8 @@ coverage.xml
 caches/
 tests/.tmp*/
 tests/.uv_cache_review/
+/tmp/
+/output/
 .claude/settings.local.json
 /AGENTS.md
 /market_profiles.xlsx
