@@ -2,6 +2,24 @@
 History
 =======
 
+1.2.0 (2026-09-01)
+------------------
+
+* Added a complete industry-index API: exact constituent lists, live industry
+  snapshots, daily index history, short constituent history, intraday candles,
+  and configurable industry rankings.
+* Joined index membership to bulk MarketWatch, client-type, and optional
+  order-book feeds by exact ``InsCode`` while exposing freshness and coverage.
+* Added an in-memory membership cache with configurable TTL and explicit refresh
+  controls to avoid repeated ``GetIndexCompany`` requests.
+* Documented overlapping industry memberships, empty industry indices,
+  survivorship bias in current-member history, estimated client flow, and the
+  absence of official constituent weights and synthetic index volume.
+* Corrected the legacy ``list_indices()`` mapping: ``Change`` is now the point
+  move and ``ChangePct`` is the percentage move.
+* Expanded the Persian README and the linked, RTL PDF guide for the new industry
+  workflow and its complete public contracts.
+
 1.1.3 (2026-08-28)
 ------------------
 * Replaced the cached dynamic PyPI version badge with an explicit 1.1.3 badge

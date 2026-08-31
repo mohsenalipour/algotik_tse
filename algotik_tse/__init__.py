@@ -63,7 +63,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.1.3"
+__version__ = "1.2.0"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (
@@ -136,6 +136,15 @@ from algotik_tse.core.instruments import (
     list_listed_funds,
     list_indices,
     get_index_companies,
+)
+from algotik_tse.core.industries import (
+    list_industry_indices,
+    get_industry_members,
+    get_industry_snapshot,
+    get_industry_history,
+    get_industry_members_history,
+    get_industry_intraday,
+    rank_industries,
 )
 from algotik_tse.core.options_math import (
     black_scholes_price,
@@ -539,6 +548,13 @@ __all__ = [
     # ── Indices ──
     "list_indices",
     "get_index_companies",
+    "list_industry_indices",
+    "get_industry_members",
+    "get_industry_snapshot",
+    "get_industry_history",
+    "get_industry_members_history",
+    "get_industry_intraday",
+    "rank_industries",
     # ── Legacy names (backward compatible) ──
     "stock",
     "stock_RI",

@@ -902,8 +902,11 @@ def list_indices(progress=True):
                 "Value": item.get("xDrNivJIdx004", 0),
                 "High": item.get("xPhNivJIdx004", 0),
                 "Low": item.get("xPbNivJIdx004", 0),
-                "Change": item.get("xVarIdxJRfV", 0),
-                "ChangePct": item.get("indexChange", 0),
+                # TSETMC uses indexChange for the point move and
+                # xVarIdxJRfV for the percentage move.  These fields were
+                # accidentally reversed in algotik-tse <= 1.1.3.
+                "Change": item.get("indexChange", 0),
+                "ChangePct": item.get("xVarIdxJRfV", 0),
             }
         )
 

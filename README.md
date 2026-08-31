@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.1.3-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.2.0-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -14,7 +14,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 
 ### 🇮🇷 معرفی فارسی
 
-`algotik-tse` برای دریافت و تحلیل داده‌های بورس و فرابورس ایران ساخته شده است. با نام فارسی نماد می‌توانید تاریخچهٔ قیمت، حقیقی/حقوقی، معاملات ریز، سفارش‌ها و اطلاعات لحظه‌ای بازار را بگیرید؛ فهرست صندوق‌ها، اوراق و اختیارها را بسازید؛ و تحلیل‌های تخصصی اخزا و اختیار معامله را روی همان داده‌ها انجام دهید.
+`algotik-tse` برای دریافت و تحلیل داده‌های بورس و فرابورس ایران ساخته شده است. با نام فارسی نماد می‌توانید تاریخچهٔ قیمت، حقیقی/حقوقی، معاملات ریز، سفارش‌ها و اطلاعات لحظه‌ای بازار را بگیرید؛ شاخص‌های صنعت و اعضای دقیق آن‌ها را تحلیل کنید؛ فهرست صندوق‌ها، اوراق و اختیارها را بسازید؛ و تحلیل‌های تخصصی اخزا و اختیار معامله را روی همان داده‌ها انجام دهید.
 
 بیشتر خروجی‌های جدولی به‌صورت **Pandas DataFrame** ارائه می‌شوند و تاریخ شمسی، تاریخ میلادی و داده‌های چندنمادی پشتیبانی می‌شوند. خروجی‌های ساختاریافته‌ای مانند snapshot بازار، زنجیرهٔ اختیار و منحنی بازده در بخش [نوع خروجی](#نوع-خروجی) توضیح داده شده‌اند.
 
@@ -25,6 +25,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 - نمای زندهٔ کل بازار یا یک نماد، قدرت خریدار، جریان پول، spread و imbalance پنج سطح سفارش
 - معاملات ریز، order book و صف خرید/فروش به‌صورت زنده و تاریخی
 - watcher بازار، پیام‌ها، تغییر وضعیت، breadth، جریان صنایع و ذخیرهٔ اختیاری تاریخچه روی SQLite
+- ۴۵ شاخص صنعت، اعضای رسمی، snapshot تحلیلی، تاریخچهٔ اعضا، کندل درون‌روزی و رتبه‌بندی صنایع
 - EPS و P/E، صندوق‌های قابل معامله، رخدادهای تعدیل قیمت و حل دقیق هویت ابزار با `InsCode`
 - تحلیل اخزا شامل YTM، duration، convexity، DV01 و منحنی بازده زنده و تاریخی
 - تحلیل اختیار معامله شامل Black–Scholes، IV، Greeks، put-call parity، PCR و نقدشوندگی
@@ -53,6 +54,8 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | ⭐ `get_currency()` | تاریخچهٔ ارز و سکه | `DataFrame` |
 | ⭐ `get_live_trades()` | معاملات ریز امروز یک نماد | `DataFrame` |
 | ⭐ `get_order_book()` | پنج سطح سفارش زنده | `DataFrame` |
+| ⭐ `get_industry_snapshot()` | بازده، breadth، جریان پول و صف یک یا همهٔ صنایع | `DataFrame` |
+| ⭐ `rank_industries()` | رتبه‌بندی صنایع با معیار انتخابی | `DataFrame` |
 | ⭐ `list_etfs()` | ETFها همراه قیمت و NAV | `DataFrame` |
 | ⭐ `list_funds()` | صندوق‌ها همراه NAV، بازده و ترکیب دارایی | `DataFrame` |
 
@@ -90,6 +93,18 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | `get_sector_flow()` | breadth و جریان پول به تفکیک صنعت |
 | `watch_market()`, `MarketWatcher` | پایش افزایشی بازار و تولید `MarketEvent` |
 
+#### شاخص‌ها و تحلیل صنایع
+
+| تابع | کاربرد |
+|---|---|
+| `list_industry_indices()` | فهرست ۴۵ شاخص صنعت و وضعیت فعلی آن‌ها |
+| `get_industry_members()` | اعضای رسمی یک شاخص با اتصال دقیق `InsCode` به دادهٔ زنده |
+| `get_industry_snapshot()` | یک ردیف تحلیلی برای هر صنعت: شاخص، breadth، معامله، حقیقی و صف |
+| `get_industry_history()` | تاریخچهٔ روزانهٔ خود شاخص صنعت بدون حجم ساختگی |
+| `get_industry_members_history()` | تاریخچهٔ کوتاه همهٔ اعضای فعلی صنعت در قالب long-form |
+| `get_industry_intraday()` | مشاهدات خام یا کندل‌های درون‌روزی شاخص صنعت |
+| `rank_industries()` | رتبه‌بندی صنایع بر اساس بازده، breadth، ارزش یا جریان پول |
+
 #### تاریخچهٔ محلی و فاندامنتال
 
 | تابع | کاربرد |
@@ -117,7 +132,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | `list_etfs()` | ETFها همراه NAV و discount/premium |
 | `list_funds()`, `list_listed_funds()` | صندوق‌های ثبت‌شده و ابزارهای بورسی دقیق |
 | `list_bonds()` | اوراق بدهی همراه سررسید |
-| `list_indices()`, `get_index_companies()` | شاخص‌ها و اعضای هر شاخص صنعت |
+| `list_indices()`, `get_index_companies()` | API قدیمی شاخص‌ها و اعضای شاخص؛ برای صنعت APIهای بالا پیشنهاد می‌شوند |
 | `get_currency()` | ارز و سکه از API قدیمی TGJU |
 
 #### اخزا و درآمد ثابت
@@ -172,6 +187,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 - [معاملات ریز](#معاملات-ریز)
 - [سفارش و صف](#سفارش-و-صف)
 - [Watcher و تحلیل کل بازار](#watcher-و-تحلیل-کل-بازار)
+- [شاخص‌ها و تحلیل صنایع](#شاخصها-و-تحلیل-صنایع)
 - [تاریخچهٔ محلی SQLite](#تاریخچهٔ-محلی-sqlite)
 - [فاندامنتال، صندوق و تعدیل قیمت](#فاندامنتال-بازار،-صندوق-و-تعدیل-قیمت)
 - [اخزا و درآمد ثابت](#اخزا-و-درآمد-ثابت)
@@ -223,6 +239,8 @@ import algotik_tse as att
 | کندل‌های اینترادی | `att.get_intraday("شتران", interval="5min")` |
 | معاملات ریز امروز | `att.get_live_trades("شتران")` |
 | پنج سطح سفارش | `att.get_order_book("شتران")` |
+| تصویر تحلیلی صنایع | `att.get_industry_snapshot()` |
+| رتبه‌بندی صنایع | `att.rank_industries(metric="breadth")` |
 | فهرست نمادها و ابزارها | `att.get_symbols()` |
 | قیمت ارز و سکه | `att.get_currency("dollar")` |
 | صندوق‌های ETF با NAV | `att.list_etfs()` |
@@ -989,6 +1007,250 @@ SectorCode instrument_count advances declines client_coverage net_individual_vol
 
 فیلترهای مشترک عبارت‌اند از `symbol`, `flow`, `sector`, `traded_only`, `include_base_market` و `instrument_types`. برای محاسبهٔ چند خروجی روی یک مشاهده، snapshot را یک‌بار دریافت و به مسیر خصوصی `_snapshot` ندهید؛ API عمومی `save_market_snapshot()` یک snapshot اتمیک می‌سازد و history derivationها را هم‌زمان نگه می‌دارد.
 
+## شاخص‌ها و تحلیل صنایع
+
+API صنعت در نسخهٔ 1.2.0 دو مفهوم را از هم جدا می‌کند:
+
+- **عضویت رسمی شاخص:** نمادهایی که endpoint رسمی `GetIndexCompany` برای همان شاخص برمی‌گرداند. توابع این فصل به‌طور پیش‌فرض از این universe استفاده می‌کنند.
+- **گروه دیده‌بان:** دسته‌بندی سریع `SectorCode` در MarketWatch که مبنای `get_sector_flow()` است و الزاماً با اعضای رسمی شاخص برابر نیست.
+
+پارامترهای اختصاصی این خانواده عبارت‌اند از `industry`, `industries`, `include_member_count`, `include_live`, `include_client_type`, `include_orderbook`, `include_empty`, `days`, `metric`, `top`, `refresh` و `max_workers`. ورودی‌های عمومی `progress`, `start`, `end`, `limit`, `ascending` و `interval` همان معنای توضیح‌داده‌شده در هر تابع را دارند.
+
+هویت عضوها فقط با `InsCode` متصل می‌شود. نام مشابه یا جست‌وجوی fuzzy برای join استفاده نمی‌شود. همچنین بعضی شاخص‌ها تجمیعی‌اند و عضویت صنایع می‌تواند هم‌پوشانی داشته باشد؛ بنابراین جمع‌زدن ردیف‌های تمام صنایع، کل بازار بدون تکرار تولید نمی‌کند.
+
+### مسیر سریع برای کاربر معمولی
+
+```python
+import algotik_tse as att
+
+# ۴۵ شاخص صنعت؛ سریع و تنها با یک درخواست
+indices = att.list_industry_indices(progress=False)
+
+# اعضای رسمی یک صنعت همراه دادهٔ جاری بازار
+members = att.get_industry_members("فلزات اساسی", progress=False)
+
+# snapshot تحلیلی همهٔ صنایع همراه حقیقی/حقوقی
+snapshot = att.get_industry_snapshot(progress=False)
+
+# پنج صنعت برتر از نظر breadth
+leaders = att.rank_industries(
+    metric="breadth",
+    top=5,
+    progress=False,
+)
+```
+
+### فهرست شاخص‌های صنعت
+
+```python
+indices = att.list_industry_indices(
+    progress=False,
+    include_member_count=True,
+    refresh=False,
+    max_workers=6,
+)
+```
+
+`include_member_count=False` پیش‌فرض و سریع است؛ در این حالت `MemberCount` و `HasMembers` تهی می‌مانند. با `True`، عضویت رسمی همهٔ صنایع دریافت و در حافظه cache می‌شود. `refresh=True` cache عضویت را دور می‌زند. `max_workers` عدد صحیح `1..16` و فقط سقف concurrency درخواست‌های عضویت است.
+
+schema:
+
+```text
+IndustryName, IndustryNameEn, IndustryGroupCode, IndexInsCode,
+IndexValue, IndexPreviousValue, DayHigh, DayLow,
+IndexChange, IndexChangePct, MemberCount, HasMembers, ExchangeTime
+```
+
+`IndexChange` تغییر واحد شاخص و `IndexChangePct` درصد تغییر است. این نگاشت در `list_indices()` نسخه‌های `<=1.1.3` برعکس بود و در 1.2.0 اصلاح شده است.
+
+### اعضای دقیق یک شاخص
+
+```python
+members = att.get_industry_members(
+    industry="بانک",
+    include_live=True,
+    include_client_type=True,
+    include_orderbook=True,
+    progress=False,
+    refresh=False,
+)
+```
+
+ورودی `industry` می‌تواند نام فارسی، alias شناخته‌شده مانند `بانک`، صورت کامل مانند `شاخص صنعت بانکها` یا `IndexInsCode` باشد.
+
+- `include_live=True` اعضای رسمی را با snapshot جاری MarketWatch ادغام می‌کند.
+- `include_client_type=True` قدرت خریدار و جریان حقیقی/حقوقی را اضافه می‌کند؛ فقط ردیف‌های reconcileشده قابل استفاده‌اند.
+- `include_orderbook=True` spread، imbalance و صف تخمینی پنج سطح را اضافه می‌کند و به `include_live=True` نیاز دارد.
+- `refresh=True` عضویت را دوباره از TSETMC می‌گیرد.
+
+schema ثابت خروجی:
+
+```text
+IndustryName, IndustryIndexCode, InsCode, Symbol, Name,
+SectorCode, Flow, MarketCode, InstrumentType,
+PreviousClose, Open, High, Low, Close, Last, Change, ChangePct,
+TradeCount, Volume, Value, SharesOutstanding, EstimatedMarketCap,
+IndividualPower, NetIndividualVolume, EstimatedNetIndividualFlow,
+ClientDataAvailable, BidPrice1, AskPrice1, SpreadBps,
+L1Imbalance, L5Imbalance,
+EstimatedBuyQueueVolume, EstimatedBuyQueueValue,
+EstimatedSellQueueVolume, EstimatedSellQueueValue,
+TradeDate, ExchangeTime, FetchedAt, IsRealtimeFresh, IsStale
+```
+
+ستون‌های مربوط به client type یا order book وقتی درخواست نشده‌اند nullable می‌مانند. `EstimatedMarketCap` حاصل `SharesOutstanding × Close` و `EstimatedNetIndividualFlow` برآورد مبتنی بر VWAP است؛ هیچ‌کدام وزن رسمی شاخص نیستند.
+
+در `DataFrame.attrs` مواردی مانند `universe='exact_index_members'`, `membership_is_current`, `historical_membership_available`, `cache_hit`, `client_type_requested`, `orderbook_requested` و `membership_count` ثبت می‌شوند.
+
+### snapshot تحلیلی صنعت
+
+برای یک صنعت:
+
+```python
+metals = att.get_industry_snapshot(
+    industries="فلزات اساسی",
+    include_client_type=True,
+    include_orderbook=True,
+    include_empty=False,
+    progress=False,
+    refresh=False,
+    max_workers=6,
+)
+```
+
+برای چند صنعت:
+
+```python
+selected = att.get_industry_snapshot(
+    industries=["بانک", "خودرو", "شیمیایی"],
+    include_client_type=True,
+    progress=False,
+)
+```
+
+با `industries=None` تمام صنایع بررسی می‌شوند. `include_empty=False` شاخص‌هایی را که provider در آن لحظه عضو ندارند حذف می‌کند؛ نام آن‌ها در `attrs['empty_industries']` باقی می‌ماند. این تابع فقط یک MarketWatch bulk، حداکثر یک client-type bulk و عضویت‌های cacheشده را مصرف می‌کند.
+
+گروه‌های اصلی خروجی:
+
+| گروه | ستون‌ها |
+|---|---|
+| وضعیت شاخص | `IndexValue`, `IndexPreviousValue`, `IndexChange`, `IndexChangePct`, `IndexDayHigh`, `IndexDayLow` |
+| breadth | `MemberCount`, `TradedCount`, `Advances`, `Declines`, `Unchanged`, `NoTrade`, `AdvanceDeclineRatio`, `AdvancePct`, `DeclinePct` |
+| عملکرد اعضا | `EqualWeightReturn`, `MedianReturn`, `ReturnDispersion` |
+| معاملات | `TotalTradeCount`, `TotalVolume`, `TotalValue`, `MarketValueSharePct`, `UpperLimitCount`, `LowerLimitCount` |
+| حقیقی/حقوقی | `ClientCoveredCount`, `ClientCoverage`, `NetIndividualVolume`, `EstimatedNetIndividualValue`, `IndividualPower`, `FlowValueMethod` |
+| سفارش و صف | `OrderBookCoveredCount`, `OrderBookCoverage`, `BuyQueueCount`, `BuyQueueValue`, `SellQueueCount`, `SellQueueValue` |
+| زمان و تازگی | `TradeDate`, `ExchangeTime`, `FetchedAt`, `IsRealtimeFresh`, `IsStale` |
+
+`EqualWeightReturn` میانگین سادهٔ بازده اعضای دارای قیمت معتبر است و بازده رسمی شاخص نیست. `IndividualPower` از سرانهٔ تجمیعی خرید حقیقی به سرانهٔ تجمیعی فروش حقیقی ساخته می‌شود. جریان پول فقط از client rowهای سازگار با حجم بازار جمع می‌شود؛ همیشه `ClientCoverage` را کنار آن کنترل کنید. صف‌ها فقط برای order book تازه و متعلق به روز تهران محاسبه می‌شوند.
+
+در attrs، `memberships_may_overlap=True`, `membership_is_current=True`, `historical_membership_available=False`, تعداد cache hit/request و روش تخمین جریان پول ثبت می‌شود.
+
+### تاریخچهٔ شاخص و اعضا
+
+تاریخچهٔ خود شاخص:
+
+```python
+history = att.get_industry_history(
+    industry="شیمیایی",
+    start="1404-01-01",
+    end=None,
+    limit=120,
+    ascending=True,
+    progress=False,
+)
+```
+
+`start` و `end` تاریخ شمسی یا میلادی `YYYY-MM-DD`/`YYYYMMDD` هستند. فیلتر تاریخ ابتدا اعمال می‌شود و `limit=0` یعنی بدون محدودیت؛ مقدار مثبت آخرین N جلسه را نگه می‌دارد. خروجی `IndustryName,IndustryIndexCode,TradeDate,JalaliDate,High,Low,Close,Change,ChangePct` است. منبع رسمی برای شاخص صنعت volume روزانه نمی‌دهد؛ ستون حجم مصنوعی ساخته نمی‌شود و `attrs['volume_available']=False` است.
+
+تاریخچهٔ کوتاه همهٔ اعضای فعلی:
+
+```python
+member_history = att.get_industry_members_history(
+    industry="خودرو",
+    days=30,
+    ascending=True,
+    progress=False,
+    refresh=False,
+)
+```
+
+`days` عدد صحیح `1..30` و تعداد آخرین تاریخ معاملاتی موجود در payload رسمی است. خروجی long-form:
+
+```text
+IndustryName, IndustryIndexCode, TradeDate, JalaliDate,
+InsCode, Symbol, Name, Close, Last, Change, ChangePct,
+TradeCount, Volume, Value
+```
+
+این history برای **اعضای فعلی** شاخص است، نه عضویت point-in-time. اگر ترکیب شاخص تغییر کرده باشد، survivorship bias محتمل است؛ به همین دلیل attrs صریح `point_in_time_membership=False` و `survivorship_bias_possible=True` دارد.
+
+### دادهٔ درون‌روزی شاخص صنعت
+
+```python
+intraday = att.get_industry_intraday(
+    industry="فلزات",
+    interval="5min",
+    progress=False,
+)
+```
+
+مقادیر مجاز `interval` عبارت‌اند از `raw`, `1min`, `5min`, `15min`, `30min`, `60min`, `1h`. حالت `raw` هر مشاهدهٔ provider را به‌صورت یک کندل تک‌نقطه‌ای نگه می‌دارد؛ سایر حالت‌ها سطح شاخص را به OHLC تبدیل می‌کنند.
+
+```text
+IndustryName, IndustryIndexCode, Timestamp, JalaliDate, Interval,
+Open, High, Low, Close, Change, ChangePct
+```
+
+`Timestamp` دارای timezone تهران است. این endpoint حجم ندارد؛ تابع volume یا turnover مصنوعی تولید نمی‌کند و فقط آخرین روز موجود در provider را برمی‌گرداند.
+
+### رتبه‌بندی صنایع
+
+```python
+ranking = att.rank_industries(
+    metric="money_flow",
+    top=10,
+    ascending=False,
+    include_client_type=True,
+    include_orderbook=False,
+    progress=False,
+    refresh=False,
+    max_workers=6,
+)
+```
+
+`metric` و aliasهای پشتیبانی‌شده:
+
+| معیار canonical | aliasهای رایج |
+|---|---|
+| `IndexChangePct` | `change_pct`, `return` |
+| `EqualWeightReturn` | `equal_weight_return` |
+| `MedianReturn` | `median_return` |
+| `AdvancePct` | `advance_pct`, `breadth` |
+| `TotalValue` | `total_value`, `turnover` |
+| `EstimatedNetIndividualValue` | `estimated_net_individual_value`, `money_flow` |
+| `IndividualPower` | `individual_power`, `buyer_power` |
+
+`top=None` همهٔ ردیف‌های دارای معیار معتبر را برمی‌گرداند؛ مقدار مثبت فقط N ردیف اول را نگه می‌دارد. `ascending=False` رتبهٔ بزرگ‌تر به کوچک‌تر است. خروجی تمام ستون‌های snapshot را همراه `Rank` دارد و معیار نهایی در `attrs['ranking_metric']` ثبت می‌شود.
+
+### cache، پوشش و محدودیت داده
+
+عضویت کامل شاخص و تاریخچهٔ کوتاه اعضا در یک payload مشترک می‌آیند. TTL پیش‌فرض cache حافظه یک ساعت است:
+
+```python
+att.settings.industry_membership_cache_ttl = 3600.0
+```
+
+مقدار `0` cache را غیرفعال می‌کند. برای دریافت اجباری عضویت تازه از `refresh=True` استفاده کنید. cache فقط در حافظهٔ همان process است و فایلی روی دیسک نمی‌نویسد.
+
+محدودیت‌های رسمی این نسخه:
+
+- وزن رسمی هر عضو، ضریب سهام شناور و divisor شاخص در منبع فعلی ارائه نمی‌شود؛ contribution دقیق نماد به واحد شاخص محاسبه نمی‌شود.
+- تاریخچهٔ تغییر اعضای شاخص وجود ندارد؛ تاریخچهٔ اعضا universe امروز را روی روزهای قبل اعمال می‌کند.
+- صنایع می‌توانند هم‌پوشانی داشته باشند و بعضی کدهای صنعت ممکن است در یک روز بدون عضو باشند.
+- `EstimatedMarketCap`, `EstimatedNetIndividualFlow` و `EstimatedNetIndividualValue` برآوردند و نام آن‌ها عمداً این موضوع را نشان می‌دهد.
+- برای تصمیم معاملاتی، `IsRealtimeFresh`, `IsStale`, `ClientCoverage`, `OrderBookCoverage`, `TradeDate` و attrs را بررسی کنید.
+
 ## تاریخچهٔ محلی SQLite
 
 ذخیره‌سازی کاملاً opt-in است؛ بدون path صریح هیچ فایلی نوشته نمی‌شود.
@@ -1601,6 +1863,8 @@ listed_funds = att.list_listed_funds(progress=False)
 options = att.list_options(underlying="خودرو", progress=False)
 indices = att.list_indices(progress=False)
 members = att.get_index_companies("شاخص صنعت بانکها", progress=False)
+industry_indices = att.list_industry_indices(progress=False)
+industry_snapshot = att.get_industry_snapshot("بانک", progress=False)
 ```
 
 `get_symbols(output="list")` فقط نام نمادها را می‌دهد؛ `dataframe` metadata بازار/نوع ابزار را نگه می‌دارد. `payeh_color` یکی از `زرد`, `نارنجی`, `قرمز` است. برای جلوگیری از universe اشتباه، asset-type flagها را صریح تنظیم کنید.
@@ -1611,11 +1875,11 @@ members = att.get_index_companies("شاخص صنعت بانکها", progress=Fal
 
 ```python
 index_history = att.get_history("شاخص کل", limit=100, progress=False)
-industry_history = att.get_history("شاخص صنعت بانکها", limit=100, progress=False)
-members = att.get_index_companies("بانک", progress=False)
+industry_history = att.get_industry_history("بانک", limit=100, progress=False)
+members = att.get_industry_members("بانک", progress=False)
 ```
 
-schema شاخص عمومی و شاخص صنعت می‌تواند با سهام فرق کند؛ شاخص صنعت معمولاً `High, Low, Close` دارد و volume جعلی ساخته نمی‌شود.
+برای شاخص‌های عمومی همچنان `get_history()` را به‌کار ببرید. برای شاخص صنعت، APIهای اختصاصی فصل [شاخص‌ها و تحلیل صنایع](#شاخصها-و-تحلیل-صنایع) عضویت رسمی، تاریخچهٔ اعضا، snapshot و intraday را یکدست ارائه می‌کنند. schema شاخص با سهام فرق دارد و volume جعلی ساخته نمی‌شود. `list_indices()` و `get_index_companies()` برای سازگاری با کد قدیمی حفظ شده‌اند.
 
 ### ارز و سکه
 
@@ -1660,6 +1924,7 @@ settings.rate_limit_delay = 0.3      # فاصلهٔ حداقل شروع درخو
 settings.market_snapshot_freshness_seconds = 120.0
 settings.market_clock_skew_tolerance_seconds = 5.0
 settings.client_volume_consistency_tolerance = 0.05
+settings.industry_membership_cache_ttl = 3600.0
 settings.order_book_max_requests = 250
 settings.trade_max_requests = 250
 ```
@@ -1783,6 +2048,8 @@ except att.UnsupportedDataSourceError as exc:
 | `get_price_adjustments`, `get_latest_price_adjustment` |
 | `list_options`, `get_options_chain`, `list_etfs`, `list_bonds`, `list_funds`, `list_listed_funds` |
 | `list_indices`, `get_index_companies` |
+| `list_industry_indices`, `get_industry_members`, `get_industry_snapshot` |
+| `get_industry_history`, `get_industry_members_history`, `get_industry_intraday`, `rank_industries` |
 
 #### درآمد ثابت
 
@@ -1962,6 +2229,7 @@ curve immutable محاسباتی با آرایه‌های هم‌طول و metad
 `market_snapshot_freshness_seconds: float=120.0`,
 `market_clock_skew_tolerance_seconds: float=5.0`,
 `client_volume_consistency_tolerance: float=0.05`,
+`industry_membership_cache_ttl: float=3600.0`,
 `order_book_max_requests: int=250`, `trade_max_requests: int=250` و
 `order_book_discovery_lookback_days: int=10` هستند. `headers: dict`، mappingهای
 روز/ارز/صندوق/بازار پایه و `url_*: str` قرارداد تنظیم provider هستند؛ تغییر URL
@@ -2140,6 +2408,28 @@ get_yield_curve_history(symbol=None, start=None, end=None, limit=0, face_value=1
 | `get_yield_curve` | حداقل `min_nodes`; duplicate default volume-weighted؛ extrapolation opt-in. | `YieldCurve` calibrated از snapshot live؛ diagnostics و metadata nodeها provenance/no-lookahead را ثبت می‌کند. | node ناکافی/invalid curve `ValueError` و provider typed؛ مثال curve live. |
 | `get_yield_curve_history` | curve جدا برای هر trade date؛ `maturity_map`, hard budget؛ بدون extrapolate عمومی. | panel `DataFrame` با `CURVE_HISTORY_COLUMNS`, `CurveID,CurveStatus,CurveError,CurveNodeCount` و flags no-lookahead؛ attrs failures/request. | parameter/budget/provider/curve errors؛ روز ناموفق در status/attrs؛ مثال curve history. |
 
+### قرارداد API: شاخص‌های صنعت
+
+```text
+list_industry_indices(progress=True, include_member_count=False, refresh=False, max_workers=6)
+get_industry_members(industry, include_live=True, include_client_type=False, include_orderbook=False, progress=True, refresh=False)
+get_industry_snapshot(industries=None, include_client_type=True, include_orderbook=False, include_empty=False, progress=True, refresh=False, max_workers=6)
+get_industry_history(industry, start=None, end=None, limit=0, ascending=True, progress=True)
+get_industry_members_history(industry, days=30, ascending=True, progress=True, refresh=False)
+get_industry_intraday(industry, interval='1min', progress=True)
+rank_industries(metric='IndexChangePct', top=None, ascending=False, include_client_type=True, include_orderbook=False, progress=True, refresh=False, max_workers=6)
+```
+
+| تابع | ورودی‌ها و گزینه‌ها | خروجی/schema/attrs | خطا و مثال |
+|---|---|---|---|
+| `list_industry_indices` | `progress: bool=True` پیام؛ `include_member_count: bool=False` عضویت ۴۵ صنعت را واکشی می‌کند؛ `refresh: bool=False` cache را دور می‌زند؛ `max_workers: int=6` در بازهٔ `1..16`. | `DataFrame[IndustryName,IndustryNameEn,IndustryGroupCode,IndexInsCode,IndexValue,IndexPreviousValue,DayHigh,DayLow,IndexChange,IndexChangePct,MemberCount,HasMembers,ExchangeTime]`؛ attrs source/cache/count. | bool/worker نامعتبر `InvalidParameterError`؛ provider `ConnectionError/DataParsingError`؛ مثال فصل صنعت. |
+| `get_industry_members` | `industry: str|int` نام/alias/کد؛ `include_live=True` MarketWatch؛ `include_client_type=False` client metrics؛ `include_orderbook=False` پنج سطح/صف؛ `refresh=False`. دو گزینهٔ enrichment به live نیاز دارند. | `INDUSTRY_MEMBER_COLUMNS` ثابت با هویت، قیمت، معامله، market cap تخمینی، client، order book و freshness؛ attrs exact membership/current/cache/coverage request. | صنعت گم‌شده `StockNotFoundError`؛ ترکیب/نوع نامعتبر `InvalidParameterError`؛ provider typed؛ مثال `get_industry_members("بانک")`. |
+| `get_industry_snapshot` | `industries: None|str|int|iterable=None`؛ `include_client_type=True`؛ `include_orderbook=False`؛ `include_empty=False`؛ `refresh=False`؛ `max_workers=6`. | یک ردیف در هر شاخص با `INDUSTRY_SNAPSHOT_COLUMNS`: وضعیت شاخص، breadth، equal-weight/median/dispersion، معامله، flow/coverage، queue/coverage و freshness؛ attrs overlap/current membership/cache. | selector/bool/worker `InvalidParameterError` یا `StockNotFoundError`؛ snapshot/schema/provider typed؛ مثال فصل صنعت. |
+| `get_industry_history` | `industry` اجباری؛ `start/end: str|None` شمسی/میلادی؛ `limit: int=0` پس از فیلتر؛ `ascending: bool=True`; `progress`. | `DataFrame[IndustryName,IndustryIndexCode,TradeDate,JalaliDate,High,Low,Close,Change,ChangePct]`; attrs `volume_available=False,completed_sessions_only=True`. | تاریخ/order/limit نامعتبر `InvalidParameterError`؛ صنعت/provider/schema typed؛ مثال تاریخچه. |
+| `get_industry_members_history` | `industry`؛ `days: int=30` دقیقاً `1..30` تاریخ آخر؛ `ascending=True`; `refresh=False`. | long-form `INDUSTRY_MEMBER_HISTORY_COLUMNS` برای اعضای فعلی؛ attrs `point_in_time_membership=False,survivorship_bias_possible=True`. | days/bool/selector typed؛ provider/schema typed؛ مثال فصل صنعت. |
+| `get_industry_intraday` | `industry`؛ `interval: str='1min'` یکی از `raw,1min,5min,15min,30min,60min,1h`; `progress`. | `DataFrame[IndustryName,IndustryIndexCode,Timestamp,JalaliDate,Interval,Open,High,Low,Close,Change,ChangePct]`; timezone تهران؛ attrs بدون volume مصنوعی و latest-day. | interval/selector `InvalidParameterError/StockNotFoundError`؛ provider/schema typed؛ مثال `get_industry_intraday("خودرو", "5min")`. |
+| `rank_industries` | `metric` canonical/alias مستند؛ `top: int|None`; `ascending=False`; client/order switches؛ `refresh`; `max_workers`. | تمام ستون‌های snapshot + `Rank`; ردیف metric تهی حذف؛ attrs `ranking_metric,ranking_ascending` و provenance snapshot. | metric/top/bool/worker نامعتبر `InvalidParameterError`؛ provider typed؛ مثال `rank_industries(metric="breadth", top=5)`. |
+
 ### قرارداد API: اختیار معامله و فهرست ابزارها
 
 ```text
@@ -2181,7 +2471,7 @@ get_index_companies(index_name, progress=True)
 | `list_bonds` | فقط `progress`. | `DataFrame[InsCode,ISIN,Symbol,Name,BondType,Ticker,MaturityJalali,MaturityGregorian,DaysToMaturity,Last,Close,Yesterday,Volume,Value,TradeCount,Change,ChangePct]`. | parse/provider؛ maturity نامعلوم nullable؛ مثال فصل ابزارها. |
 | `list_funds` | `fund_type: str|list|None` از categories settings؛ `listed_only=False`; listed_only با type filter قابل ترکیب نیست. | registry rich funds (NAV/returns/composition/manager) بدون تضمین InsCode؛ با `listed_only=True` دقیقاً schema `list_listed_funds`. attrs `no_fuzzy_join=True`. | type/category/combo نامعتبر `ValueError`; provider errors؛ مثال funds. |
 | `list_listed_funds` | فقط `progress`; یک MarketWatch bulk. | `LISTED_FUND_COLUMNS`؛ attrs `no_fuzzy_join=True,registry_joined=False`. | connection/parsing؛ مثال فصل صندوق. |
-| `list_indices` | فقط `progress`. | `DataFrame[Name,InsCode,Value,High,Low,Change,ChangePct]`. | provider typed/empty؛ مثال شاخص. |
+| `list_indices` | فقط `progress`. | `DataFrame[Name,InsCode,Value,High,Low,Change,ChangePct]`؛ از 1.2.0 `Change` حرکت واحد شاخص و `ChangePct` درصد است. | مسیر legacy در خطای provider frame تهی/پیام؛ برای صنعت `list_industry_indices` پیشنهاد می‌شود. |
 | `get_index_companies` | `index_name: str` فارسی یا InsCode. | `DataFrame[Symbol,Name,InsCode,Close,Yesterday,Last]`. | index گم‌شده/provider در مسیر legacy frame تهی/پیام؛ مثال فصل شاخص. |
 
 ### قرارداد aliasها و wrapperهای backward-compatible

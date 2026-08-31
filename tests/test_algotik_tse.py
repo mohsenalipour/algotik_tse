@@ -96,7 +96,7 @@ def run_test(test_id, description, func, *args, **kwargs):
 
 # ─── 0. Version & Settings ───────────────────────────────────
 def test_version():
-    assert att.__version__ == "1.1.3", "Expected 1.1.3, got {}".format(att.__version__)
+    assert att.__version__ == "1.2.0", "Expected 1.2.0, got {}".format(att.__version__)
     return pd.DataFrame(
         {
             "version": [att.__version__],

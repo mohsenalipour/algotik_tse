@@ -31,9 +31,9 @@ README_PATH = ROOT / "README.md"
 FONT_DIR = ROOT / "fonts"
 LOGO_PATH = ROOT / "docs" / "assets" / "algotik_logo_stacked_1024.png"
 TMP_DIR = ROOT / "tmp" / "pdfs"
-DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.1.3_preview.pdf"
-VERSION = "1.1.3"
-RELEASE_DATE = "28 August 2026"
+DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.2.0_preview.pdf"
+VERSION = "1.2.0"
+RELEASE_DATE = "1 September 2026"
 
 
 def parse_args():
@@ -194,6 +194,7 @@ code {{
 pre {{
   direction: ltr; text-align: left; unicode-bidi: embed; white-space: pre-wrap;
   overflow-wrap: anywhere; word-break: break-word; tab-size: 4;
+  break-inside: avoid; page-break-inside: avoid;
   margin: 8pt 0 13pt; padding: 11pt 13pt; border: 1px solid #ced8e3;
   border-radius: 9px; background: #f6f8fa; color: #1e2933;
   font: 8.2pt/1.55 Consolas, "Cascadia Code", monospace;

@@ -111,6 +111,10 @@ class Settings:
         self.url_index_companies = (
             "https://cdn.tsetmc.com/api/ClosingPrice/GetIndexCompany/{}"
         )
+        # Exact index membership changes infrequently.  Industry APIs cache the
+        # complete GetIndexCompany payload (members + short member history) for
+        # this many seconds; set to 0 to disable the in-memory cache.
+        self.industry_membership_cache_ttl = 3600.0
         self.url_client_type = "https://old.tsetmc.com/tsev2/data/clienttype.aspx?i={}"
         self.url_last_share_holders = (
             "https://cdn.tsetmc.com/api/Shareholder/GetInstrumentShareHolderLast/{}"
