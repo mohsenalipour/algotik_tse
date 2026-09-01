@@ -63,7 +63,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (
@@ -143,6 +143,9 @@ from algotik_tse.core.industries import (
     get_industry_snapshot,
     get_industry_history,
     get_industry_members_history,
+    compare_industries,
+    get_industry_relative_strength,
+    get_industry_correlation,
     get_industry_intraday,
     rank_industries,
 )
@@ -553,6 +556,9 @@ __all__ = [
     "get_industry_snapshot",
     "get_industry_history",
     "get_industry_members_history",
+    "compare_industries",
+    "get_industry_relative_strength",
+    "get_industry_correlation",
     "get_industry_intraday",
     "rank_industries",
     # ── Legacy names (backward compatible) ──

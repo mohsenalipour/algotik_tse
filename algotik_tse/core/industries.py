@@ -190,10 +190,36 @@ INDUSTRY_INTRADAY_COLUMNS = [
     "ChangePct",
 ]
 
+_INDUSTRY_COMPARE_METRICS = {
+    "close": "Close",
+    "price": "Close",
+    "closing": "Close",
+    "change_pct": "ChangePct",
+    "changepct": "ChangePct",
+    "return": "ChangePct",
+    "returns": "ChangePct",
+    "log_return": "LogReturn",
+    "logreturn": "LogReturn",
+    "log": "LogReturn",
+}
+
 
 _MEMBERSHIP_CACHE = {}
 _MEMBERSHIP_CACHE_LOCK = threading.RLock()
 _INDUSTRY_API_ALIASES = {_normalize_fa("فلزات"): "32453344048876642"}
+
+
+def _compare_columns_label(name, code):
+    return "{} [{}]".format(name, code)
+
+
+def _validate_max_workers(max_workers):
+    if isinstance(max_workers, bool) or not isinstance(max_workers, (int, np.integer)):
+        raise InvalidParameterError("max_workers must be an integer between 1 and 16")
+    max_workers = int(max_workers)
+    if max_workers < 1 or max_workers > 16:
+        raise InvalidParameterError("max_workers must be an integer between 1 and 16")
+    return max_workers
 
 
 def _canonical_name(code):
@@ -313,11 +339,7 @@ def _get_membership_payload(code, refresh=False):
 
 
 def _get_membership_batch(resolved, refresh=False, max_workers=6):
-    if isinstance(max_workers, bool) or not isinstance(max_workers, (int, np.integer)):
-        raise InvalidParameterError("max_workers must be an integer between 1 and 16")
-    max_workers = int(max_workers)
-    if max_workers < 1 or max_workers > 16:
-        raise InvalidParameterError("max_workers must be an integer between 1 and 16")
+    max_workers = _validate_max_workers(max_workers)
     payloads = {}
     cache_hits = 0
     if len(resolved) == 1:
@@ -379,7 +401,14 @@ def _safe_divide(numerator, denominator):
 
 
 def _typed_frame(rows, columns):
-    frame = pd.DataFrame(rows).reindex(columns=columns)
+    canonical_columns = []
+    seen_columns = set()
+    for column in columns:
+        if column in seen_columns:
+            continue
+        canonical_columns.append(column)
+        seen_columns.add(column)
+    frame = pd.DataFrame(rows).reindex(columns=canonical_columns)
     count_columns = {
         "MemberCount",
         "TradedCount",
@@ -867,6 +896,127 @@ def _date_bounds(start, end):
     return start_date, end_date
 
 
+def _industry_metric_column(metric):
+    if not isinstance(metric, str):
+        raise InvalidParameterError("metric must be one of close, change_pct, log_return")
+    key = metric.strip().replace(" ", "").replace("-", "").lower()
+    column = _INDUSTRY_COMPARE_METRICS.get(key)
+    if column is None:
+        raise InvalidParameterError("metric must be one of close, change_pct, log_return")
+    return column
+
+
+def _industry_metric_series(history, code, name, metric_col):
+    if history.empty:
+        return pd.Series(dtype="float64", name=_compare_columns_label(name, code))
+    if metric_col == "Close":
+        source = pd.to_numeric(history["Close"], errors="coerce")
+    else:
+        source = pd.to_numeric(history[metric_col], errors="coerce")
+    return source.rename(_compare_columns_label(name, code))
+
+
+def _industry_cumulative_return_frame(history, code, name, metric_col):
+    typed = _typed_frame(
+        history,
+        INDUSTRY_HISTORY_COLUMNS + ["Change", "ChangePct", "LogReturn"],
+    )
+    if typed.empty:
+        return typed.assign(
+            CumulativeReturn=pd.Series(dtype="float64"),
+            TradeDate=pd.Series(dtype="datetime64[ns]"),
+            JalaliDate=pd.Series(dtype="string"),
+        )
+    if metric_col == "Close":
+        close = pd.to_numeric(typed["Close"], errors="coerce")
+        valid = close.dropna()
+        if valid.empty:
+            cumulative = pd.Series(np.nan, index=typed.index, dtype="float64")
+        else:
+            base = float(valid.iloc[0])
+            if not np.isfinite(base) or base == 0:
+                cumulative = pd.Series(np.nan, index=typed.index, dtype="float64")
+            else:
+                cumulative = (close / base - 1.0) * 100
+    elif metric_col == "LogReturn":
+        cumulative = (
+            np.exp(pd.to_numeric(typed["LogReturn"], errors="coerce").fillna(0).cumsum()) - 1
+        ) * 100
+    else:
+        return_rates = pd.to_numeric(typed["ChangePct"], errors="coerce").fillna(0) / 100
+        cumulative = (1 + return_rates).cumprod() - 1
+        cumulative = cumulative * 100
+    return pd.DataFrame(
+        {
+            "TradeDate": typed["TradeDate"],
+            "JalaliDate": typed["JalaliDate"],
+            "CumulativeReturn": pd.Series(cumulative, dtype="float64", index=typed.index),
+        }
+    )
+
+
+def _industry_history_from_payload(code, industry_name, start_date=None, end_date=None):
+    payload = _fetch_json(
+        settings.url_industry_history.format(code),
+        "industry history {}".format(code),
+    )
+    values = payload.get("indexB2")
+    if not isinstance(values, list):
+        raise DataParsingError("industry history {} is missing indexB2".format(code))
+    rows = []
+    for item in values:
+        if not isinstance(item, dict):
+            continue
+        try:
+            trade_date = pd.to_datetime(str(int(item.get("dEven"))), format="%Y%m%d")
+        except (TypeError, ValueError, OverflowError):
+            continue
+        close = _numeric(item.get("xNivInuClMresIbs"))
+        rows.append(
+            {
+                "IndustryName": industry_name,
+                "IndustryIndexCode": code,
+                "TradeDate": trade_date,
+                "JalaliDate": _jalali(trade_date),
+                "High": _numeric(item.get("xNivInuPhMresIbs")),
+                "Low": _numeric(item.get("xNivInuPbMresIbs")),
+                "Close": close,
+            }
+        )
+    result = (
+        pd.DataFrame(rows).sort_values("TradeDate").reset_index(drop=True) if rows else pd.DataFrame()
+    )
+    if not result.empty:
+        result["Change"] = result["Close"].diff()
+        result["ChangePct"] = result["Close"].pct_change(fill_method=None) * 100
+        result["LogReturn"] = np.log(result["Close"] / result["Close"].shift(1))
+        if start_date is not None:
+            result = result.loc[result["TradeDate"] >= start_date]
+        if end_date is not None:
+            result = result.loc[result["TradeDate"] <= end_date]
+    return result
+
+
+def _industry_history_frames(resolved, start_date=None, end_date=None, max_workers=6):
+    max_workers = _validate_max_workers(max_workers)
+    if len(resolved) == 1:
+        code, name, _ = resolved[0]
+        return {code: _industry_history_from_payload(code, name, start_date, end_date)}
+    frames = {}
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(resolved))) as executor:
+        futures = {
+            executor.submit(_industry_history_from_payload, code, name, start_date, end_date): (
+                code,
+                name,
+            )
+            for code, name, _ in resolved
+        }
+        for future in as_completed(futures):
+            code, _ = futures[future]
+            frames[code] = future.result()
+    return frames
+
+
 def get_industry_history(
     industry,
     start=None,
@@ -1022,6 +1172,307 @@ def get_industry_members_history(
     if progress:
         print("Done. {} member-session rows returned.".format(len(result)))
     return result
+
+
+def compare_industries(
+    industries,
+    start=None,
+    end=None,
+    limit=0,
+    metric="close",
+    ascending=True,
+    progress=True,
+    max_workers=6,
+):
+    """Build a wide comparison table for multiple industry indices.
+
+    Data are aligned on ``TradeDate``.  Metric names are normalized with aliases:
+    ``close/price/closing`` -> Close, ``return/returns/change_pct`` -> ChangePct,
+    ``log_return`` -> log return.
+    """
+    limit = _validate_limit(limit)
+    if not isinstance(ascending, bool) or not isinstance(progress, bool):
+        raise InvalidParameterError("ascending and progress must be bool")
+    metric_col = _industry_metric_column(metric)
+    max_workers = _validate_max_workers(max_workers)
+    start_date, end_date = _date_bounds(start, end)
+    resolved = _resolve_industries(industries)
+    if progress:
+        print("Comparing {} industries with metric {}...".format(len(resolved), metric))
+    if not resolved:
+        return pd.DataFrame(columns=["TradeDate", "JalaliDate"])
+    frames = _industry_history_frames(
+        resolved, start_date=start_date, end_date=end_date, max_workers=max_workers
+    )
+    aligned = pd.DataFrame()
+    for code, name, _ in resolved:
+        history = frames.get(code, pd.DataFrame())
+        history = _typed_frame(
+            history,
+            INDUSTRY_HISTORY_COLUMNS + ["Change", "ChangePct", "LogReturn"],
+        )
+        series = _industry_metric_series(history.set_index("TradeDate"), code, name, metric_col)
+        if series.empty:
+            series = pd.Series(dtype="float64")
+        aligned = (
+            series.to_frame(series.name)
+            if aligned.empty
+            else aligned.join(series.to_frame(series.name), how="outer")
+        )
+    if aligned.empty:
+        return pd.DataFrame(columns=["TradeDate", "JalaliDate"] + [
+            _compare_columns_label(name, code) for code, name, _ in resolved
+        ])
+    aligned = aligned.sort_index()
+    aligned = aligned.reset_index().rename(columns={"index": "TradeDate"})
+    aligned["JalaliDate"] = aligned["TradeDate"].map(_jalali)
+    if limit:
+        aligned = aligned.tail(limit)
+    if "TradeDate" in aligned.columns:
+        # Avoid ambiguous sorting between index labels and columns that can occur
+        # if index name stays as `TradeDate`.
+        aligned = aligned.reset_index(drop=True)
+    if ascending:
+        aligned = aligned.sort_values("TradeDate").reset_index(drop=True)
+    else:
+        aligned = aligned.sort_values("TradeDate", ascending=False).reset_index(drop=True)
+    result_columns = (
+        ["TradeDate", "JalaliDate"]
+        + [_compare_columns_label(name, code) for code, name, _ in resolved]
+    )
+    result = aligned[result_columns].copy()
+    result.attrs.update(
+        {
+            "source": "TSETMC:GetIndexB2History",
+            "analysis": "compare_industries",
+            "metric": metric,
+            "metric_column": metric_col,
+            "industry_count": len(resolved),
+            "max_workers": max_workers,
+            "start_date": start_date,
+            "end_date": end_date,
+            "limit": limit,
+            "ascending": ascending,
+        }
+    )
+    if progress:
+        print("Done. {} rows returned.".format(len(result)))
+    return result
+
+
+def get_industry_relative_strength(
+    industries,
+    benchmark,
+    start=None,
+    end=None,
+    limit=0,
+    metric="close",
+    ascending=True,
+    progress=True,
+    max_workers=6,
+):
+    """Compute relative strength against a benchmark industry.
+
+    Relative strength is calculated as cumulative benchmark-adjusted return.
+    For ``close``, cumulative strength is normalized to percentage change from the
+    first valid close.  For return metrics, percentage/log returns are cumulized
+    first, then compared to the benchmark.
+    """
+    limit = _validate_limit(limit)
+    if not isinstance(ascending, bool) or not isinstance(progress, bool):
+        raise InvalidParameterError("ascending and progress must be bool")
+    metric_col = _industry_metric_column(metric)
+    start_date, end_date = _date_bounds(start, end)
+    max_workers = _validate_max_workers(max_workers)
+    resolved = _resolve_industries(industries)
+    benchmark_code = _resolve_industry(benchmark)[0]
+    if not any(code == benchmark_code for code, _, _ in resolved):
+        resolved.append(_resolve_industry(benchmark))
+    if len(resolved) < 2:
+        raise InvalidParameterError("at least one industry plus benchmark is required")
+    if progress:
+        print(
+            "Computing relative strength for {} vs {}".format(
+                len(resolved) - 1, _canonical_name(benchmark_code)
+            )
+        )
+    frames = _industry_history_frames(
+        resolved, start_date=start_date, end_date=end_date, max_workers=max_workers
+    )
+
+    benchmark_name = _canonical_name(benchmark_code)
+    benchmark_cumulative = _industry_cumulative_return_frame(
+        frames.get(benchmark_code, pd.DataFrame()),
+        benchmark_code,
+        benchmark_name,
+        metric_col,
+    )
+    result_rows = []
+    for code, name, _ in resolved:
+        if code == benchmark_code:
+            continue
+        industry_cumulative = _industry_cumulative_return_frame(
+            frames.get(code, pd.DataFrame()),
+            code,
+            name,
+            metric_col,
+        )
+        aligned = industry_cumulative.merge(
+            benchmark_cumulative,
+            on="TradeDate",
+            how="inner",
+            suffixes=("_industry", "_benchmark"),
+        )
+        if aligned.empty:
+            continue
+        aligned["IndustryIndexCode"] = code
+        aligned["IndustryName"] = name
+        aligned["BenchmarkIndexCode"] = benchmark_code
+        aligned["BenchmarkName"] = benchmark_name
+        aligned["IndustryReturn"] = aligned["CumulativeReturn_industry"]
+        aligned["BenchmarkReturn"] = aligned["CumulativeReturn_benchmark"]
+        aligned["RelativeStrength"] = (
+            aligned["IndustryReturn"] - aligned["BenchmarkReturn"]
+        )
+        aligned["JalaliDate"] = aligned["TradeDate"].map(_jalali)
+        result_rows.append(aligned)
+    if not result_rows:
+        return pd.DataFrame(
+            columns=[
+                "TradeDate",
+                "JalaliDate",
+                "BenchmarkIndexCode",
+                "BenchmarkName",
+                "IndustryIndexCode",
+                "IndustryName",
+                "IndustryReturn",
+                "BenchmarkReturn",
+                "RelativeStrength",
+            ]
+        )
+    result = pd.concat(result_rows, ignore_index=True).copy()
+    result = result.sort_values("TradeDate").reset_index(drop=True)
+    if limit:
+        result = result.groupby(
+            "IndustryIndexCode", group_keys=False
+        ).tail(limit)
+        result = result.sort_values("TradeDate", ascending=ascending).reset_index(drop=True)
+    else:
+        result = result.sort_values("TradeDate", ascending=ascending).reset_index(drop=True)
+    result = result[
+        [
+            "TradeDate",
+            "JalaliDate",
+            "BenchmarkIndexCode",
+            "BenchmarkName",
+            "IndustryIndexCode",
+            "IndustryName",
+            "IndustryReturn",
+            "BenchmarkReturn",
+            "RelativeStrength",
+        ]
+    ]
+    result.attrs.update(
+        {
+            "source": "TSETMC:GetIndexB2History",
+            "analysis": "industry_relative_strength",
+            "benchmark": benchmark,
+            "benchmark_index_code": benchmark_code,
+            "benchmark_name": _canonical_name(benchmark_code),
+            "metric": metric,
+            "metric_column": metric_col,
+            "industry_count": len(resolved) - 1,
+            "max_workers": max_workers,
+            "start_date": start_date,
+            "end_date": end_date,
+            "limit": limit,
+            "ascending": ascending,
+        }
+    )
+    if progress:
+        print("Done. {} relative strength rows returned.".format(len(result)))
+    return result
+
+
+def get_industry_correlation(
+    industries,
+    start=None,
+    end=None,
+    limit=0,
+    ascending=True,
+    progress=True,
+    max_workers=6,
+):
+    """Return a correlation matrix of industry return series.
+
+    Correlation is calculated on daily percentage changes aligned by TradeDate.
+    """
+    limit = _validate_limit(limit)
+    if not isinstance(ascending, bool) or not isinstance(progress, bool):
+        raise InvalidParameterError("ascending and progress must be bool")
+    max_workers = _validate_max_workers(max_workers)
+    start_date, end_date = _date_bounds(start, end)
+    resolved = _resolve_industries(industries)
+    if len(resolved) < 2:
+        raise InvalidParameterError("at least two industries are required")
+    if progress:
+        print("Computing correlation for {} industries...".format(len(resolved)))
+    frames = _industry_history_frames(
+        resolved, start_date=start_date, end_date=end_date, max_workers=max_workers
+    )
+    aligned = pd.DataFrame()
+    for code, name, _ in resolved:
+        history = _typed_frame(
+            frames.get(code, pd.DataFrame()),
+            INDUSTRY_HISTORY_COLUMNS + ["Change", "ChangePct", "LogReturn"],
+        )
+        series = pd.to_numeric(history.set_index("TradeDate")["ChangePct"], errors="coerce")
+        if not series.empty:
+            series = series / 100.0
+        series.name = _compare_columns_label(name, code)
+        aligned = (
+            series.to_frame(series.name)
+            if aligned.empty
+            else aligned.join(series.to_frame(series.name), how="outer")
+        )
+    if aligned.empty:
+        return pd.DataFrame(dtype="float64")
+    ordered_labels = [_compare_columns_label(name, code) for code, name, _ in resolved]
+    aligned = aligned.sort_index()
+    aligned["JalaliDate"] = aligned.index.map(_jalali)
+    if limit:
+        aligned = aligned.tail(limit)
+    return_series = aligned.drop(columns=["JalaliDate"], errors="ignore")
+    return_series = return_series.dropna(axis=1, how="all")
+    if return_series.shape[1] < 2:
+        raise InvalidParameterError("at least two overlapping return series are required")
+    return_frame = return_series.corr(method="pearson", min_periods=1)
+    # In some short windows returns can be constant and pandas returns NaN on
+    # the diagonal due zero variance; treat a series with itself as correlation 1.
+    if not return_frame.empty:
+        for label in return_frame.index:
+            return_frame.loc[label, label] = 1.0
+    return_frame = return_frame.reindex(index=ordered_labels).reindex(columns=ordered_labels)
+    if ascending is False:
+        ordered_labels_desc = list(reversed(ordered_labels))
+        return_frame = return_frame.reindex(index=ordered_labels_desc).reindex(
+            columns=ordered_labels_desc
+        )
+    return_frame.attrs.update(
+        {
+            "source": "TSETMC:GetIndexB2History",
+            "analysis": "industry_correlation",
+            "industry_count": len(resolved),
+            "max_workers": max_workers,
+            "start_date": start_date,
+            "end_date": end_date,
+            "limit": limit,
+            "ascending": ascending,
+        }
+    )
+    if progress:
+        print("Done. correlation matrix shape {}".format(return_frame.shape))
+    return return_frame
 
 
 _INTERVALS = {
@@ -1210,6 +1661,9 @@ __all__ = [
     "get_industry_snapshot",
     "get_industry_history",
     "get_industry_members_history",
+    "compare_industries",
+    "get_industry_relative_strength",
+    "get_industry_correlation",
     "get_industry_intraday",
     "rank_industries",
 ]

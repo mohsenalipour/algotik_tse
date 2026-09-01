@@ -2,6 +2,17 @@
 History
 =======
 
+1.2.1 (2026-09-01)
+-------------------
+
+* Added industry analytical exports: ``compare_industries``, ``get_industry_relative_strength``
+  and ``get_industry_correlation`` for cross-industry workflows and research
+  use-cases.
+* Corrected validation and slicing behavior so ``limit`` applies consistently and
+  ordering remains explicit with ``ascending`` for all industry analytics.
+* Added new public release exports and metadata for version-aligned packaging.
+* Updated README and bilingual PDF guide generation inputs for version 1.2.1.
+
 1.2.0 (2026-09-01)
 ------------------
 

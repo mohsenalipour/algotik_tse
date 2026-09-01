@@ -1,6 +1,7 @@
 """Offline contract tests for the public industry-index API."""
 
 import ast
+import numpy as np
 from pathlib import Path
 
 import pandas as pd
@@ -14,6 +15,8 @@ from algotik_tse.core.search import _INDUSTRY_RAW
 
 
 CODE = "32453344048876642"
+ALT_CODE = "34408080767216529"
+ALT_CODE_2 = "19219679288446732"
 MEMBER = "12345678901234567"
 
 
@@ -179,6 +182,47 @@ def _client():
         }
     )
     return pd.DataFrame([row], columns=CLIENT_COLUMNS)
+
+
+def _industry_history_frame(code, name, closes):
+    closes = [float(value) for value in closes]
+    trade_dates = [
+        pd.Timestamp("2026-08-29"),
+        pd.Timestamp("2026-08-30"),
+        pd.Timestamp("2026-08-31"),
+    ]
+    changes = [pd.NA]
+    change_pcts = [pd.NA]
+    log_returns = [0.0]
+    for previous, current in zip(closes[:-1], closes[1:]):
+        delta = current - previous
+        changes.append(delta)
+        if previous:
+            change_pcts.append((delta / previous) * 100)
+        else:
+            change_pcts.append(pd.NA)
+        if previous:
+            log_returns.append(np.log(current / previous))
+        else:
+            log_returns.append(pd.NA)
+    return pd.DataFrame(
+        {
+            "IndustryName": [name, name, name],
+            "IndustryIndexCode": [code, code, code],
+            "TradeDate": trade_dates,
+            "JalaliDate": [
+                industries._jalali(trade_dates[0]),
+                industries._jalali(trade_dates[1]),
+                industries._jalali(trade_dates[2]),
+            ],
+            "High": [value * 1.01 for value in closes],
+            "Low": [value * 0.99 for value in closes],
+            "Close": closes,
+            "Change": changes,
+            "ChangePct": change_pcts,
+            "LogReturn": log_returns,
+        }
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -366,6 +410,143 @@ def test_member_history_is_long_form_and_warns_about_survivorship(provider):
     assert result.iloc[0]["ChangePct"] == pytest.approx(8)
     assert result.attrs["point_in_time_membership"] is False
     assert result.attrs["survivorship_bias_possible"] is True
+
+
+def test_compare_industries_builds_wide_panel_and_applies_limit_descending(monkeypatch):
+    history_map = {
+        CODE: [1000, 1100, 1200],
+        ALT_CODE: [2000, 2100, 2200],
+    }
+
+    def fake_history_frames(resolved, start_date=None, end_date=None, max_workers=6):
+        frames = {}
+        for code, name, _ in resolved:
+            closes = history_map.get(code)
+            if closes is None:
+                closes = [1000, 1010, 1020]
+            frames[code] = _industry_history_frame(code, name, closes)
+        return frames
+
+    monkeypatch.setattr(industries, "_industry_history_frames", fake_history_frames)
+    result = att.compare_industries(
+        [CODE, ALT_CODE],
+        limit=2,
+        ascending=False,
+        progress=False,
+        max_workers=1,
+    )
+    expected_columns = [
+        "TradeDate",
+        "JalaliDate",
+        industries._compare_columns_label(industries._canonical_name(CODE), CODE),
+        industries._compare_columns_label(industries._canonical_name(ALT_CODE), ALT_CODE),
+    ]
+    assert list(result.columns) == expected_columns
+    assert result.attrs["analysis"] == "compare_industries"
+    assert result.attrs["industry_count"] == 2
+    assert len(result) == 2
+    assert result.iloc[0]["TradeDate"] == pd.Timestamp("2026-08-31")
+
+
+def test_relative_strength_uses_benchmark_and_limits_per_industry(monkeypatch):
+    history_map = {
+        CODE: [1000, 1100, 1210],
+        ALT_CODE: [2000, 2300, 2650],
+        ALT_CODE_2: [5000, 5100, 5300],
+    }
+
+    def fake_history_frames(resolved, start_date=None, end_date=None, max_workers=6):
+        frames = {}
+        for code, name, _ in resolved:
+            closes = history_map.get(code, [1000, 1010, 1020])
+            frames[code] = _industry_history_frame(code, name, closes)
+        return frames
+
+    monkeypatch.setattr(industries, "_industry_history_frames", fake_history_frames)
+    result = att.get_industry_relative_strength(
+        [CODE, ALT_CODE],
+        benchmark=ALT_CODE_2,
+        limit=1,
+        ascending=False,
+        progress=False,
+        max_workers=1,
+    )
+    result_price = att.get_industry_relative_strength(
+        [CODE, ALT_CODE],
+        benchmark=ALT_CODE_2,
+        limit=1,
+        metric="price",
+        ascending=False,
+        progress=False,
+        max_workers=1,
+    )
+    assert result.attrs["analysis"] == "industry_relative_strength"
+    assert result.attrs["industry_count"] == 2
+    assert result.attrs["benchmark_index_code"] == ALT_CODE_2
+    assert list(result.columns) == [
+        "TradeDate",
+        "JalaliDate",
+        "BenchmarkIndexCode",
+        "BenchmarkName",
+        "IndustryIndexCode",
+        "IndustryName",
+        "IndustryReturn",
+        "BenchmarkReturn",
+        "RelativeStrength",
+    ]
+    assert len(result) == 2
+    assert result_price[["IndustryReturn", "BenchmarkReturn", "RelativeStrength"]].equals(
+        result[["IndustryReturn", "BenchmarkReturn", "RelativeStrength"]]
+    )
+
+
+def test_industry_correlation_generates_sorted_matrix_with_diagonal_one(monkeypatch):
+    history_map = {
+        CODE: [1000, 1100, 1210],
+        ALT_CODE: [2000, 2200, 2420],
+        ALT_CODE_2: [1200, 1320, 1452],
+    }
+
+    def fake_history_frames(resolved, start_date=None, end_date=None, max_workers=6):
+        frames = {}
+        for code, name, _ in resolved:
+            closes = history_map.get(code, [1000, 1010, 1020])
+            frames[code] = _industry_history_frame(code, name, closes)
+        return frames
+
+    monkeypatch.setattr(industries, "_industry_history_frames", fake_history_frames)
+    result = att.get_industry_correlation(
+        [CODE, ALT_CODE, ALT_CODE_2],
+        ascending=False,
+        progress=False,
+        max_workers=1,
+    )
+    expected_labels = [
+        industries._compare_columns_label(industries._canonical_name(CODE), CODE),
+        industries._compare_columns_label(industries._canonical_name(ALT_CODE), ALT_CODE),
+        industries._compare_columns_label(
+            industries._canonical_name(ALT_CODE_2), ALT_CODE_2
+        ),
+    ]
+    expected_labels = list(reversed(expected_labels))
+    assert list(result.index) == expected_labels
+    assert list(result.columns) == expected_labels
+    assert result.shape == (3, 3)
+    assert result.loc[expected_labels[0], expected_labels[0]] == pytest.approx(1.0)
+    assert result.loc[expected_labels[1], expected_labels[1]] == pytest.approx(1.0)
+    assert result.loc[expected_labels[2], expected_labels[2]] == pytest.approx(1.0)
+
+
+def test_new_industry_analytics_validate_inputs(monkeypatch):
+    monkeypatch.setattr(industries, "_industry_history_frames", lambda *args, **kwargs: {})
+    with pytest.raises(att.InvalidParameterError):
+        att.compare_industries(CODE, metric="invalid", progress=False)
+    with pytest.raises(att.InvalidParameterError):
+        att.get_industry_relative_strength(
+            [CODE], benchmark=ALT_CODE, max_workers=99, progress=False
+        )
+    with pytest.raises(att.InvalidParameterError):
+        att.get_industry_correlation(CODE, ascending="yes", progress=False)
 
 
 def test_intraday_raw_and_resampled_candles_have_no_volume(provider):

@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.2.0-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.2.1-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -25,7 +25,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 - نمای زندهٔ کل بازار یا یک نماد، قدرت خریدار، جریان پول، spread و imbalance پنج سطح سفارش
 - معاملات ریز، order book و صف خرید/فروش به‌صورت زنده و تاریخی
 - watcher بازار، پیام‌ها، تغییر وضعیت، breadth، جریان صنایع و ذخیرهٔ اختیاری تاریخچه روی SQLite
-- ۴۵ شاخص صنعت، اعضای رسمی، snapshot تحلیلی، تاریخچهٔ اعضا، کندل درون‌روزی و رتبه‌بندی صنایع
+- ۴۵ شاخص صنعت، اعضای رسمی، snapshot تحلیلی، تاریخچهٔ اعضا، کندل درون‌روزی، مقایسه و هم‌بستگی صنایع
 - EPS و P/E، صندوق‌های قابل معامله، رخدادهای تعدیل قیمت و حل دقیق هویت ابزار با `InsCode`
 - تحلیل اخزا شامل YTM، duration، convexity، DV01 و منحنی بازده زنده و تاریخی
 - تحلیل اختیار معامله شامل Black–Scholes، IV، Greeks، put-call parity، PCR و نقدشوندگی
@@ -55,6 +55,9 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | ⭐ `get_live_trades()` | معاملات ریز امروز یک نماد | `DataFrame` |
 | ⭐ `get_order_book()` | پنج سطح سفارش زنده | `DataFrame` |
 | ⭐ `get_industry_snapshot()` | بازده، breadth، جریان پول و صف یک یا همهٔ صنایع | `DataFrame` |
+| ⭐ `compare_industries()` | مقایسهٔ سری زمانی چند شاخص صنعت | `DataFrame` |
+| ⭐ `get_industry_relative_strength()` | محاسبهٔ برتری نسبی به مقابل شاخص مبنا | `DataFrame` |
+| ⭐ `get_industry_correlation()` | ماتریس همبستگی بازدهی روزانهٔ صنایع | `DataFrame` |
 | ⭐ `rank_industries()` | رتبه‌بندی صنایع با معیار انتخابی | `DataFrame` |
 | ⭐ `list_etfs()` | ETFها همراه قیمت و NAV | `DataFrame` |
 | ⭐ `list_funds()` | صندوق‌ها همراه NAV، بازده و ترکیب دارایی | `DataFrame` |
@@ -103,6 +106,9 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | `get_industry_history()` | تاریخچهٔ روزانهٔ خود شاخص صنعت بدون حجم ساختگی |
 | `get_industry_members_history()` | تاریخچهٔ کوتاه همهٔ اعضای فعلی صنعت در قالب long-form |
 | `get_industry_intraday()` | مشاهدات خام یا کندل‌های درون‌روزی شاخص صنعت |
+| `compare_industries()` | مقایسه سری زمانی شاخص‌ها و متریک‌های قیمت/بازده |
+| `get_industry_relative_strength()` | محاسبهٔ بازده تجمعی نسبی هر شاخص در برابر benchmark |
+| `get_industry_correlation()` | ماتریس همبستگی بازده روزانه بین چند صنعت |
 | `rank_industries()` | رتبه‌بندی صنایع بر اساس بازده، breadth، ارزش یا جریان پول |
 
 #### تاریخچهٔ محلی و فاندامنتال
@@ -1009,7 +1015,7 @@ SectorCode instrument_count advances declines client_coverage net_individual_vol
 
 ## شاخص‌ها و تحلیل صنایع
 
-API صنعت در نسخهٔ 1.2.0 دو مفهوم را از هم جدا می‌کند:
+API صنعت در نسخهٔ 1.2.1 دو مفهوم را از هم جدا می‌کند:
 
 - **عضویت رسمی شاخص:** نمادهایی که endpoint رسمی `GetIndexCompany` برای همان شاخص برمی‌گرداند. توابع این فصل به‌طور پیش‌فرض از این universe استفاده می‌کنند.
 - **گروه دیده‌بان:** دسته‌بندی سریع `SectorCode` در MarketWatch که مبنای `get_sector_flow()` است و الزاماً با اعضای رسمی شاخص برابر نیست.
@@ -1232,6 +1238,64 @@ ranking = att.rank_industries(
 | `IndividualPower` | `individual_power`, `buyer_power` |
 
 `top=None` همهٔ ردیف‌های دارای معیار معتبر را برمی‌گرداند؛ مقدار مثبت فقط N ردیف اول را نگه می‌دارد. `ascending=False` رتبهٔ بزرگ‌تر به کوچک‌تر است. خروجی تمام ستون‌های snapshot را همراه `Rank` دارد و معیار نهایی در `attrs['ranking_metric']` ثبت می‌شود.
+
+### مقایسه و همبستگی شاخص‌های صنعت
+
+```python
+compare = att.compare_industries(
+    industries=["خودرو", "بانک", "فلزات"],
+    metric="close",
+    limit=20,
+    ascending=True,
+    progress=False,
+)
+```
+
+در خروجی، برای هر تاریخ یک ردیف است و هر ستون یک شاخص مقایسه‌شده است.
+ستون‌های خروجی به این شکل هستند:
+
+```text
+TradeDate, JalaliDate, صنعت خودرو [ID], صنعت بانک [ID], صنعت فلزات [ID]
+```
+
+```python
+relative = att.get_industry_relative_strength(
+    industries=["بانک", "شیمیایی", "فلزات"],
+    benchmark="خودرو",
+    metric="close",
+    limit=30,
+    ascending=False,
+    progress=False,
+)
+```
+
+این خروجی long-form است و برای هر industry (به جز benchmark) ستون‌های
+`IndustryReturn`, `BenchmarkReturn`, `RelativeStrength` را تولید می‌کند.
+
+```text
+TradeDate, JalaliDate, BenchmarkIndexCode, BenchmarkName,
+IndustryIndexCode, IndustryName, IndustryReturn, BenchmarkReturn, RelativeStrength
+```
+
+```python
+corr = att.get_industry_correlation(
+    industries=["بانک", "خودرو", "صنعت فولاد", "ساختمان"],
+    limit=120,
+    ascending=False,
+    progress=False,
+)
+```
+
+خروجی تابع ماتریس همبستگی n×n است با index/columns برچسب‌دار به فرمت
+`IndustryName [IndexCode]`.
+
+هر یک از توابع بالا همانند زیر امضای رسمی‌شان را دارند:
+
+```text
+compare_industries(industries, start=None, end=None, limit=0, metric='close', ascending=True, progress=True, max_workers=6)
+get_industry_relative_strength(industries, benchmark, start=None, end=None, limit=0, metric='close', ascending=True, progress=True, max_workers=6)
+get_industry_correlation(industries, start=None, end=None, limit=0, ascending=True, progress=True, max_workers=6)
+```
 
 ### cache، پوشش و محدودیت داده
 
@@ -2416,6 +2480,9 @@ get_industry_members(industry, include_live=True, include_client_type=False, inc
 get_industry_snapshot(industries=None, include_client_type=True, include_orderbook=False, include_empty=False, progress=True, refresh=False, max_workers=6)
 get_industry_history(industry, start=None, end=None, limit=0, ascending=True, progress=True)
 get_industry_members_history(industry, days=30, ascending=True, progress=True, refresh=False)
+compare_industries(industries, start=None, end=None, limit=0, metric="close", ascending=True, progress=True, max_workers=6)
+get_industry_relative_strength(industries, benchmark, start=None, end=None, limit=0, metric="close", ascending=True, progress=True, max_workers=6)
+get_industry_correlation(industries, start=None, end=None, limit=0, ascending=True, progress=True, max_workers=6)
 get_industry_intraday(industry, interval='1min', progress=True)
 rank_industries(metric='IndexChangePct', top=None, ascending=False, include_client_type=True, include_orderbook=False, progress=True, refresh=False, max_workers=6)
 ```
@@ -2427,6 +2494,9 @@ rank_industries(metric='IndexChangePct', top=None, ascending=False, include_clie
 | `get_industry_snapshot` | `industries: None|str|int|iterable=None`؛ `include_client_type=True`؛ `include_orderbook=False`؛ `include_empty=False`؛ `refresh=False`؛ `max_workers=6`. | یک ردیف در هر شاخص با `INDUSTRY_SNAPSHOT_COLUMNS`: وضعیت شاخص، breadth، equal-weight/median/dispersion، معامله، flow/coverage، queue/coverage و freshness؛ attrs overlap/current membership/cache. | selector/bool/worker `InvalidParameterError` یا `StockNotFoundError`؛ snapshot/schema/provider typed؛ مثال فصل صنعت. |
 | `get_industry_history` | `industry` اجباری؛ `start/end: str|None` شمسی/میلادی؛ `limit: int=0` پس از فیلتر؛ `ascending: bool=True`; `progress`. | `DataFrame[IndustryName,IndustryIndexCode,TradeDate,JalaliDate,High,Low,Close,Change,ChangePct]`; attrs `volume_available=False,completed_sessions_only=True`. | تاریخ/order/limit نامعتبر `InvalidParameterError`؛ صنعت/provider/schema typed؛ مثال تاریخچه. |
 | `get_industry_members_history` | `industry`؛ `days: int=30` دقیقاً `1..30` تاریخ آخر؛ `ascending=True`; `refresh=False`. | long-form `INDUSTRY_MEMBER_HISTORY_COLUMNS` برای اعضای فعلی؛ attrs `point_in_time_membership=False,survivorship_bias_possible=True`. | days/bool/selector typed؛ provider/schema typed؛ مثال فصل صنعت. |
+| `compare_industries` | `industries` (str|int|iterable)، `start/end: str|None`، `limit: int=0`، `metric: close|price|change_pct|log_return`, `ascending=True`, `progress=True`, `max_workers=6`. | `DataFrame[TradeDate,JalaliDate,<IndustryName [IndustryIndexCode]>...]`؛ یک ردیف در هر تاریخ، `attrs` شامل `analysis='compare_industries'`, `metric`, `metric_column`, `industry_count` و window. | industries نامعتبر/نوع metric/worker `InvalidParameterError`; provider/schema typed؛ مثال `compare_industries([...])`. |
+| `get_industry_relative_strength` | `industries`، `benchmark`, `start/end: str|None`, `limit: int=0`, `metric: close|price|change_pct|log_return`, `ascending=True`, `progress=True`, `max_workers=6`. | long-form `TradeDate,JalaliDate,BenchmarkIndexCode,BenchmarkName,IndustryIndexCode,IndustryName,IndustryReturn,BenchmarkReturn,RelativeStrength`; `attrs` شامل `analysis='industry_relative_strength'`, `benchmark_index_code`, `industry_count`. | benchmark/generic metrics/worker نامعتبر یا دادهٔ ناکافی `InvalidParameterError`; مثال `relative_strength = ...`. |
+| `get_industry_correlation` | `industries` (str|int|iterable), `start/end: str|None`, `limit: int=0`, `ascending=True`, `progress=True`, `max_workers=6`. | ماتریس n×n `DataFrame` همبستگی روی بازده روزانه، index/columns برچسب `IndustryName [IndexCode]`; `attrs` شامل `analysis='industry_correlation'`. | industries<2 یا دادهٔ همپوشانی ناکافی `InvalidParameterError`; `ascending=False` ترتیب بازگشتی `attrs['ascending']`; نمونه برای رده‌بندی یا ریسک. |
 | `get_industry_intraday` | `industry`؛ `interval: str='1min'` یکی از `raw,1min,5min,15min,30min,60min,1h`; `progress`. | `DataFrame[IndustryName,IndustryIndexCode,Timestamp,JalaliDate,Interval,Open,High,Low,Close,Change,ChangePct]`; timezone تهران؛ attrs بدون volume مصنوعی و latest-day. | interval/selector `InvalidParameterError/StockNotFoundError`؛ provider/schema typed؛ مثال `get_industry_intraday("خودرو", "5min")`. |
 | `rank_industries` | `metric` canonical/alias مستند؛ `top: int|None`; `ascending=False`; client/order switches؛ `refresh`; `max_workers`. | تمام ستون‌های snapshot + `Rank`; ردیف metric تهی حذف؛ attrs `ranking_metric,ranking_ascending` و provenance snapshot. | metric/top/bool/worker نامعتبر `InvalidParameterError`؛ provider typed؛ مثال `rank_industries(metric="breadth", top=5)`. |
 

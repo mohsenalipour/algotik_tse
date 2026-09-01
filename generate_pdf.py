@@ -31,8 +31,8 @@ README_PATH = ROOT / "README.md"
 FONT_DIR = ROOT / "fonts"
 LOGO_PATH = ROOT / "docs" / "assets" / "algotik_logo_stacked_1024.png"
 TMP_DIR = ROOT / "tmp" / "pdfs"
-DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.2.0_preview.pdf"
-VERSION = "1.2.0"
+DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.2.1_preview.pdf"
+VERSION = "1.2.1"
 RELEASE_DATE = "1 September 2026"
 
 
