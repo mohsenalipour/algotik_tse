@@ -3,6 +3,7 @@
 import ast
 import numpy as np
 from pathlib import Path
+import copy
 
 import pandas as pd
 import pytest
@@ -738,6 +739,91 @@ def test_industry_membership_churn_tracks_member_transitions(provider):
     assert row["ChurnRate"] == 0.0
     assert row["MembershipPersistence"] == 1.0
     assert result.attrs["analysis"] == "industry_membership_churn"
+
+
+def test_industry_membership_events_reports_added_and_dropped_rows(monkeypatch, provider):
+    payload = copy.deepcopy(_member_payload(CODE))
+    payload["relatedCompanyThirtyDayHistory"] = [
+        {
+            "insCode": "10000000000000001",
+            "dEven": 20260829,
+            "lVal18AFC": "نمونه1",
+            "lVal30": "نمونه یک",
+            "priceYesterday": 800,
+            "pClosing": 900,
+            "pDrCotVal": 950,
+            "qTotTran5J": 500,
+            "qTotCap": 900_000,
+            "zTotTran": 10,
+        },
+        {
+            "insCode": "10000000000000002",
+            "dEven": 20260829,
+            "lVal18AFC": "نمونه2",
+            "lVal30": "نمونه دو",
+            "priceYesterday": 700,
+            "pClosing": 760,
+            "pDrCotVal": 780,
+            "qTotTran5J": 300,
+            "qTotCap": 500_000,
+            "zTotTran": 4,
+        },
+        {
+            "insCode": "10000000000000001",
+            "dEven": 20260830,
+            "lVal18AFC": "نمونه1",
+            "lVal30": "نمونه یک",
+            "priceYesterday": 900,
+            "pClosing": 980,
+            "pDrCotVal": 1000,
+            "qTotTran5J": 620,
+            "qTotCap": 1_100_000,
+            "zTotTran": 11,
+        },
+        {
+            "insCode": "10000000000000003",
+            "dEven": 20260830,
+            "lVal18AFC": "نمونه3",
+            "lVal30": "نمونه سه",
+            "priceYesterday": 1200,
+            "pClosing": 1240,
+            "pDrCotVal": 1245,
+            "qTotTran5J": 400,
+            "qTotCap": 780_000,
+            "zTotTran": 8,
+        },
+        {
+            "insCode": "10000000000000001",
+            "dEven": 20260831,
+            "lVal18AFC": "نمونه1",
+            "lVal30": "نمونه یک",
+            "priceYesterday": 980,
+            "pClosing": 1120,
+            "pDrCotVal": 1125,
+            "qTotTran5J": 700,
+            "qTotCap": 1_150_000,
+            "zTotTran": 13,
+        },
+    ]
+
+    def fake_membership_payload(code, refresh=False):
+        if code != CODE:
+            return _member_payload(code=code), False
+        return payload, False
+
+    monkeypatch.setattr(industries, "_get_membership_payload", fake_membership_payload)
+    result = att.get_industry_membership_events([CODE], days=3, progress=False)
+    assert list(result.columns) == industries.INDUSTRY_MEMBERSHIP_EVENT_COLUMNS
+    assert len(result) == 3
+    assert set(result["EventType"]) == {"added", "dropped"}
+    assert set(result.loc[result["EventType"] == "added", "InsCode"]) == {
+        "10000000000000003",
+    }
+    assert set(result.loc[result["EventType"] == "dropped", "InsCode"]) == {
+        "10000000000000002",
+        "10000000000000003",
+    }
+    assert result.attrs["analysis"] == "industry_membership_events"
 
 
 def test_industry_concentration_from_membership_weights(provider):

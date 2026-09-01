@@ -2,6 +2,18 @@
 History
 =======
 
+1.2.4 (2026-09-02)
+-------------------
+
+* Added ``get_industry_membership_events()`` for explicit long-form
+  membership point-in-time change rows (`added`/`dropped`) across consecutive
+  official industry membership snapshots.
+* Clarified industry membership-history caveats in docs: point-in-time changes are now
+  available via the new API while long-form member history remains a current-member view.
+* Extended README and PDF guide contracts to include the new export, signatures,
+  section-level examples, and explicit parameter contract.
+* Synced release metadata and documentation to version 1.2.4.
+
 1.2.3 (2026-09-01)
 -------------------
 

@@ -205,6 +205,19 @@ INDUSTRY_MEMBERSHIP_CHURN_COLUMNS = [
     "MembershipPersistence",
 ]
 
+INDUSTRY_MEMBERSHIP_EVENT_COLUMNS = [
+    "IndustryName",
+    "IndustryIndexCode",
+    "TradeDate",
+    "JalaliDate",
+    "PreviousTradeDate",
+    "PreviousJalaliDate",
+    "EventType",
+    "InsCode",
+    "Symbol",
+    "Name",
+]
+
 INDUSTRY_CONCENTRATION_COLUMNS = [
     "IndustryName",
     "IndustryIndexCode",
@@ -497,6 +510,32 @@ def _member_set_history(payload):
             trade_map[trade_date] = set()
         trade_map[trade_date].add(code)
     return trade_map
+
+
+def _member_detail_history(payload):
+    history_rows = payload.get("relatedCompanyThirtyDayHistory")
+    if not isinstance(history_rows, list):
+        return {}
+    detail_map = {}
+    for item in history_rows:
+        if not isinstance(item, dict):
+            continue
+        try:
+            trade_date = pd.to_datetime(str(int(item.get("dEven"))), format="%Y%m%d")
+        except (TypeError, ValueError, OverflowError):
+            continue
+        instrument = item.get("instrument") or {}
+        code = str(item.get("insCode") or instrument.get("insCode") or "").strip()
+        if not code:
+            continue
+        if trade_date not in detail_map:
+            detail_map[trade_date] = {}
+        detail_map[trade_date][code] = {
+            "InsCode": code,
+            "Symbol": _clean_text(item.get("lVal18AFC") or instrument.get("lVal18AFC")),
+            "Name": _clean_text(item.get("lVal30") or instrument.get("lVal30")),
+        }
+    return detail_map
 
 
 def _top_concentration(shares, total, top):
@@ -1950,6 +1989,95 @@ def get_industry_membership_churn(
     return result
 
 
+def get_industry_membership_events(
+    industries,
+    days=30,
+    progress=True,
+    refresh=False,
+    max_workers=6,
+):
+    """List point-in-time membership transition events as member-level rows."""
+    days = _validate_limit(days, name="days", maximum=30)
+    for name, value in (("progress", progress), ("refresh", refresh)):
+        if not isinstance(value, bool):
+            raise InvalidParameterError("{} must be bool".format(name))
+    max_workers = _validate_max_workers(max_workers)
+    resolved = _resolve_industries(industries)
+    if not resolved:
+        raise InvalidParameterError("industries cannot be empty")
+    if progress:
+        print("Computing membership events for {} industries...".format(len(resolved)))
+
+    payloads, cache_hits = _get_membership_batch(
+        resolved, refresh=refresh, max_workers=max_workers
+    )
+    rows = []
+    for code, name, _ in resolved:
+        detail_map = _member_detail_history(payloads.get(code, {}))
+        trade_dates = sorted(detail_map.keys())
+        if not trade_dates:
+            continue
+        if len(trade_dates) > days:
+            trade_dates = trade_dates[-days:]
+        for previous, current in zip(trade_dates[:-1], trade_dates[1:]):
+            previous_members = detail_map.get(previous, {})
+            current_members = detail_map.get(current, {})
+            previous_codes = set(previous_members)
+            current_codes = set(current_members)
+            for added_code in sorted(current_codes.difference(previous_codes)):
+                added_member = current_members.get(added_code, {})
+                rows.append(
+                    {
+                        "IndustryName": name,
+                        "IndustryIndexCode": code,
+                        "TradeDate": current,
+                        "JalaliDate": _jalali(current),
+                        "PreviousTradeDate": previous,
+                        "PreviousJalaliDate": _jalali(previous),
+                        "EventType": "added",
+                        "InsCode": added_code,
+                        "Symbol": added_member.get("Symbol", pd.NA),
+                        "Name": added_member.get("Name", pd.NA),
+                    }
+                )
+            for dropped_code in sorted(previous_codes.difference(current_codes)):
+                dropped_member = previous_members.get(dropped_code, {})
+                rows.append(
+                    {
+                        "IndustryName": name,
+                        "IndustryIndexCode": code,
+                        "TradeDate": current,
+                        "JalaliDate": _jalali(current),
+                        "PreviousTradeDate": previous,
+                        "PreviousJalaliDate": _jalali(previous),
+                        "EventType": "dropped",
+                        "InsCode": dropped_code,
+                        "Symbol": dropped_member.get("Symbol", pd.NA),
+                        "Name": dropped_member.get("Name", pd.NA),
+                    }
+                )
+    result = _typed_frame(rows, INDUSTRY_MEMBERSHIP_EVENT_COLUMNS)
+    result.attrs.update(
+        {
+            "source": "TSETMC:GetIndexCompany.relatedCompanyThirtyDayHistory",
+            "analysis": "industry_membership_events",
+            "industry_count": len(resolved),
+            "days": days,
+            "max_workers": max_workers,
+            "cache_hits": int(cache_hits),
+            "refresh": refresh,
+            "progress": progress,
+        }
+    )
+    if progress:
+        print(
+            "Done. {} membership event rows returned for {} industries.".format(
+                len(result), len(resolved)
+            )
+        )
+    return result
+
+
 def get_industry_concentration(
     industries,
     top_n=10,
@@ -2495,6 +2623,7 @@ __all__ = [
     "get_industry_intraday",
     "rank_industries",
     "get_industry_membership_churn",
+    "get_industry_membership_events",
     "get_industry_concentration",
     "get_industry_momentum_profile",
     "get_industry_correlation_neighborhood",
