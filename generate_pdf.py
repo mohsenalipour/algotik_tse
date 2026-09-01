@@ -300,13 +300,20 @@ def html_to_pdf(html_path, pdf_path):
     profile_dir = Path(tempfile.mkdtemp(prefix="algotik-tse-pdf-edge-"))
     if pdf_path.exists():
         pdf_path.unlink()
+    # Newer Edge builds in this environment crash unless GPU composition is fully
+    # disabled in headless mode. Keep this flag set for reproducible rendering.
     command = [
         str(edge),
         "--headless=new",
         "--disable-gpu",
+        "--disable-gpu-compositing",
+        "--disable-gpu-rasterization",
+        "--disable-software-rasterizer",
+        "--disable-features=VizDisplayCompositor",
         "--disable-extensions",
         "--disable-background-mode",
         "--no-first-run",
+        "--no-sandbox",
         "--no-pdf-header-footer",
         "--generate-pdf-document-outline",
         "--user-data-dir=" + str(profile_dir.resolve()),
