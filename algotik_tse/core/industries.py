@@ -190,6 +190,75 @@ INDUSTRY_INTRADAY_COLUMNS = [
     "ChangePct",
 ]
 
+INDUSTRY_MEMBERSHIP_CHURN_COLUMNS = [
+    "IndustryName",
+    "IndustryIndexCode",
+    "TradeDate",
+    "JalaliDate",
+    "PreviousTradeDate",
+    "PreviousJalaliDate",
+    "PrevMemberCount",
+    "CurrentMemberCount",
+    "AddedMembers",
+    "DroppedMembers",
+    "ChurnRate",
+    "MembershipPersistence",
+]
+
+INDUSTRY_CONCENTRATION_COLUMNS = [
+    "IndustryName",
+    "IndustryIndexCode",
+    "TradeDate",
+    "JalaliDate",
+    "MemberCount",
+    "TotalWeight",
+    "ConcentrationTop1",
+    "ConcentrationTop3",
+    "ConcentrationTop5",
+    "ConcentrationTop10",
+    "ConcentrationTopN",
+    "TopN",
+    "HerfindahlHirschmanIndex",
+    "LargestMemberWeight",
+    "SecondLargestMemberWeight",
+]
+
+INDUSTRY_MOMENTUM_PROFILE_COLUMNS = [
+    "IndustryName",
+    "IndustryIndexCode",
+    "TradeDate",
+    "JalaliDate",
+    "LastClose",
+    "MomentumScore",
+    "TrendSignal",
+    "MomentumWindowDays",
+    "MomentumWindowReturns",
+    "ReturnVolatility",
+]
+
+INDUSTRY_CORRELATION_NEIGHBOR_COLUMNS = [
+    "IndustryName",
+    "IndustryIndexCode",
+    "NeighborName",
+    "NeighborIndexCode",
+    "Correlation",
+    "CorrelationAbs",
+    "CorrelationRank",
+]
+
+INDUSTRY_HEALTH_SCORE_COLUMNS = [
+    "IndustryName",
+    "IndustryIndexCode",
+    "HealthScore",
+    "HealthBucket",
+    "MomentumScore",
+    "BreadthScore",
+    "ConcentrationScore",
+    "LiquidityScore",
+    "TradeDate",
+    "JalaliDate",
+]
+
 _INDUSTRY_COMPARE_METRICS = {
     "close": "Close",
     "price": "Close",
@@ -398,6 +467,50 @@ def _safe_divide(numerator, denominator):
     if not np.isfinite(numerator) or not np.isfinite(denominator) or denominator == 0:
         return np.nan
     return numerator / denominator
+
+
+def _normalize_positive_int(value, name):
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+        raise InvalidParameterError("{} must be a positive integer".format(name))
+    value = int(value)
+    if value <= 0:
+        raise InvalidParameterError("{} must be a positive integer".format(name))
+    return value
+
+
+def _member_set_history(payload):
+    history_rows = payload.get("relatedCompanyThirtyDayHistory")
+    if not isinstance(history_rows, list):
+        return {}
+    trade_map = {}
+    for item in history_rows:
+        if not isinstance(item, dict):
+            continue
+        try:
+            trade_date = pd.to_datetime(str(int(item.get("dEven"))), format="%Y%m%d")
+        except (TypeError, ValueError, OverflowError):
+            continue
+        code = str(item.get("insCode") or "").strip()
+        if not code:
+            continue
+        if trade_date not in trade_map:
+            trade_map[trade_date] = set()
+        trade_map[trade_date].add(code)
+    return trade_map
+
+
+def _top_concentration(shares, total, top):
+    if pd.isna(total) or total == 0:
+        return np.nan
+    values = (
+        pd.Series(shares)
+        .astype(float)
+        .where(pd.Series(shares).astype(float) > 0)
+        .dropna()
+    )
+    if values.empty:
+        return np.nan
+    return float(values.nlargest(top).sum() / total)
 
 
 def _typed_frame(rows, columns):
@@ -1749,6 +1862,626 @@ def rank_industries(
     return result
 
 
+def get_industry_membership_churn(
+    industries,
+    days=0,
+    progress=True,
+    refresh=False,
+    max_workers=6,
+):
+    """Track membership changes of industry constituents across nearby trading dates."""
+    days = _validate_limit(days, name="days", maximum=30)
+    if days == 0:
+        raise InvalidParameterError("days must be between 1 and 30")
+    for name, value in (("progress", progress), ("refresh", refresh)):
+        if not isinstance(value, bool):
+            raise InvalidParameterError("{} must be bool".format(name))
+    max_workers = _validate_max_workers(max_workers)
+    resolved = _resolve_industries(industries)
+    if not resolved:
+        raise InvalidParameterError("industries cannot be empty")
+    if progress:
+        print("Computing membership churn for {} industries...".format(len(resolved)))
+
+    payloads, cache_hits = _get_membership_batch(
+        resolved, refresh=refresh, max_workers=max_workers
+    )
+    rows = []
+    for code, name, _ in resolved:
+        member_map = _member_set_history(payloads.get(code, {}))
+        trade_dates = sorted(member_map.keys())
+        if not trade_dates:
+            continue
+        if len(trade_dates) > days:
+            trade_dates = trade_dates[-days:]
+        for previous, current in zip(trade_dates[:-1], trade_dates[1:]):
+            previous_members = member_map.get(previous, set())
+            current_members = member_map.get(current, set())
+            if not previous_members and not current_members:
+                churn_rate = 0.0
+                persistence = 1.0
+                added = 0
+                dropped = 0
+            else:
+                union = previous_members.union(current_members)
+                unchanged = previous_members.intersection(current_members)
+                added = len(current_members.difference(previous_members))
+                dropped = len(previous_members.difference(current_members))
+                churn_rate = _safe_divide(added + dropped, len(union))
+                if len(previous_members) == 0:
+                    persistence = 1.0 if not current_members else 0.0
+                else:
+                    persistence = _safe_divide(len(unchanged), len(previous_members))
+            rows.append(
+                {
+                    "IndustryName": name,
+                    "IndustryIndexCode": code,
+                    "TradeDate": current,
+                    "JalaliDate": _jalali(current),
+                    "PreviousTradeDate": previous,
+                    "PreviousJalaliDate": _jalali(previous),
+                    "PrevMemberCount": len(previous_members),
+                    "CurrentMemberCount": len(current_members),
+                    "AddedMembers": added,
+                    "DroppedMembers": dropped,
+                    "ChurnRate": churn_rate,
+                    "MembershipPersistence": persistence,
+                }
+            )
+    result = _typed_frame(rows, INDUSTRY_MEMBERSHIP_CHURN_COLUMNS)
+    result.attrs.update(
+        {
+            "source": "TSETMC:GetIndexCompany.relatedCompanyThirtyDayHistory",
+            "analysis": "industry_membership_churn",
+            "industry_count": len(resolved),
+            "days": days,
+            "max_workers": max_workers,
+            "cache_hits": int(cache_hits),
+            "refresh": refresh,
+            "progress": progress,
+        }
+    )
+    if progress:
+        print(
+            "Done. {} membership transitions returned for {} industries.".format(
+                len(result), len(resolved)
+            )
+        )
+    return result
+
+
+def get_industry_concentration(
+    industries,
+    top_n=10,
+    include_weights_by_market_value=True,
+    progress=True,
+    refresh=False,
+    max_workers=6,
+):
+    """Compute concentration statistics for each industry based on constituent weights."""
+    top_n = _validate_limit(top_n, name="top_n")
+    if top_n == 0:
+        raise InvalidParameterError("top_n must be a positive integer")
+    for name, value in (
+        ("progress", progress),
+        ("refresh", refresh),
+        ("include_weights_by_market_value", include_weights_by_market_value),
+    ):
+        if not isinstance(value, bool):
+            raise InvalidParameterError("{} must be bool".format(name))
+    max_workers = _validate_max_workers(max_workers)
+    resolved = _resolve_industries(industries)
+    if progress:
+        print(
+            "Computing concentration for {} industries with top_n={}".format(
+                len(resolved), top_n
+            )
+        )
+    payloads, cache_hits = _get_membership_batch(
+        resolved, refresh=refresh, max_workers=max_workers
+    )
+    rows = []
+    for code, name, _ in resolved:
+        payload = payloads.get(code, {})
+        members = _members_from_payload(payload, name, code)
+        trade_dates = sorted(_member_set_history(payload).keys())
+        trade_date = trade_dates[-1] if trade_dates else pd.NaT
+        if members.empty:
+            rows.append(
+                {
+                    "IndustryName": name,
+                    "IndustryIndexCode": code,
+                    "TradeDate": trade_date,
+                    "JalaliDate": _jalali(trade_date),
+                    "MemberCount": 0,
+                    "TotalWeight": np.nan,
+                    "ConcentrationTop1": np.nan,
+                    "ConcentrationTop3": np.nan,
+                    "ConcentrationTop5": np.nan,
+                    "ConcentrationTop10": np.nan,
+                    "ConcentrationTopN": np.nan,
+                    "TopN": top_n,
+                    "HerfindahlHirschmanIndex": np.nan,
+                    "LargestMemberWeight": np.nan,
+                    "SecondLargestMemberWeight": np.nan,
+                }
+            )
+            continue
+        members["WeightSource"] = (
+            pd.to_numeric(members["Value"], errors="coerce")
+            if include_weights_by_market_value
+            else pd.to_numeric(members["Volume"], errors="coerce")
+        )
+        weights = members["WeightSource"].dropna().astype(float)
+        if weights.empty:
+            total_weight = np.nan
+            concentration_top1 = np.nan
+            concentration_top3 = np.nan
+            concentration_top5 = np.nan
+            concentration_top10 = np.nan
+            concentration_top_n = np.nan
+            hhi = np.nan
+            largest = np.nan
+            second = np.nan
+        else:
+            total_weight = float(weights.sum())
+            sorted_weights = np.sort(weights.values)[::-1]
+            largest = sorted_weights[0]
+            second = sorted_weights[1] if len(sorted_weights) > 1 else 0.0
+            concentration_top1 = _top_concentration(sorted_weights, total_weight, 1)
+            concentration_top3 = _top_concentration(sorted_weights, total_weight, 3)
+            concentration_top5 = _top_concentration(sorted_weights, total_weight, 5)
+            concentration_top10 = _top_concentration(sorted_weights, total_weight, 10)
+            concentration_top_n = _top_concentration(sorted_weights, total_weight, top_n)
+            hhi = ((weights / total_weight) ** 2).sum() if total_weight else np.nan
+        rows.append(
+            {
+                "IndustryName": name,
+                "IndustryIndexCode": code,
+                "TradeDate": trade_date,
+                "JalaliDate": _jalali(trade_date),
+                "MemberCount": len(members),
+                "TotalWeight": total_weight,
+                "ConcentrationTop1": concentration_top1,
+                "ConcentrationTop3": concentration_top3,
+                "ConcentrationTop5": concentration_top5,
+                "ConcentrationTop10": concentration_top10,
+                "ConcentrationTopN": concentration_top_n,
+                "TopN": top_n,
+                "HerfindahlHirschmanIndex": hhi,
+                "LargestMemberWeight": largest,
+                "SecondLargestMemberWeight": second,
+            }
+        )
+    result = _typed_frame(rows, INDUSTRY_CONCENTRATION_COLUMNS)
+    result.attrs.update(
+        {
+            "source": "TSETMC:GetIndexCompany",
+            "analysis": "industry_concentration",
+            "industry_count": len(resolved),
+            "top_n": top_n,
+            "weight_by_market_value": include_weights_by_market_value,
+            "max_workers": max_workers,
+            "cache_hits": int(cache_hits),
+            "refresh": refresh,
+            "progress": progress,
+        }
+    )
+    if progress:
+        print("Done. {} concentration rows returned.".format(len(result)))
+    return result
+
+
+def get_industry_momentum_profile(
+    industries,
+    windows=(5, 20, 60),
+    start=None,
+    end=None,
+    progress=True,
+    max_workers=6,
+):
+    """Build a simple momentum score from multiple close-history horizons."""
+    if not isinstance(windows, (list, tuple)) or not windows:
+        raise InvalidParameterError("windows must be a non-empty list or tuple")
+    windows = tuple(_normalize_positive_int(value, "window") for value in windows)
+    for value in windows:
+        if value < 2:
+            raise InvalidParameterError("each window must be >= 2")
+    if not isinstance(progress, bool):
+        raise InvalidParameterError("progress must be bool")
+    max_workers = _validate_max_workers(max_workers)
+    start_date, end_date = _date_bounds(start, end)
+    resolved = _resolve_industries(industries)
+    if progress:
+        print(
+            "Building industry momentum profile for {} industries with windows {}...".format(
+                len(resolved), ", ".join(str(value) for value in windows)
+            )
+        )
+    frames = _industry_history_frames(
+        resolved, start_date=start_date, end_date=end_date, max_workers=max_workers
+    )
+    rows = []
+    dynamic_headers = {window: "momentum_{}d".format(window) for window in windows}
+    for code, name, _ in resolved:
+        history = _typed_frame(
+            frames.get(code, pd.DataFrame()),
+            INDUSTRY_HISTORY_COLUMNS + ["Change", "ChangePct", "LogReturn"],
+        )
+        if history.empty:
+            row = {
+                "IndustryName": name,
+                "IndustryIndexCode": code,
+                "TradeDate": pd.NaT,
+                "JalaliDate": pd.NA,
+                "LastClose": np.nan,
+                "MomentumScore": np.nan,
+                "TrendSignal": "undefined",
+                "MomentumWindowDays": 0,
+                "MomentumWindowReturns": pd.NA,
+                "ReturnVolatility": np.nan,
+            }
+            for window, column in dynamic_headers.items():
+                row[column] = np.nan
+            rows.append(row)
+            continue
+        closes = pd.to_numeric(history["Close"], errors="coerce")
+        non_na_history = history.loc[closes.notna()].copy()
+        if non_na_history.empty:
+            latest_close = np.nan
+        else:
+            latest_close = float(non_na_history["Close"].iloc[-1])
+        if closes.empty:
+            row = {
+                "IndustryName": name,
+                "IndustryIndexCode": code,
+                "TradeDate": history["TradeDate"].iloc[-1],
+                "JalaliDate": history["JalaliDate"].iloc[-1],
+                "LastClose": np.nan,
+                "MomentumScore": np.nan,
+                "TrendSignal": "undefined",
+                "MomentumWindowDays": 0,
+                "MomentumWindowReturns": pd.NA,
+                "ReturnVolatility": np.nan,
+            }
+            for window, column in dynamic_headers.items():
+                row[column] = np.nan
+            row["MomentumWindowReturns"] = []
+            rows.append(row)
+            continue
+        metrics = []
+        for window in windows:
+            if len(non_na_history) <= window - 1:
+                metric = np.nan
+            else:
+                window_block = non_na_history.iloc[-window:]
+                base = pd.to_numeric(window_block["Close"].iloc[0], errors="coerce")
+                last = pd.to_numeric(window_block["Close"].iloc[-1], errors="coerce")
+                if not np.isfinite(base) or base == 0 or not np.isfinite(last):
+                    metric = np.nan
+                else:
+                    metric = (last / base - 1.0) * 100
+            metric = float(metric) if not pd.isna(metric) else np.nan
+            metrics.append(metric)
+        payload = {}
+        payload["IndustryName"] = name
+        payload["IndustryIndexCode"] = code
+        payload["TradeDate"] = non_na_history["TradeDate"].iloc[-1]
+        payload["JalaliDate"] = non_na_history["JalaliDate"].iloc[-1]
+        payload["LastClose"] = (
+            latest_close if np.isfinite(latest_close) else np.nan
+        )
+        payload["ReturnVolatility"] = pd.to_numeric(history["ChangePct"], errors="coerce").std(
+            ddof=0
+        )
+        payload["MomentumWindowDays"] = max(windows)
+        payload["MomentumWindowReturns"] = metrics
+        momentum_for_score = [value for value in metrics if pd.notna(value)]
+        payload["MomentumScore"] = float(np.nanmean(momentum_for_score)) if momentum_for_score else np.nan
+        if pd.notna(payload["MomentumScore"]):
+            if payload["MomentumScore"] > 2:
+                payload["TrendSignal"] = "bullish"
+            elif payload["MomentumScore"] < -2:
+                payload["TrendSignal"] = "bearish"
+            else:
+                payload["TrendSignal"] = "neutral"
+        else:
+            payload["TrendSignal"] = "undefined"
+        for window, metric in zip(windows, metrics):
+            payload["momentum_{}d".format(window)] = metric
+        rows.append(payload)
+
+    static_columns = [
+        "IndustryName",
+        "IndustryIndexCode",
+        "TradeDate",
+        "JalaliDate",
+        "LastClose",
+        "MomentumScore",
+        "TrendSignal",
+        "MomentumWindowDays",
+        "MomentumWindowReturns",
+        "ReturnVolatility",
+    ]
+    dynamic_columns = [key for key in sorted(dynamic_headers.values())]
+    result = _typed_frame(rows, static_columns + dynamic_columns)
+    result.attrs.update(
+        {
+            "source": "TSETMC:GetIndexB2History",
+            "analysis": "industry_momentum_profile",
+            "windows": windows,
+            "industry_count": len(resolved),
+            "max_workers": max_workers,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+    )
+    if progress:
+        print("Done. {} momentum rows returned.".format(len(result)))
+    return result
+
+
+def get_industry_correlation_neighborhood(
+    industry,
+    industries=None,
+    top=5,
+    min_correlation=0.0,
+    by_absolute=False,
+    start=None,
+    end=None,
+    limit=0,
+    ascending=False,
+    progress=True,
+    max_workers=6,
+):
+    """Return nearest correlation neighbors for one industry over a return window."""
+    code, name, _ = _resolve_industry(industry)
+    top = _validate_limit(top, name="top")
+    if top == 0:
+        raise InvalidParameterError("top must be a positive integer")
+    min_correlation = float(min_correlation)
+    if not isinstance(progress, bool):
+        raise InvalidParameterError("progress must be bool")
+    if not isinstance(by_absolute, bool):
+        raise InvalidParameterError("by_absolute must be bool")
+    max_workers = _validate_max_workers(max_workers)
+    start_date, end_date = _date_bounds(start, end)
+    resolved = _resolve_industries(industries)
+    if code not in [item[0] for item in resolved]:
+        resolved.append(_resolve_industry(code))
+    if len(resolved) < 2:
+        raise InvalidParameterError("at least two industries are required")
+    if progress:
+        print(
+            "Finding correlation neighbors for industry {} among {} indices...".format(
+                code, len(resolved)
+            )
+        )
+    corr = get_industry_correlation(
+        [code for code, _, _ in resolved],
+        start=start,
+        end=end,
+        limit=limit,
+        ascending=True,
+        progress=progress,
+        max_workers=max_workers,
+    )
+    target_name = _compare_columns_label(name, code)
+    if target_name not in corr.index:
+        return pd.DataFrame(columns=INDUSTRY_CORRELATION_NEIGHBOR_COLUMNS)
+    target = corr[target_name]
+    target = target.drop(labels=[target_name], errors="ignore")
+    if by_absolute:
+        sort_key = target.abs()
+        target = target.loc[sort_key.sort_values(ascending=not ascending).index]
+    else:
+        sort_key = target.copy()
+        target = target.sort_values(ascending=ascending)
+    neighbors = []
+    for label, correlation in target.items():
+        if pd.isna(correlation):
+            continue
+        if abs(float(correlation)) < min_correlation:
+            continue
+        if " [" in label and label.endswith("]"):
+            neighbor_code = label.split("[")[-1].rstrip("]")
+            neighbor_name = label[: label.rfind(" [")]
+        else:
+            neighbor_name = label
+            neighbor_code = ""
+        neighbors.append(
+            {
+                "IndustryName": name,
+                "IndustryIndexCode": code,
+                "NeighborName": neighbor_name,
+                "NeighborIndexCode": neighbor_code,
+                "Correlation": float(correlation),
+                "CorrelationAbs": abs(float(correlation)),
+                "CorrelationRank": len(neighbors) + 1,
+            }
+        )
+        if len(neighbors) >= top:
+            break
+    result = _typed_frame(neighbors, INDUSTRY_CORRELATION_NEIGHBOR_COLUMNS)
+    result.attrs.update(
+        {
+            "source": "TSETMC:GetIndexB2History",
+            "analysis": "industry_correlation_neighborhood",
+            "target_industry_code": code,
+            "target_industry_name": name,
+            "max_workers": max_workers,
+            "start_date": start_date,
+            "end_date": end_date,
+            "top": top,
+            "min_correlation": min_correlation,
+            "by_absolute": by_absolute,
+        }
+    )
+    if progress:
+        print(
+            "Done. {} neighborhood rows returned for {}".format(len(result), code)
+        )
+    return result
+
+
+def get_industry_health_score(
+    industries=None,
+    start=None,
+    end=None,
+    top_concentration=10,
+    momentum_windows=(20, 60),
+    progress=True,
+    refresh=False,
+    max_workers=6,
+):
+    """Compute a composite health score from breadth, momentum and concentration."""
+    top_concentration = _validate_limit(top_concentration, name="top_concentration")
+    if not isinstance(momentum_windows, (list, tuple)) or not momentum_windows:
+        raise InvalidParameterError("momentum_windows must be a non-empty list or tuple")
+    momentum_windows = tuple(
+        _normalize_positive_int(value, "momentum_window")
+        for value in momentum_windows
+    )
+    if top_concentration == 0:
+        raise InvalidParameterError("top_concentration must be a positive integer")
+    for value, label in ((progress, "progress"), (refresh, "refresh")):
+        if not isinstance(value, bool):
+            raise InvalidParameterError("{} must be bool".format(label))
+    max_workers = _validate_max_workers(max_workers)
+    resolved = _resolve_industries(industries)
+    if progress:
+        print(
+            "Computing health score for {} industries (top_concentration={})...".format(
+                len(resolved), top_concentration
+            )
+        )
+
+    snapshot = get_industry_snapshot(
+        industries=resolved,
+        include_client_type=False,
+        include_orderbook=False,
+        include_empty=False,
+        progress=False,
+        refresh=refresh,
+        max_workers=max_workers,
+    )
+    concentration = get_industry_concentration(
+        resolved,
+        top_n=top_concentration,
+        include_weights_by_market_value=True,
+        progress=False,
+        refresh=refresh,
+        max_workers=max_workers,
+    )
+    momentum = get_industry_momentum_profile(
+        resolved,
+        windows=momentum_windows,
+        start=start,
+        end=end,
+        progress=False,
+        max_workers=max_workers,
+    )
+    merged = snapshot[["IndustryIndexCode", "AdvancePct", "TradeDate"]].merge(
+        concentration[
+            [
+                "IndustryIndexCode",
+                "ConcentrationTop{}".format(top_concentration),
+                "TotalWeight",
+                "HerfindahlHirschmanIndex",
+            ]
+        ],
+        on="IndustryIndexCode",
+        how="outer",
+    )
+    merged = merged.merge(
+        momentum[["IndustryIndexCode", "MomentumScore"]],
+        on="IndustryIndexCode",
+        how="outer",
+    )
+    # Deterministic percentile normalization (0..100), with missing values mapped to bottom.
+    merged["BreadthScore"] = merged["AdvancePct"].rank(pct=True, na_option="bottom").mul(
+        100
+    )
+    merged["ConcentrationScore"] = 100 - merged[
+        "ConcentrationTop{}".format(top_concentration)
+    ].rank(pct=True, na_option="bottom").mul(100)
+    merged["LiquidityScore"] = merged["TotalWeight"].rank(
+        pct=True, na_option="bottom"
+    ).mul(100)
+    merged["MomentumScore"] = merged["MomentumScore"].rank(pct=True, na_option="bottom").mul(
+        100
+    )
+    merged["HealthScore"] = (
+        merged["BreadthScore"].astype(float) * 0.35
+        + merged["ConcentrationScore"].astype(float) * 0.35
+        + merged["MomentumScore"].astype(float) * 0.2
+        + merged["LiquidityScore"].astype(float) * 0.1
+    )
+    merged["HealthScore"] = merged["HealthScore"].round(2)
+    merged["HealthBucket"] = np.where(
+        merged["HealthScore"] >= 80,
+        "strong",
+        np.where(
+            merged["HealthScore"] >= 60,
+            "healthy",
+            np.where(
+                merged["HealthScore"] >= 40,
+                "mixed",
+                np.where(merged["HealthScore"] >= 20, "weak", "fragile"),
+            ),
+        ),
+    )
+    merged["IndustryName"] = merged["IndustryIndexCode"].map(
+        {industry_code: _canonical_name(industry_code) for industry_code, _, _ in resolved}
+    )
+    merged = merged.merge(
+        snapshot[["IndustryIndexCode", "IndustryName"]].drop_duplicates(),
+        on="IndustryIndexCode",
+        how="left",
+        suffixes=("", "_snapshot"),
+    )
+    # keep canonical name from snapshot when present
+    merged["IndustryName"] = merged["IndustryName_snapshot"].combine_first(
+        merged["IndustryName"]
+    )
+    merged = merged.drop(columns=["IndustryName_snapshot"])
+    merged["JalaliDate"] = merged["TradeDate"].map(_jalali)
+    result = _typed_frame(
+        merged[
+            [
+                "IndustryName",
+                "IndustryIndexCode",
+                "HealthScore",
+                "HealthBucket",
+                "MomentumScore",
+                "BreadthScore",
+                "ConcentrationScore",
+                "LiquidityScore",
+                "TradeDate",
+                "JalaliDate",
+            ]
+        ],
+        INDUSTRY_HEALTH_SCORE_COLUMNS,
+    )
+    result = result.sort_values("HealthScore", ascending=False).reset_index(drop=True)
+    result.attrs.update(
+        {
+            "source": "industry-health-composite",
+            "analysis": "industry_health_score",
+            "industry_count": len(result),
+            "top_concentration": top_concentration,
+            "momentum_windows": momentum_windows,
+            "max_workers": max_workers,
+            "start_date": start,
+            "end_date": end,
+            "refresh": refresh,
+        }
+    )
+    if progress:
+        print("Done. {} health score rows returned.".format(len(result)))
+    return result
+
+
 __all__ = [
     "list_industry_indices",
     "get_industry_members",
@@ -1761,4 +2494,9 @@ __all__ = [
     "get_industry_membership_overlap",
     "get_industry_intraday",
     "rank_industries",
+    "get_industry_membership_churn",
+    "get_industry_concentration",
+    "get_industry_momentum_profile",
+    "get_industry_correlation_neighborhood",
+    "get_industry_health_score",
 ]

@@ -225,6 +225,39 @@ def _industry_history_frame(code, name, closes):
     )
 
 
+def _extended_history_frame(code, name, closes):
+    closes = [float(value) for value in closes]
+    trade_dates = pd.date_range("2026-08-27", periods=len(closes), freq="D")
+    changes = [pd.NA]
+    change_pcts = [pd.NA]
+    log_returns = [0.0]
+    for previous, current in zip(closes[:-1], closes[1:]):
+        delta = current - previous
+        changes.append(delta)
+        if previous:
+            change_pcts.append((delta / previous) * 100)
+        else:
+            change_pcts.append(pd.NA)
+        if previous:
+            log_returns.append(np.log(current / previous))
+        else:
+            log_returns.append(pd.NA)
+    return pd.DataFrame(
+        {
+            "IndustryName": [name] * len(closes),
+            "IndustryIndexCode": [code] * len(closes),
+            "TradeDate": list(trade_dates),
+            "JalaliDate": [industries._jalali(date) for date in trade_dates],
+            "High": [value * 1.01 for value in closes],
+            "Low": [value * 0.99 for value in closes],
+            "Close": closes,
+            "Change": changes,
+            "ChangePct": change_pcts,
+            "LogReturn": log_returns,
+        }
+    )
+
+
 @pytest.fixture(autouse=True)
 def _clean_cache(monkeypatch):
     industries._MEMBERSHIP_CACHE.clear()
@@ -690,3 +723,179 @@ def test_industry_membership_overlap_reports_pairwise_metrics(monkeypatch, provi
 def test_industry_membership_overlap_requires_at_least_two_inputs():
     with pytest.raises(att.InvalidParameterError):
         att.get_industry_membership_overlap(CODE, progress=False, refresh=False)
+
+
+def test_industry_membership_churn_tracks_member_transitions(provider):
+    result = att.get_industry_membership_churn(CODE, days=2, progress=False)
+    assert list(result.columns) == industries.INDUSTRY_MEMBERSHIP_CHURN_COLUMNS
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row["IndustryIndexCode"] == CODE
+    assert row["PrevMemberCount"] == 1
+    assert row["CurrentMemberCount"] == 1
+    assert row["AddedMembers"] == 0
+    assert row["DroppedMembers"] == 0
+    assert row["ChurnRate"] == 0.0
+    assert row["MembershipPersistence"] == 1.0
+    assert result.attrs["analysis"] == "industry_membership_churn"
+
+
+def test_industry_concentration_from_membership_weights(provider):
+    result = att.get_industry_concentration([CODE], top_n=1, progress=False)
+    assert list(result.columns) == industries.INDUSTRY_CONCENTRATION_COLUMNS
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row["IndustryIndexCode"] == CODE
+    assert row["MemberCount"] == 1
+    assert row["TopN"] == 1
+    assert row["ConcentrationTop1"] == 1.0
+    assert row["ConcentrationTop3"] == 1.0
+    assert row["ConcentrationTop10"] == 1.0
+    assert row["ConcentrationTopN"] == 1.0
+    assert row["LargestMemberWeight"] == 1_080_000.0
+    assert row["SecondLargestMemberWeight"] == 0.0
+    assert row["HerfindahlHirschmanIndex"] == 1.0
+
+
+def test_industry_momentum_profile_creates_dynamic_windows(monkeypatch):
+    def fake_frames(resolved, start_date=None, end_date=None, max_workers=6):
+        return {
+            CODE: _extended_history_frame(CODE, industries._canonical_name(CODE), [1000, 1100, 1210]),
+            ALT_CODE: _extended_history_frame(
+                ALT_CODE, industries._canonical_name(ALT_CODE), [1000, 1040, 1120]
+            ),
+        }
+
+    monkeypatch.setattr(industries, "_industry_history_frames", fake_frames)
+    result = att.get_industry_momentum_profile(
+        [CODE, ALT_CODE], windows=(2, 3, 4), progress=False, max_workers=1
+    )
+    assert list(result.columns) == industries.INDUSTRY_MOMENTUM_PROFILE_COLUMNS + [
+        "momentum_2d",
+        "momentum_3d",
+        "momentum_4d",
+    ]
+    assert len(result) == 2
+    first = result[result["IndustryIndexCode"] == CODE].iloc[0]
+    assert first["MomentumWindowDays"] == 4
+    momentum_returns = list(first["MomentumWindowReturns"])
+    assert momentum_returns[0] == pytest.approx(10.0)
+    assert momentum_returns[1] == pytest.approx(21.0)
+    assert pd.isna(momentum_returns[2])
+    assert first["momentum_2d"] == pytest.approx(10.0)
+    assert first["momentum_3d"] == pytest.approx(21.0)
+    assert pd.isna(first["momentum_4d"])
+    assert first["TrendSignal"] == "bullish"
+    assert first["MomentumScore"] == pytest.approx((10.0 + 21.0) / 2)
+
+
+def test_industry_correlation_neighborhood_and_top_selection(monkeypatch):
+    def fake_frames(resolved, start_date=None, end_date=None, max_workers=6):
+        return {
+            pair[0]: _extended_history_frame(
+                pair[0], pair[1], [1000, 1100, 1080, 1160]
+            )
+            if pair[0] == CODE
+            else _extended_history_frame(
+                pair[0],
+                pair[1],
+                [900, 980, 1060, 1030] if pair[0] == ALT_CODE else [750, 850, 820, 880],
+            )
+            for pair in resolved
+        }
+
+    monkeypatch.setattr(industries, "_industry_history_frames", fake_frames)
+    result = att.get_industry_correlation_neighborhood(
+        CODE,
+        industries=[CODE, ALT_CODE, ALT_CODE_2],
+        top=2,
+        progress=False,
+        max_workers=1,
+    )
+    assert list(result.columns) == industries.INDUSTRY_CORRELATION_NEIGHBOR_COLUMNS
+    assert len(result) == 2
+    assert list(result["CorrelationRank"]) == [1, 2]
+    assert result["IndustryName"].iloc[0] == industries._canonical_name(CODE)
+    assert result["CorrelationAbs"].ge(0).all()
+    assert result["CorrelationAbs"].iloc[0] >= result["CorrelationAbs"].iloc[1]
+
+
+def test_industry_health_score_compose_from_parts(monkeypatch):
+    snapshot = pd.DataFrame(
+        [
+            {
+                "IndustryName": industries._canonical_name(CODE),
+                "IndustryIndexCode": CODE,
+                "AdvancePct": 12.5,
+                "TradeDate": pd.Timestamp("2026-08-31"),
+                "JalaliDate": industries._jalali(pd.Timestamp("2026-08-31")),
+            },
+            {
+                "IndustryName": industries._canonical_name(ALT_CODE),
+                "IndustryIndexCode": ALT_CODE,
+                "AdvancePct": 45.0,
+                "TradeDate": pd.Timestamp("2026-08-31"),
+                "JalaliDate": industries._jalali(pd.Timestamp("2026-08-31")),
+            },
+        ],
+        columns=industries.INDUSTRY_SNAPSHOT_COLUMNS,
+    )
+    concentration = pd.DataFrame(
+        [
+            {
+                "IndustryIndexCode": CODE,
+                "ConcentrationTop3": 0.36,
+                "TotalWeight": 1_200_000,
+                "HerfindahlHirschmanIndex": 0.18,
+            },
+            {
+                "IndustryIndexCode": ALT_CODE,
+                "ConcentrationTop3": 0.55,
+                "TotalWeight": 2_100_000,
+                "HerfindahlHirschmanIndex": 0.25,
+            },
+        ]
+    )
+    momentum = pd.DataFrame(
+        [
+            {
+                "IndustryIndexCode": CODE,
+                "IndustryName": industries._canonical_name(CODE),
+                "MomentumScore": 18.0,
+                "TradeDate": pd.Timestamp("2026-08-31"),
+                "JalaliDate": industries._jalali(pd.Timestamp("2026-08-31")),
+            },
+            {
+                "IndustryIndexCode": ALT_CODE,
+                "IndustryName": industries._canonical_name(ALT_CODE),
+                "MomentumScore": 45.0,
+                "TradeDate": pd.Timestamp("2026-08-31"),
+                "JalaliDate": industries._jalali(pd.Timestamp("2026-08-31")),
+            },
+        ]
+    )
+
+    monkeypatch.setattr(industries, "get_industry_snapshot", lambda *args, **kwargs: snapshot)
+    monkeypatch.setattr(
+        industries,
+        "get_industry_concentration",
+        lambda industries, top_n=3, include_weights_by_market_value=True, progress=True, refresh=False, max_workers=6: concentration,
+    )
+    monkeypatch.setattr(
+        industries,
+        "get_industry_momentum_profile",
+        lambda industries, windows=(20, 60), start=None, end=None, progress=True, max_workers=6: momentum,
+    )
+    result = att.get_industry_health_score(
+        [CODE, ALT_CODE],
+        top_concentration=3,
+        momentum_windows=(2, 4),
+        progress=False,
+        refresh=False,
+    )
+    assert list(result.columns) == industries.INDUSTRY_HEALTH_SCORE_COLUMNS
+    assert len(result) == 2
+    assert (result["HealthScore"] >= result["HealthScore"].iloc[1]).all()
+    assert set(result["HealthBucket"]).issubset({"fragile", "weak", "mixed", "healthy", "strong"})
+    assert result.attrs["analysis"] == "industry_health_score"
+    assert result.attrs["top_concentration"] == 3

@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.2.2-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.2.3-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -59,6 +59,11 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | ⭐ `get_industry_relative_strength()` | محاسبهٔ برتری نسبی به مقابل شاخص مبنا | `DataFrame` |
 | ⭐ `get_industry_correlation()` | ماتریس همبستگی بازدهی روزانهٔ صنایع | `DataFrame` |
 | ⭐ `get_industry_membership_overlap()` | اندازه‌گیری همپوشانی رسمی اعضای صنایع | `DataFrame` |
+| ⭐ `get_industry_membership_churn()` | شاخص تغییرپذیری اعضا بین جلسات اخیر | `DataFrame` |
+| ⭐ `get_industry_concentration()` | شاخص تمرکز و متمرکزشدن سرمایهٔ صنعت | `DataFrame` |
+| ⭐ `get_industry_momentum_profile()` | پروفایل مومنتوم چنددوره‌ای برای صنایع | `DataFrame` |
+| ⭐ `get_industry_correlation_neighborhood()` | همبستگی همسایگی یک صنعت با نزدیک‌ترین‌ها | `DataFrame` |
+| ⭐ `get_industry_health_score()` | نمرهٔ سلامت ترکیبی برای رتبه‌بندی صنایع | `DataFrame` |
 | ⭐ `rank_industries()` | رتبه‌بندی صنایع با معیار انتخابی | `DataFrame` |
 | ⭐ `list_etfs()` | ETFها همراه قیمت و NAV | `DataFrame` |
 | ⭐ `list_funds()` | صندوق‌ها همراه NAV، بازده و ترکیب دارایی | `DataFrame` |
@@ -111,6 +116,11 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | `get_industry_relative_strength()` | محاسبهٔ بازده تجمعی نسبی هر شاخص در برابر benchmark |
 | `get_industry_correlation()` | ماتریس همبستگی بازده روزانه بین چند صنعت |
 | `get_industry_membership_overlap()` | همپوشانی رسمی اعضای چند شاخص صنعت را pairwise محاسبه می‌کند |
+| `get_industry_membership_churn()` | churn اعضای رسمی صنعت طی چند جلسه اخیر |
+| `get_industry_concentration()` | HHI، تمرکز روی چند عضو بزرگ و وزن سهمی |
+| `get_industry_momentum_profile()` | پروفایل مومنتوم چند پنجره‌ای برای هر صنعت |
+| `get_industry_correlation_neighborhood()` | نزدیک‌ترین همبستگی‌ها برای یک صنعت هدف |
+| `get_industry_health_score()` | نمرهٔ سلامت ترکیبی breadth, momentum و concentration |
 | `rank_industries()` | رتبه‌بندی صنایع بر اساس بازده، breadth، ارزش یا جریان پول |
 
 #### تاریخچهٔ محلی و فاندامنتال
@@ -2515,6 +2525,11 @@ compare_industries(industries, start=None, end=None, limit=0, metric="close", as
 get_industry_relative_strength(industries, benchmark, start=None, end=None, limit=0, metric="close", ascending=True, progress=True, max_workers=6)
 get_industry_correlation(industries, start=None, end=None, limit=0, ascending=True, progress=True, max_workers=6)
 get_industry_membership_overlap(industries, progress=True, refresh=False, max_workers=6)
+get_industry_membership_churn(industries, days=0, progress=True, refresh=False, max_workers=6)
+get_industry_concentration(industries, top_n=10, include_weights_by_market_value=True, progress=True, refresh=False, max_workers=6)
+get_industry_momentum_profile(industries, windows=(5, 20, 60), start=None, end=None, progress=True, max_workers=6)
+get_industry_correlation_neighborhood(industry, industries=None, top=5, min_correlation=0.0, by_absolute=False, start=None, end=None, limit=0, ascending=False, progress=True, max_workers=6)
+get_industry_health_score(industries=None, start=None, end=None, top_concentration=10, momentum_windows=(20, 60), progress=True, refresh=False, max_workers=6)
 get_industry_intraday(industry, interval='1min', progress=True)
 rank_industries(metric='IndexChangePct', top=None, ascending=False, include_client_type=True, include_orderbook=False, progress=True, refresh=False, max_workers=6)
 ```
@@ -2530,6 +2545,11 @@ rank_industries(metric='IndexChangePct', top=None, ascending=False, include_clie
 | `get_industry_relative_strength` | `industries`، `benchmark`, `start/end: str|None`, `limit: int=0`, `metric: close|price|change_pct|log_return`, `ascending=True`, `progress=True`, `max_workers=6`. | long-form `TradeDate,JalaliDate,BenchmarkIndexCode,BenchmarkName,IndustryIndexCode,IndustryName,IndustryReturn,BenchmarkReturn,RelativeStrength`; `attrs` شامل `analysis='industry_relative_strength'`, `benchmark_index_code`, `industry_count`. | benchmark/generic metrics/worker نامعتبر یا دادهٔ ناکافی `InvalidParameterError`; مثال `relative_strength = ...`. |
 | `get_industry_correlation` | `industries` (str|int|iterable), `start/end: str|None`, `limit: int=0`, `ascending=True`, `progress=True`, `max_workers=6`. | ماتریس n×n `DataFrame` همبستگی روی بازده روزانه، index/columns برچسب `IndustryName [IndexCode]`; `attrs` شامل `analysis='industry_correlation'`. | industries<2 یا دادهٔ همپوشانی ناکافی `InvalidParameterError`; `ascending=False` ترتیب بازگشتی `attrs['ascending']`; نمونه برای رده‌بندی یا ریسک. |
 | `get_industry_membership_overlap` | `industries` (str|int|iterable), `progress=True`, `refresh=False`, `max_workers=6`. | long-form `IndustryAName,IndustryAIndexCode,IndustryBName,IndustryBIndexCode,CommonMembers,UnionMembers,Jaccard,OverlapA_Pct,OverlapB_Pct`; `attrs` شامل `analysis='industry_membership_overlap'`, `industry_count`, `cache_hits`, `refresh`. | industries<2 یا worker/selector/provider typed؛ `refresh` cache-control و overlapهای رسمی از `GetIndexCompany`. |
+| `get_industry_membership_churn` | `industries` (str|int|iterable), `days: int=1..30`, `progress=True`, `refresh=False`, `max_workers=6`. | `DataFrame[IndustryName,IndustryIndexCode,TradeDate,JalaliDate,PreviousTradeDate,PreviousJalaliDate,PrevMemberCount,CurrentMemberCount,AddedMembers,DroppedMembers,ChurnRate,MembershipPersistence]`; `attrs` شامل `analysis='industry_membership_churn'`, `days`, `industry_count`, `cache_hits`, `refresh`, `progress`. | `days` خارج بازه/شرایطی مانند industries خالی/worker نوع نامعتبر با `InvalidParameterError`; مثال `churn = att.get_industry_membership_churn(['بانک'], days=5, progress=False)`. |
+| `get_industry_concentration` | `industries` (str|int|iterable), `top_n: int=10`, `include_weights_by_market_value`=True, `progress=True`, `refresh=False`, `max_workers=6`. | `DataFrame[IndustryName,IndustryIndexCode,TradeDate,JalaliDate,MemberCount,TotalWeight,ConcentrationTop1,ConcentrationTop3,ConcentrationTop5,ConcentrationTop10,ConcentrationTopN,TopN,HerfindahlHirschmanIndex,LargestMemberWeight,SecondLargestMemberWeight]`; `attrs` شامل `analysis='industry_concentration'`, `top_n`, `weight_by_market_value`, `industry_count`, `cache_hits`, `refresh`. | `top_n` نامعتبر، `progress/refresh` غیر بولی یا worker نامعتبر `InvalidParameterError`; مثال concentration. |
+| `get_industry_momentum_profile` | `industries` (str|int|iterable), `windows=(5,20,60)`, `start/end: str|None`, `progress=True`, `max_workers=6`. | `DataFrame[IndustryName,IndustryIndexCode,TradeDate,JalaliDate,LastClose,MomentumScore,TrendSignal,MomentumWindowDays,MomentumWindowReturns,ReturnVolatility,momentum_<n>d ...]`; `attrs` شامل `analysis='industry_momentum_profile'`, `windows`, `industry_count`, `start_date`, `end_date`. | `windows` باید non-empty list/tuple از اعداد مثبت با هر مقدار >=2 باشد؛ تاریخ نامعتبر با `InvalidParameterError`/`ValueError`; مثال momentum profile. |
+| `get_industry_correlation_neighborhood` | `industry` هدف (str|int), `industries`، `top=5`, `min_correlation=0.0`, `by_absolute=False`, `start/end: str|None`, `limit=0`, `ascending=False`, `progress=True`, `max_workers=6`. | `DataFrame[IndustryName,IndustryIndexCode,NeighborName,NeighborIndexCode,Correlation,CorrelationAbs,CorrelationRank]`; `attrs` شامل `analysis='industry_correlation_neighborhood'`, `target_industry_code`, `target_industry_name`, `top`, `min_correlation`, `by_absolute`, `start_date`, `end_date`. | `industry` نامعتبر/کمتر از دو صنعت موثر، worker/بازه/نوع پارامتر با `InvalidParameterError`; مثال `att.get_industry_correlation_neighborhood('بانک', top=3, min_correlation=0.2, by_absolute=True)`. |
+| `get_industry_health_score` | `industries=None` (str|int|iterable)، `start/end: str|None`, `top_concentration=10`, `momentum_windows=(20,60)`, `progress=True`, `refresh=False`, `max_workers=6`. | `DataFrame[IndustryName,IndustryIndexCode,HealthScore,HealthBucket,MomentumScore,BreadthScore,ConcentrationScore,LiquidityScore,TradeDate,JalaliDate]`; `attrs` شامل `analysis='industry_health_score'`, `industry_count`, `top_concentration`, `momentum_windows`, `refresh`, `start_date`, `end_date`. | `industries` خالی/نامعتبر، `top_concentration` باید مثبت، `momentum_windows` non-empty tuple/list، `refresh`/`progress` bool؛ مثال `health = att.get_industry_health_score(top_concentration=12, momentum_windows=(20,40,80), progress=False)`. |
 | `get_industry_intraday` | `industry`؛ `interval: str='1min'` یکی از `raw,1min,5min,15min,30min,60min,1h`; `progress`. | `DataFrame[IndustryName,IndustryIndexCode,Timestamp,JalaliDate,Interval,Open,High,Low,Close,Change,ChangePct]`; timezone تهران؛ attrs بدون volume مصنوعی و latest-day. | interval/selector `InvalidParameterError/StockNotFoundError`؛ provider/schema typed؛ مثال `get_industry_intraday("خودرو", "5min")`. |
 | `rank_industries` | `metric` canonical/alias مستند؛ `top: int|None`; `ascending=False`; client/order switches؛ `refresh`; `max_workers`. | تمام ستون‌های snapshot + `Rank`; ردیف metric تهی حذف؛ attrs `ranking_metric,ranking_ascending` و provenance snapshot. | metric/top/bool/worker نامعتبر `InvalidParameterError`؛ provider typed؛ مثال `rank_industries(metric="breadth", top=5)`. |
 

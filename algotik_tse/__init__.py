@@ -63,7 +63,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (
@@ -148,6 +148,11 @@ from algotik_tse.core.industries import (
     get_industry_correlation,
     get_industry_membership_overlap,
     get_industry_intraday,
+    get_industry_membership_churn,
+    get_industry_concentration,
+    get_industry_momentum_profile,
+    get_industry_correlation_neighborhood,
+    get_industry_health_score,
     rank_industries,
 )
 from algotik_tse.core.options_math import (
@@ -562,6 +567,11 @@ __all__ = [
     "get_industry_correlation",
     "get_industry_membership_overlap",
     "get_industry_intraday",
+    "get_industry_membership_churn",
+    "get_industry_concentration",
+    "get_industry_momentum_profile",
+    "get_industry_correlation_neighborhood",
+    "get_industry_health_score",
     "rank_industries",
     # ── Legacy names (backward compatible) ──
     "stock",

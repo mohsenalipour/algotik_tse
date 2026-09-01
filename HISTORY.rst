@@ -2,6 +2,16 @@
 History
 =======
 
+1.2.3 (2026-09-01)
+-------------------
+
+* Added five industry analytics exports: ``get_industry_membership_churn``,
+  ``get_industry_concentration``, ``get_industry_momentum_profile``,
+  ``get_industry_correlation_neighborhood`` and ``get_industry_health_score``.
+* Expanded the bilingual README and PDF guide contracts to include signatures,
+  option tables, and output schema for the new industry analytics.
+* Synced release metadata and documentation to version 1.2.3.
+
 1.2.2 (2026-09-01)
 -------------------
 
