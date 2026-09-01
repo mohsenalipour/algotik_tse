@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.2.1-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.2.2-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -58,6 +58,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | ⭐ `compare_industries()` | مقایسهٔ سری زمانی چند شاخص صنعت | `DataFrame` |
 | ⭐ `get_industry_relative_strength()` | محاسبهٔ برتری نسبی به مقابل شاخص مبنا | `DataFrame` |
 | ⭐ `get_industry_correlation()` | ماتریس همبستگی بازدهی روزانهٔ صنایع | `DataFrame` |
+| ⭐ `get_industry_membership_overlap()` | اندازه‌گیری همپوشانی رسمی اعضای صنایع | `DataFrame` |
 | ⭐ `rank_industries()` | رتبه‌بندی صنایع با معیار انتخابی | `DataFrame` |
 | ⭐ `list_etfs()` | ETFها همراه قیمت و NAV | `DataFrame` |
 | ⭐ `list_funds()` | صندوق‌ها همراه NAV، بازده و ترکیب دارایی | `DataFrame` |
@@ -109,6 +110,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | `compare_industries()` | مقایسه سری زمانی شاخص‌ها و متریک‌های قیمت/بازده |
 | `get_industry_relative_strength()` | محاسبهٔ بازده تجمعی نسبی هر شاخص در برابر benchmark |
 | `get_industry_correlation()` | ماتریس همبستگی بازده روزانه بین چند صنعت |
+| `get_industry_membership_overlap()` | همپوشانی رسمی اعضای چند شاخص صنعت را pairwise محاسبه می‌کند |
 | `rank_industries()` | رتبه‌بندی صنایع بر اساس بازده، breadth، ارزش یا جریان پول |
 
 #### تاریخچهٔ محلی و فاندامنتال
@@ -1015,7 +1017,7 @@ SectorCode instrument_count advances declines client_coverage net_individual_vol
 
 ## شاخص‌ها و تحلیل صنایع
 
-API صنعت در نسخهٔ 1.2.1 دو مفهوم را از هم جدا می‌کند:
+API صنعت در نسخهٔ 1.2.2 دو مفهوم را از هم جدا می‌کند:
 
 - **عضویت رسمی شاخص:** نمادهایی که endpoint رسمی `GetIndexCompany` برای همان شاخص برمی‌گرداند. توابع این فصل به‌طور پیش‌فرض از این universe استفاده می‌کنند.
 - **گروه دیده‌بان:** دسته‌بندی سریع `SectorCode` در MarketWatch که مبنای `get_sector_flow()` است و الزاماً با اعضای رسمی شاخص برابر نیست.
@@ -1037,6 +1039,12 @@ members = att.get_industry_members("فلزات اساسی", progress=False)
 
 # snapshot تحلیلی همهٔ صنایع همراه حقیقی/حقوقی
 snapshot = att.get_industry_snapshot(progress=False)
+
+# همپوشانی رسمی اعضا برای شناسایی هم‌پوشانی بین صنایع
+overlap = att.get_industry_membership_overlap(
+    industries=["بانک", "خودرو", "فلزات"],
+    progress=False,
+)
 
 # پنج صنعت برتر از نظر breadth
 leaders = att.rank_industries(
@@ -1151,6 +1159,28 @@ selected = att.get_industry_snapshot(
 `EqualWeightReturn` میانگین سادهٔ بازده اعضای دارای قیمت معتبر است و بازده رسمی شاخص نیست. `IndividualPower` از سرانهٔ تجمیعی خرید حقیقی به سرانهٔ تجمیعی فروش حقیقی ساخته می‌شود. جریان پول فقط از client rowهای سازگار با حجم بازار جمع می‌شود؛ همیشه `ClientCoverage` را کنار آن کنترل کنید. صف‌ها فقط برای order book تازه و متعلق به روز تهران محاسبه می‌شوند.
 
 در attrs، `memberships_may_overlap=True`, `membership_is_current=True`, `historical_membership_available=False`, تعداد cache hit/request و روش تخمین جریان پول ثبت می‌شود.
+
+### همپوشانی اعضای رسمی صنعت‌ها
+
+```python
+industry_overlap = att.get_industry_membership_overlap(
+    industries=["بانک", "خودرو", "فلزات"],
+    progress=False,
+)
+```
+
+این تابع هم‌پوشانی رسمی اعضای هر جفت صنعت را در `GetIndexCompany` محاسبه می‌کند.
+خروجی long-form است و برای هر جفت unordered یک ردیف دارد:
+
+```text
+IndustryAName, IndustryAIndexCode, IndustryBName, IndustryBIndexCode,
+CommonMembers, UnionMembers, Jaccard, OverlapA_Pct, OverlapB_Pct
+```
+
+`CommonMembers` تعداد نمادهای مشترک در دو صنعت را می‌دهد، `UnionMembers` تعداد
+منحصر به فرد اعضای union است و `Jaccard` نسبت `CommonMembers/UnionMembers` است.
+`OverlapA_Pct` و `OverlapB_Pct` هم‌پوشانی نسبت به اندازهٔ هر صنعت را نشان
+می‌دهند و برای شناسایی همپوشانی‌های نامتقارن مفید هستند.
 
 ### تاریخچهٔ شاخص و اعضا
 
@@ -1295,7 +1325,8 @@ corr = att.get_industry_correlation(
 compare_industries(industries, start=None, end=None, limit=0, metric='close', ascending=True, progress=True, max_workers=6)
 get_industry_relative_strength(industries, benchmark, start=None, end=None, limit=0, metric='close', ascending=True, progress=True, max_workers=6)
 get_industry_correlation(industries, start=None, end=None, limit=0, ascending=True, progress=True, max_workers=6)
-```
+get_industry_membership_overlap(industries, progress=True, refresh=False, max_workers=6)
+``` 
 
 ### cache، پوشش و محدودیت داده
 
@@ -2483,6 +2514,7 @@ get_industry_members_history(industry, days=30, ascending=True, progress=True, r
 compare_industries(industries, start=None, end=None, limit=0, metric="close", ascending=True, progress=True, max_workers=6)
 get_industry_relative_strength(industries, benchmark, start=None, end=None, limit=0, metric="close", ascending=True, progress=True, max_workers=6)
 get_industry_correlation(industries, start=None, end=None, limit=0, ascending=True, progress=True, max_workers=6)
+get_industry_membership_overlap(industries, progress=True, refresh=False, max_workers=6)
 get_industry_intraday(industry, interval='1min', progress=True)
 rank_industries(metric='IndexChangePct', top=None, ascending=False, include_client_type=True, include_orderbook=False, progress=True, refresh=False, max_workers=6)
 ```
@@ -2497,6 +2529,7 @@ rank_industries(metric='IndexChangePct', top=None, ascending=False, include_clie
 | `compare_industries` | `industries` (str|int|iterable)، `start/end: str|None`، `limit: int=0`، `metric: close|price|change_pct|log_return`, `ascending=True`, `progress=True`, `max_workers=6`. | `DataFrame[TradeDate,JalaliDate,<IndustryName [IndustryIndexCode]>...]`؛ یک ردیف در هر تاریخ، `attrs` شامل `analysis='compare_industries'`, `metric`, `metric_column`, `industry_count` و window. | industries نامعتبر/نوع metric/worker `InvalidParameterError`; provider/schema typed؛ مثال `compare_industries([...])`. |
 | `get_industry_relative_strength` | `industries`، `benchmark`, `start/end: str|None`, `limit: int=0`, `metric: close|price|change_pct|log_return`, `ascending=True`, `progress=True`, `max_workers=6`. | long-form `TradeDate,JalaliDate,BenchmarkIndexCode,BenchmarkName,IndustryIndexCode,IndustryName,IndustryReturn,BenchmarkReturn,RelativeStrength`; `attrs` شامل `analysis='industry_relative_strength'`, `benchmark_index_code`, `industry_count`. | benchmark/generic metrics/worker نامعتبر یا دادهٔ ناکافی `InvalidParameterError`; مثال `relative_strength = ...`. |
 | `get_industry_correlation` | `industries` (str|int|iterable), `start/end: str|None`, `limit: int=0`, `ascending=True`, `progress=True`, `max_workers=6`. | ماتریس n×n `DataFrame` همبستگی روی بازده روزانه، index/columns برچسب `IndustryName [IndexCode]`; `attrs` شامل `analysis='industry_correlation'`. | industries<2 یا دادهٔ همپوشانی ناکافی `InvalidParameterError`; `ascending=False` ترتیب بازگشتی `attrs['ascending']`; نمونه برای رده‌بندی یا ریسک. |
+| `get_industry_membership_overlap` | `industries` (str|int|iterable), `progress=True`, `refresh=False`, `max_workers=6`. | long-form `IndustryAName,IndustryAIndexCode,IndustryBName,IndustryBIndexCode,CommonMembers,UnionMembers,Jaccard,OverlapA_Pct,OverlapB_Pct`; `attrs` شامل `analysis='industry_membership_overlap'`, `industry_count`, `cache_hits`, `refresh`. | industries<2 یا worker/selector/provider typed؛ `refresh` cache-control و overlapهای رسمی از `GetIndexCompany`. |
 | `get_industry_intraday` | `industry`؛ `interval: str='1min'` یکی از `raw,1min,5min,15min,30min,60min,1h`; `progress`. | `DataFrame[IndustryName,IndustryIndexCode,Timestamp,JalaliDate,Interval,Open,High,Low,Close,Change,ChangePct]`; timezone تهران؛ attrs بدون volume مصنوعی و latest-day. | interval/selector `InvalidParameterError/StockNotFoundError`؛ provider/schema typed؛ مثال `get_industry_intraday("خودرو", "5min")`. |
 | `rank_industries` | `metric` canonical/alias مستند؛ `top: int|None`; `ascending=False`; client/order switches؛ `refresh`; `max_workers`. | تمام ستون‌های snapshot + `Rank`; ردیف metric تهی حذف؛ attrs `ranking_metric,ranking_ascending` و provenance snapshot. | metric/top/bool/worker نامعتبر `InvalidParameterError`؛ provider typed؛ مثال `rank_industries(metric="breadth", top=5)`. |
 

@@ -21,10 +21,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_version_is_synchronized():
-    assert att.__version__ == "1.2.1"
-    assert 'version="1.2.1"' in (ROOT / "setup.py").read_text(encoding="utf-8")
-    assert "current_version = 1.2.1" in (ROOT / "setup.cfg").read_text(encoding="utf-8")
+    assert att.__version__ == "1.2.2"
+    assert 'version="1.2.2"' in (ROOT / "setup.py").read_text(encoding="utf-8")
+    assert "current_version = 1.2.2" in (ROOT / "setup.cfg").read_text(encoding="utf-8")
     history = (ROOT / "HISTORY.rst").read_text(encoding="utf-8")
+    assert "1.2.2 (2026-09-01)" in history
     assert "1.2.1 (2026-09-01)" in history
     assert "1.1.3 (2026-08-28)" in history
     assert "1.1.2 (2026-08-28)" in history
@@ -319,8 +320,8 @@ def test_build_metadata_declares_supported_python_and_primary_readme():
 def test_pdf_guide_generator_tracks_release_and_rtl_layout():
     generator = (ROOT / "generate_pdf.py").read_text(encoding="utf-8")
     logo = ROOT / "docs" / "assets" / "algotik_logo_stacked_1024.png"
-    assert 'VERSION = "1.2.1"' in generator
-    assert "AlgoTik_TSE_Guide_v1.2.1_preview.pdf" in generator
+    assert 'VERSION = "1.2.2"' in generator
+    assert "AlgoTik_TSE_Guide_v1.2.2_preview.pdf" in generator
     assert 'class="rtl-content" dir="rtl"' in generator
     assert "table:has(thead th:nth-child(4))" in generator
     assert "TocExtension(slugify=unicode_slugify" in generator
@@ -336,7 +337,7 @@ def test_markdown_is_single_authoritative_reference_and_covers_public_exports():
     assert readme.count('<div dir="rtl" align="right">') == 1
     assert readme.rstrip().endswith("</div>")
     for badge in (
-        "img.shields.io/badge/pypi-v1.2.1-blue.svg",
+        "img.shields.io/badge/pypi-v1.2.2-blue.svg",
         "img.shields.io/pypi/pyversions/algotik-tse.svg",
         "static.pepy.tech/personalized-badge/algotik-tse",
         "img.shields.io/pypi/l/algotik-tse.svg",
@@ -403,8 +404,8 @@ def test_markdown_has_exact_signature_and_contract_entry_for_every_callable():
     callables = {
         name: getattr(att, name) for name in att.__all__ if callable(getattr(att, name))
     }
-    assert len(att.__all__) == 120
-    assert len(callables) == 115
+    assert len(att.__all__) == 121
+    assert len(callables) == 116
     missing_signatures = []
     missing_contract_entries = []
     for name, obj in callables.items():

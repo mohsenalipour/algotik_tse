@@ -600,3 +600,93 @@ def test_legacy_list_indices_change_columns_are_no_longer_reversed(monkeypatch):
     result = instruments.list_indices(progress=False)
     assert result.iloc[0]["Change"] == 10
     assert result.iloc[0]["ChangePct"] == 1
+
+
+def _membership_payload_with_membership(code, members):
+    rows = []
+    for idx, member in enumerate(members):
+        rows.append(
+            {
+                "insCode": member,
+                "instrument": {
+                    "insCode": member,
+                    "lVal18AFC": "نماد{}".format(idx),
+                    "lVal30": "نماد {} - {}".format(idx, code),
+                },
+                "priceYesterday": 1000 + idx,
+                "priceFirst": 1010 + idx,
+                "priceMin": 980 + idx,
+                "priceMax": 1100 + idx,
+                "pClosing": 1050 + idx,
+                "pDrCotVal": 1040 + idx,
+                "zTotTran": 10 + idx,
+                "qTotTran5J": 100 + idx,
+                "qTotCap": 1_000_000 + idx,
+            }
+        )
+    return _Response({"indexCompany": rows, "relatedCompanyThirtyDayHistory": []})
+
+
+def test_industry_membership_overlap_reports_pairwise_metrics(monkeypatch, provider):
+    def fake_membership(url):
+        if "GetIndexCompany" not in url:
+            raise AssertionError("only membership endpoints expected: {}".format(url))
+        code = url.rsplit("/", 1)[-1]
+        if code == CODE:
+            return _membership_payload_with_membership(code, [MEMBER, "A2", "A3"])
+        if code == ALT_CODE:
+            return _membership_payload_with_membership(code, ["A2", "B2", "B3"])
+        if code == ALT_CODE_2:
+            return _membership_payload_with_membership(code, ["A3", "C2"])
+        raise AssertionError("unexpected code {}".format(code))
+
+    member_calls = []
+
+    def fake_get(url):
+        member_calls.append(url)
+        if "GetIndexCompany" in url:
+            return fake_membership(url)
+        raise AssertionError("unexpected endpoint: {}".format(url))
+
+    monkeypatch.setattr(industries, "safe_get", fake_get)
+    overlap = att.get_industry_membership_overlap(
+        [CODE, ALT_CODE], progress=False, refresh=False, max_workers=1
+    )
+    assert list(overlap.columns) == [
+        "IndustryAName",
+        "IndustryAIndexCode",
+        "IndustryBName",
+        "IndustryBIndexCode",
+        "CommonMembers",
+        "UnionMembers",
+        "Jaccard",
+        "OverlapA_Pct",
+        "OverlapB_Pct",
+    ]
+    row = overlap.iloc[0]
+    assert row["IndustryAIndexCode"] == CODE
+    assert row["IndustryBIndexCode"] == ALT_CODE
+    assert row["CommonMembers"] == 1
+    assert row["UnionMembers"] == 5
+    assert row["Jaccard"] == pytest.approx(1 / 5)
+    assert row["OverlapA_Pct"] == pytest.approx(100 / 3)
+    assert row["OverlapB_Pct"] == pytest.approx(100 / 3)
+    assert overlap.attrs["analysis"] == "industry_membership_overlap"
+    assert overlap.attrs["industry_count"] == 2
+    assert overlap.attrs["cache_hits"] == 0
+
+    overlap_refresh = att.get_industry_membership_overlap(
+        [CODE, ALT_CODE], progress=False, refresh=False, max_workers=1
+    )
+    overlap_refresh_2 = att.get_industry_membership_overlap(
+        [CODE, ALT_CODE], progress=False, refresh=True, max_workers=1
+    )
+    membership_calls = [url for url in member_calls if "GetIndexCompany" in url]
+    assert len(membership_calls) == 4
+    assert overlap_refresh.attrs["cache_hits"] == 2
+    assert overlap_refresh_2.attrs["cache_hits"] == 0
+
+
+def test_industry_membership_overlap_requires_at_least_two_inputs():
+    with pytest.raises(att.InvalidParameterError):
+        att.get_industry_membership_overlap(CODE, progress=False, refresh=False)

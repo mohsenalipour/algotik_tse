@@ -2,6 +2,16 @@
 History
 =======
 
+1.2.2 (2026-09-01)
+-------------------
+
+* Added ``get_industry_membership_overlap()`` to quantify official membership
+  overlap for industry indices and support pairwise diversification/cluster workflows.
+* Added optional overlap diagnostics to stage 2 industry analytics:
+  ``CommonMembers``, ``UnionMembers``, ``Jaccard``, and directional overlap
+  percentages in long-form output.
+* Synced release metadata and documentation to version 1.2.2.
+
 1.2.1 (2026-09-01)
 -------------------
 

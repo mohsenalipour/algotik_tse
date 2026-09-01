@@ -1475,6 +1475,100 @@ def get_industry_correlation(
     return return_frame
 
 
+def get_industry_membership_overlap(
+    industries,
+    progress=True,
+    refresh=False,
+    max_workers=6,
+):
+    """Return pairwise overlap diagnostics for official industry memberships.
+
+    The calculation is performed on exact official member sets from ``GetIndexCompany``.
+    For every unordered industry pair, the function returns shared-member count and
+    overlap ratios, including Jaccard similarity.
+    """
+    if not isinstance(progress, bool) or not isinstance(refresh, bool):
+        raise InvalidParameterError("progress and refresh must be bool")
+    max_workers = _validate_max_workers(max_workers)
+    resolved = _resolve_industries(industries)
+    if len(resolved) < 2:
+        raise InvalidParameterError("at least two industries are required")
+
+    if progress:
+        print("Computing overlap for {} industries...".format(len(resolved)))
+
+    payloads, cache_hits = _get_membership_batch(
+        resolved, refresh=refresh, max_workers=max_workers
+    )
+
+    membership_map = {}
+    for code, name, _ in resolved:
+        members = _members_from_payload(
+            payloads[code], name if name else _canonical_name(code), code
+        )
+        membership_map[code] = set(
+            members["InsCode"].dropna().astype(str).str.strip().tolist()
+        )
+
+    rows = []
+    for index, (code_a, name_a, _) in enumerate(resolved):
+        set_a = membership_map.get(code_a, set())
+        for code_b, name_b, _ in resolved[index + 1 :]:
+            set_b = membership_map.get(code_b, set())
+            common = set_a.intersection(set_b)
+            union = set_a.union(set_b)
+            common_count = len(common)
+            union_count = len(union)
+            count_a = len(set_a)
+            count_b = len(set_b)
+            rows.append(
+                {
+                    "IndustryAName": name_a,
+                    "IndustryAIndexCode": code_a,
+                    "IndustryBName": name_b,
+                    "IndustryBIndexCode": code_b,
+                    "CommonMembers": common_count,
+                    "UnionMembers": union_count,
+                    "Jaccard": _safe_divide(common_count, union_count),
+                    "OverlapA_Pct": _safe_divide(common_count, count_a) * 100,
+                    "OverlapB_Pct": _safe_divide(common_count, count_b) * 100,
+                }
+            )
+
+    result = _typed_frame(
+        rows,
+        [
+            "IndustryAName",
+            "IndustryAIndexCode",
+            "IndustryBName",
+            "IndustryBIndexCode",
+            "CommonMembers",
+            "UnionMembers",
+            "Jaccard",
+            "OverlapA_Pct",
+            "OverlapB_Pct",
+        ],
+    )
+    result.attrs.update(
+        {
+            "source": "TSETMC:GetIndexCompany",
+            "analysis": "industry_membership_overlap",
+            "industry_count": len(resolved),
+            "max_workers": max_workers,
+            "cache_hits": int(cache_hits),
+            "refresh": refresh,
+            "progress": progress,
+        }
+    )
+    if progress:
+        print(
+            "Done. {} overlap rows returned for {} industries.".format(
+                len(result), len(resolved)
+            )
+        )
+    return result
+
+
 _INTERVALS = {
     "raw": None,
     "1min": "1min",
@@ -1664,6 +1758,7 @@ __all__ = [
     "compare_industries",
     "get_industry_relative_strength",
     "get_industry_correlation",
+    "get_industry_membership_overlap",
     "get_industry_intraday",
     "rank_industries",
 ]
