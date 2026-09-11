@@ -2,6 +2,15 @@
 History
 =======
 
+1.4.0 (2026-09-12)
+------------------
+
+* Added the official TSE/IFB trading calendar and historical market-value APIs.
+* Added daily market activity, bulk per-instrument summaries, and index-impact attribution.
+* Added the public TSETMC instrument master and exact ``InsCode`` snapshot comparison.
+* Added official subscriber TOP retrieval and transparent pre-open imbalance analytics.
+* Added stable schemas, request budgets, source metadata, offline fixtures, and live contract checks.
+
 1.3.0 (2026-09-12)
 ------------------
 

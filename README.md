@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.3.0-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.4.0-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -8,7 +8,7 @@
 
 **A Python toolkit for historical, live and analytical data from Iran's capital market.**
 
-Fetch TSETMC prices, client type, trades, order books, funds, bonds and options with Jalali date support, then use the built-in fixed-income and option analytics for research and algorithmic trading.
+Fetch TSETMC prices, client type, trades, order books, market calendars, index impact, instrument reference data, funds, bonds, options and official subscriber TOP with Jalali date support, then use the built-in analytics for research and algorithmic trading.
 
 <div dir="rtl" align="right">
 
@@ -24,6 +24,9 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 - افزودن کنترل‌شدهٔ ردیف امروز با `include_today=True` و metadata مربوط به freshness و partial بودن داده
 - نمای زندهٔ کل بازار یا یک نماد، قدرت خریدار، جریان پول، spread و imbalance پنج سطح سفارش
 - معاملات ریز، order book و صف خرید/فروش به‌صورت زنده و تاریخی
+- تقویم معاملاتی بورس/فرابورس، ارزش بازار تاریخی، آمار فعالیت روزانه و اثر هر نماد بر شاخص
+- دریافت یکجای خلاصهٔ روزانهٔ همهٔ ابزارها و فهرست مرجع کامل TSETMC با تشخیص تغییرات بر پایهٔ `InsCode`
+- قیمت تئوریک گشایش رسمی (TOP) برای مشترکان وب‌سرویس TSETMC و محاسبهٔ شفاف عدم تعادل پیش‌گشایش
 - watcher بازار، پیام‌ها، تغییر وضعیت، breadth، جریان صنایع و ذخیرهٔ اختیاری تاریخچه روی SQLite
 - ۴۵ شاخص صنعت، اعضای رسمی، snapshot تحلیلی، تاریخچهٔ اعضا، کندل درون‌روزی، مقایسه و هم‌بستگی صنایع
 - EPS و P/E، رخدادهای تعدیل قیمت و حل دقیق هویت ابزار با `InsCode`
@@ -55,6 +58,11 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | ⭐ `get_currency()` | تاریخچهٔ ارز و سکه | `DataFrame` |
 | ⭐ `get_live_trades()` | معاملات ریز امروز یک نماد | `DataFrame` |
 | ⭐ `get_order_book()` | پنج سطح سفارش زنده | `DataFrame` |
+| ⭐ `get_trading_calendar()` | تقویم معاملاتی رسمی بورس و فرابورس | `DataFrame` |
+| ⭐ `get_market_activity()` | تعداد، حجم و ارزش معاملات روزانهٔ کل بازار | `DataFrame` |
+| ⭐ `get_market_value_history()` | تاریخچهٔ ارزش بازار بورس و فرابورس | `DataFrame` |
+| ⭐ `get_index_impact()` | نمادهای اثرگذار مثبت و منفی روی شاخص | `DataFrame` |
+| ⭐ `get_market_trades()` | خلاصهٔ روزانهٔ همهٔ ابزارها در یک درخواست | `DataFrame` |
 | ⭐ `get_industry_snapshot()` | بازده، breadth، جریان پول و صف یک یا همهٔ صنایع | `DataFrame` |
 | ⭐ `compare_industries()` | مقایسهٔ سری زمانی چند شاخص صنعت | `DataFrame` |
 | ⭐ `get_industry_relative_strength()` | محاسبهٔ برتری نسبی به مقابل شاخص مبنا | `DataFrame` |
@@ -104,6 +112,13 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | `get_market_breadth()` | breadth، A/D و شمار نمادهای مثبت/منفی |
 | `get_sector_flow()` | breadth و جریان پول به تفکیک صنعت |
 | `watch_market()`, `MarketWatcher` | پایش افزایشی بازار و تولید `MarketEvent` |
+| `get_trading_calendar()` | جلسات معاملاتی منتشرشدهٔ بورس و فرابورس |
+| `get_market_activity()` | تجمیع روزانهٔ تعداد ابزار، معامله، حجم و ارزش |
+| `get_market_value_history()` | تاریخچهٔ رسمی ارزش بازار با تغییر روزانه |
+| `get_index_impact()` | attribution اثر نمادها بر شاخص کل هر بازار |
+| `get_market_trades()` | خلاصهٔ bulk روزانهٔ ابزارها؛ معاملات ریز نیست |
+| `get_theoretical_opening_price()` | TOP رسمی برای مشترکان وب‌سرویس TSETMC |
+| `get_preopen_imbalance()` | عدم تعادل حجم خرید و فروش روی خروجی TOP |
 
 #### شاخص‌ها و تحلیل صنایع
 
@@ -149,6 +164,8 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | تابع | کاربرد |
 |---|---|
 | `get_symbols()` | فهرست سهام، حق‌تقدم، صندوق، اوراق و اختیار |
+| `get_instrument_master()` | جدول مرجع کامل ابزارها با ISIN و `InsCode` |
+| `get_instrument_changes()` | مقایسهٔ دو snapshot مرجع و گزارش افزوده/حذف/تغییر |
 | `list_options()` | فهرست قراردادهای اختیار فعال |
 | `get_options_chain()` | زنجیرهٔ call/put یک دارایی پایه |
 | `list_etfs()` | مسیر قدیمی صندوق‌های بورسی عمومی نوع ۳۰۵ همراه NAV و discount/premium |
@@ -210,6 +227,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 - [معاملات ریز](#معاملات-ریز)
 - [سفارش و صف](#سفارش-و-صف)
 - [Watcher و تحلیل کل بازار](#watcher-و-تحلیل-کل-بازار)
+- [تقویم، نمای کلان، مستر ابزار و پیش‌گشایش](#تقویم،-نمای-کلان،-مستر-ابزار-و-پیشگشایش)
 - [شاخص‌ها و تحلیل صنایع](#شاخصها-و-تحلیل-صنایع)
 - [تاریخچهٔ محلی SQLite](#تاریخچهٔ-محلی-sqlite)
 - [فاندامنتال، صندوق و تعدیل قیمت](#فاندامنتال-بازار،-صندوق-و-تعدیل-قیمت)
@@ -263,6 +281,10 @@ import algotik_tse as att
 | کندل‌های اینترادی | `att.get_intraday("شتران", interval="5min")` |
 | معاملات ریز امروز | `att.get_live_trades("شتران")` |
 | پنج سطح سفارش | `att.get_order_book("شتران")` |
+| تقویم روزهای معاملاتی | `att.get_trading_calendar(market="tse")` |
+| ارزش و فعالیت تاریخی بازار | `att.get_market_value_history()` و `att.get_market_activity()` |
+| اثرگذارترین نمادهای شاخص | `att.get_index_impact(top=10)` |
+| خلاصهٔ همهٔ ابزارهای یک روز | `att.get_market_trades("1405-06-18")` |
 | تصویر تحلیلی صنایع | `att.get_industry_snapshot()` |
 | رتبه‌بندی صنایع | `att.rank_industries(metric="breadth")` |
 | فهرست نمادها و ابزارها | `att.get_symbols()` |
@@ -1040,6 +1062,148 @@ SectorCode instrument_count advances declines client_coverage net_individual_vol
 `estimated_net_individual_value` برآورد است؛ `value_available`, `value_method`, `client_coverage` و freshness را در استراتژی لحاظ کنید.
 
 فیلترهای مشترک عبارت‌اند از `symbol`, `flow`, `sector`, `traded_only`, `include_base_market` و `instrument_types`. برای محاسبهٔ چند خروجی روی یک مشاهده، snapshot را یک‌بار دریافت و به مسیر خصوصی `_snapshot` ندهید؛ API عمومی `save_market_snapshot()` یک snapshot اتمیک می‌سازد و history derivationها را هم‌زمان نگه می‌دارد.
+
+## تقویم، نمای کلان، مستر ابزار و پیش‌گشایش
+
+APIهای این بخش دو گروه داده را یکجا در نسخهٔ 1.4.0 فراهم می‌کنند: داده‌های عمومی و بدون حساب TSETMC برای تقویم، ارزش بازار، اثر شاخص، خلاصهٔ روزانه و مستر ابزار؛ و TOP رسمی که فقط با اشتراک وب‌سرویس TSETMC قابل دریافت است.
+
+### تقویم معاملاتی بورس و فرابورس
+
+```python
+calendar = att.get_trading_calendar(
+    start="1405-06-01",
+    end="1405-06-18",
+    market="all",
+    include_closed=True,
+)
+print(calendar.tail())
+```
+
+`market` یکی از `all`, `tse`/`bourse`/`بورس` یا `ifb`/`farabourse`/`فرابورس` است. `start` و `end` تاریخ شمسی یا میلادی و شامل دو مرز هستند. اگر بازه ندهید، `limit` آخرین جلسهٔ هر بازار را برمی‌گرداند. پارامتر `include_closed` در حالت پیش‌فرض `False` فقط جلسات منتشرشدهٔ شاخص مرجع را می‌آورد؛ مقدار `True` روزهای تقویمی بین دو مرز را نیز می‌سازد و `IsTradingDay=False` می‌گذارد.
+
+```text
+Market, Flow, GregorianDate, JalaliDate, IsTradingDay,
+ReferenceIndex, ReferenceInsCode, Source
+```
+
+تعریف روز معاملاتی در این تابع «وجود مشاهده در تاریخچهٔ شاخص کل رسمی همان بازار» است. بنابراین تعطیلی عادی یا نبود جلسه مشخص می‌شود، اما برنامهٔ ساعات جلسه و علت تعطیلی از این منبع استخراج نمی‌شود. این معنا در `attrs['calendar_semantics']` ثبت شده است.
+
+### ارزش و فعالیت روزانهٔ بازار
+
+```python
+market_value = att.get_market_value_history(
+    start="1405-01-01",
+    market="all",
+    limit=90,
+)
+
+activity = att.get_market_activity(
+    start="1405-06-15",
+    end="1405-06-18",
+    market="tse",
+    max_requests=10,
+    progress=False,
+)
+```
+
+`get_market_value_history()` برای هر بازار `MarketValue` را به ریال و دو ستون مشتق‌شدهٔ `Change` و `ChangePct` می‌دهد. اگر `start` مشخص باشد تا ۵۰۰۰ مشاهده از منبع درخواست می‌شود و سپس بازه فیلتر می‌شود؛ در حالت بدون بازه `limit` سقف دریافت است.
+
+```text
+Market, Flow, GregorianDate, JalaliDate, MarketValue,
+Change, ChangePct, Source
+```
+
+`get_market_activity()` برای هر جلسه یک درخواست bulk انجام می‌دهد. `max_requests` بودجهٔ سخت ۱ تا ۳۶۶ است و پیش از fan-out کنترل می‌شود. خروجی شامل `InstrumentCount`, `TradedInstrumentCount`, `TradeCount`, `Volume`, `Value` و `AverageTradeValue` است. این آمار از خلاصهٔ رسمی روزانهٔ ابزارها ساخته می‌شود؛ `AverageTradeValue = Value / TradeCount` و در نبود معامله `NaN` است.
+
+### اثر نمادها بر شاخص
+
+```python
+impact = att.get_index_impact(
+    date="1405-06-18",
+    market="tse",
+    top=10,
+    direction="both",
+)
+print(impact[["Rank", "Symbol", "Impact", "AbsSharePct"]])
+```
+
+`date=None` آخرین تاریخ دارای ارزش بازار را انتخاب می‌کند. `top` عدد صحیح مثبت تا ۱۰۰۰ است. `direction` فقط `both`, `positive` یا `negative` را می‌پذیرد. `Impact` عدد رسمی اثر و `AbsSharePct` سهم قدرمطلق هر ردیف از مجموع قدرمطلق **ردیف‌های بازگردانده‌شدهٔ همان بازار** است؛ این درصد سهم از کل universe نیست مگر اینکه منبع تمام ردیف‌ها را برگرداند.
+
+### خلاصهٔ bulk همهٔ ابزارها در یک روز
+
+```python
+daily = att.get_market_trades(
+    date="1405-06-18",
+    market="all",
+    progress=False,
+)
+leaders = daily.nlargest(10, "Value")
+```
+
+هر ردیف یک خلاصهٔ روزانهٔ یک هویت ابزار است و ستون‌های `TradeCount`, `Volume`, `Value`, `Open`, `High`, `Low`, `Close`, `Last`, `PreviousClose`, `Change` و `ChangePct` را دارد. نام قدیمی سرویس رسمی `TradeOneDayAll` است، اما این خروجی **معاملات ریز و شماره‌دار نیست**. برای معامله‌به‌معامله از `get_trades()` یا `get_live_trades()` استفاده کنید.
+
+`market='tse'` و `market='ifb'` با نگاشت قطعی خانوادهٔ پیشوند ISIN فیلتر می‌شوند. در `market='all'` ردیف‌های جریان‌های دیگر، بورس کالا، انرژی یا طبقه‌بندی‌نشده نیز حفظ می‌شوند و کیفیت اتصال در `MarketClassification` و `attrs['unknown_market_rows']` دیده می‌شود. این روش fuzzy نیست، اما پیشوندهایی که بازارشان به‌تنهایی قابل اثبات نیست عمداً `other` یا `unknown` می‌مانند. `progress` فقط پیام پایان را کنترل می‌کند.
+
+### مستر ابزارها و کشف تغییرات
+
+```python
+master = att.get_instrument_master(
+    active=None,
+    market=None,
+    asset_type=["stock", "fund", "bond"],
+    progress=False,
+)
+master.to_parquet("instrument-master-1405-06-18.parquet", index=False)
+
+changes = att.get_instrument_changes(
+    previous="instrument-master-1405-06-18.parquet",
+    current=None,
+    progress=False,
+)
+```
+
+`get_instrument_master()` جدول عمومی TSETMC را با کلید پایدار `InsCode` می‌خواند. `market` در صورت استفاده یکی از بورس یا فرابورس است. `asset_type` یک رشته یا iterable از `stock`, `right`, `fund`, `bond`, `option`, `future`, `mortgage`, `commodity`, `energy`, `unknown` است. پارامتر `active` با مقدار `None` وضعیت فعالیت را نامعلوم نگه می‌دارد و درخواست زندهٔ اضافه ندارد؛ مقدار `True` یا `False` مستر را با snapshot لحظه‌ای MarketWatch تطبیق می‌دهد.
+
+```text
+InsCode, ISIN, Symbol, Name, EnglishName, CompanyCode, CompanyISIN,
+Market, MarketGroup, Industry, AssetType, InstrumentStatus, Active, Source
+```
+
+`get_instrument_changes()` یک snapshot قبلی را با `current` مقایسه می‌کند. هر ورودی می‌تواند `DataFrame` یا مسیر CSV، Parquet، JSON/JSONL باشد و باید ستون `InsCode` داشته باشد. `current=None` مستر فعلی را دریافت می‌کند. خروجی long-form با `ChangeType`های `added`, `removed`, `changed` و ستون‌های `Field`, `OldValue`, `NewValue` است. این تابع **تاریخچه را از سرور backfill نمی‌کند**؛ برای مقایسهٔ روزهای گذشته باید snapshotهای خودتان را نگه دارید.
+
+### TOP رسمی و عدم تعادل پیش‌گشایش
+
+```python
+top = att.get_theoretical_opening_price(
+    username="TSETMC_WEB_SERVICE_USERNAME",
+    password="TSETMC_WEB_SERVICE_PASSWORD",
+    market="tse",
+    timeout=20,
+    progress=False,
+)
+
+imbalance = att.get_preopen_imbalance(top_data=top)
+print(imbalance.nlargest(10, "ImbalanceRatio"))
+```
+
+`username` و `password` مشخصات **اشتراک وب‌سرویس TSETMC** هستند؛ حساب عادی سایت یا حساب PyPI کاربرد ندارد. پکیج آن‌ها را فقط در همان فراخوانی از راه HTTPS به سرویس رسمی می‌فرستد و ذخیره نمی‌کند. برای امنیت، رمز را در کد، notebook، log یا repository قرار ندهید. `market` بازار یا `all` و `timeout` مهلت درخواست بر حسب ثانیه است.
+
+```text
+Market, Flow, InsCode, Symbol, Name, GregorianDate, JalaliDate, Time,
+TheoreticalOpeningPrice, TheoreticalVolume, RemainderSide, RemainderVolume,
+TheoreticalBuyVolume, TheoreticalBuyPrice, TheoreticalSellPrice,
+TheoreticalSellVolume, ChangePct, Source
+```
+
+اگر قبلاً TOP را گرفته‌اید، آن را با `top_data` به `get_preopen_imbalance()` بدهید تا درخواست دیگری انجام نشود. اگر `top_data=None` باشد، همان تابع با `username`, `password`, `market`, `timeout` و `progress` دادهٔ رسمی را می‌گیرد. خروجی سه ستون اضافه دارد:
+
+```text
+ImbalanceVolume = TheoreticalBuyVolume - TheoreticalSellVolume
+ImbalanceRatio  = ImbalanceVolume / (TheoreticalBuyVolume + TheoreticalSellVolume)
+ImbalanceSide   = buy | sell | balanced | unavailable
+```
+
+این نسبت صرفاً عدم تعادل حجم‌های TOP رسمی است و سیگنال خرید یا فروش محسوب نمی‌شود. در مجموع حجم صفر یا دادهٔ ناقص، نسبت `NaN` و سمت `unavailable` است.
 
 ## شاخص‌ها و تحلیل صنایع
 
@@ -2206,6 +2370,8 @@ except att.UnsupportedDataSourceError as exc:
 | `get_market_overview_history`, `get_market_snapshot_summary_history`, `get_market_breadth_history`, `get_sector_flow_history` |
 | `record_market_event`, `get_market_event_history`, `archive_market_records` |
 | `get_market_messages_history`, `get_instrument_state_changes_history` |
+| `get_trading_calendar`, `get_market_activity`, `get_market_value_history`, `get_index_impact`, `get_market_trades` |
+| `get_theoretical_opening_price`, `get_preopen_imbalance` |
 
 سه wrapper صفرآرگومان legacy نیز عمومی‌اند: `market_watch()`, `market_client_type()`, `market_data()`. `market_data()` wrapper deprecated است؛ برای کد جدید `get_market_snapshot()` یا `get_live_market()` را انتخاب کنید.
 
@@ -2215,6 +2381,7 @@ except att.UnsupportedDataSourceError as exc:
 |---|
 | `get_market_fundamentals`, `get_market_fundamentals_history` |
 | `get_price_adjustments`, `get_latest_price_adjustment` |
+| `get_instrument_master`, `get_instrument_changes` |
 | `list_options`, `get_options_chain`, `list_etfs`, `list_bonds`, `list_funds`, `list_listed_funds` |
 | `list_indices`, `get_index_companies` |
 | `list_industry_indices`, `get_industry_members`, `get_industry_snapshot`, `get_industry_membership_events` |
@@ -2500,6 +2667,32 @@ get_sector_flow(symbol=None, flow=None, sector=None, traded_only=False, include_
 | `get_market_overview` | `flow`; payload تهی صفر ردیف است. | provider overview `DataFrame` با `flow` و فیلدهای payload/fast-view؛ attrs source/time/archive. | parameter/connection/parsing/storage؛ مثال overview. |
 | `get_market_breadth` | فیلترهای universe؛ denominator ابزار انتخاب‌شده. | یک‌ردیف `DataFrame` با counts/percentages، A/D، volume/value، limit counts و freshness. attrs analytics/source. | `InvalidParameterError`, `DataParsingError`; مثال breadth. |
 | `get_sector_flow` | `symbol/flow/sector` فیلتر؛ `traded_only` universe معامله‌شده؛ `include_base_market` بازار پایه؛ `instrument_types` کد نوع ابزار؛ `_snapshot/_client_type` فقط تست. client feed فقط برای ردیف reconcileشده به‌کار می‌رود. | یک ردیف در هر `SectorCode` با breadth + `client_coverage,net_individual_volume,estimated_net_individual_value,value_available,value_method` و freshness. | parameter/connection/parsing؛ مثال sector. |
+
+### قرارداد API: تقویم، نمای کلان، مستر ابزار و پیش‌گشایش
+
+```text
+get_trading_calendar(start=None, end=None, market='all', include_closed=False, limit=90)
+get_market_activity(start=None, end=None, market='all', max_requests=30, progress=True)
+get_market_value_history(start=None, end=None, market='all', limit=90)
+get_index_impact(date=None, market='all', top=10, direction='both')
+get_market_trades(date=None, market='all', progress=True)
+get_instrument_master(active=None, market=None, asset_type=None, progress=True)
+get_instrument_changes(previous, current=None, progress=True)
+get_theoretical_opening_price(*, username=None, password=None, market='all', timeout=None, progress=True)
+get_preopen_imbalance(top_data=None, *, username=None, password=None, market='all', timeout=None, progress=True)
+```
+
+| تابع | ورودی‌ها و گزینه‌ها | خروجی/schema/attrs | خطا و مثال |
+|---|---|---|---|
+| `get_trading_calendar` | `start/end` تاریخ شمسی/میلادی؛ `market='all'` یا بورس/فرابورس؛ `include_closed=False` فقط session؛ `limit=90` در نبود بازه، مثبت و حداکثر ۵۰۰۰. | `DataFrame[Market,Flow,GregorianDate,JalaliDate,IsTradingDay,ReferenceIndex,ReferenceInsCode,Source]`؛ attrs شامل `calendar_semantics='published_reference_index_sessions'`. | ترتیب/نوع تاریخ، بازار، bool یا limit نامعتبر `InvalidParameterError`؛ payload/شبکه typed؛ مثال فصل تقویم. |
+| `get_market_activity` | `start/end` بازهٔ session؛ `market`; `max_requests=30` بودجهٔ سخت ۱..۳۶۶؛ `progress`. بدون بازه آخرین جلسه را می‌گیرد. | `DataFrame[Market,GregorianDate,JalaliDate,InstrumentCount,TradedInstrumentCount,TradeCount,Volume,Value,AverageTradeValue,Source]`؛ مشتق از bulk daily و attrs request count. | بازه/بودجه/market نامعتبر `InvalidParameterError`؛ provider typed؛ مثال فصل نمای کلان. |
+| `get_market_value_history` | `start/end`; `market`; `limit=90` مثبت تا ۵۰۰۰؛ با start سقف fetch داخلی ۵۰۰۰ است. | `DataFrame[Market,Flow,GregorianDate,JalaliDate,MarketValue,Change,ChangePct,Source]`؛ واحد `attrs['unit']='rial'`. | پارامتر/تاریخ `InvalidParameterError` و connection/schema typed؛ مثال فصل نمای کلان. |
+| `get_index_impact` | `date=None` آخرین جلسه؛ `market`; `top=10` مثبت تا ۱۰۰۰؛ `direction∈{both,positive,negative}`. | `DataFrame[Market,Flow,GregorianDate,JalaliDate,Rank,InsCode,Symbol,Name,Close,Impact,Direction,AbsSharePct,Source]`؛ denominator درصد در attrs. | direction/top/date/market نامعتبر `InvalidParameterError`؛ provider typed؛ مثال `att.get_index_impact(top=10)`. |
+| `get_market_trades` | `date=None` آخرین جلسه؛ `market`; `progress`. فیلتر بازار با پیشوند ISIN است. | یک خلاصهٔ روزانه برای هر ابزار با هویت، OHLC، معامله/حجم/ارزش و تغییر؛ `attrs['transaction_level']=False` و شمار طبقه‌بندی نامعلوم. | parameter/connection/schema typed؛ برای معاملات ریز از `get_trades` استفاده شود؛ مثال فصل bulk. |
+| `get_instrument_master` | `active: bool|None`; `market: str|None`; `asset_type: str|iterable|None` از ۱۰ نوع مستند؛ `progress`. active غیرNone یک MarketWatch اضافه می‌گیرد. | `DataFrame[InsCode,ISIN,Symbol,Name,EnglishName,CompanyCode,CompanyISIN,Market,MarketGroup,Industry,AssetType,InstrumentStatus,Active,Source]`؛ identity key در attrs. | filter/type نامعتبر `InvalidParameterError`؛ HTML/schema/network typed؛ مثال ذخیرهٔ Parquet. |
+| `get_instrument_changes` | `previous` اجباری و `current=None`؛ هرکدام DataFrame یا CSV/Parquet/JSON؛ `progress`. کلید اجباری `InsCode`. | long-form `DataFrame[ChangeType,InsCode,Field,OldValue,NewValue,Symbol,Source]`؛ `added/removed/changed` و count دو snapshot در attrs. | مسیر/پسوند/ستون نامعتبر `InvalidParameterError`؛ current None ممکن است provider error بدهد؛ بدون backfill تاریخی. |
+| `get_theoretical_opening_price` | keyword-only `username/password` اشتراک رسمی؛ `market`; `timeout`; `progress`. credentials در package ذخیره نمی‌شوند. | TOP رسمی با قیمت/حجم تئوریک، remainder، buy/sell و تغییر؛ attrs `official=True,subscriber_service=True,credentials_stored=False`. | credentials ناموجود `InvalidParameterError`؛ SOAP/network `ConnectionError` یا `DataParsingError`؛ مثال فصل TOP. |
+| `get_preopen_imbalance` | `top_data: DataFrame|None`; در None از `username/password/market/timeout/progress` برای TOP استفاده می‌کند. | همهٔ ستون‌های TOP + `ImbalanceVolume,ImbalanceRatio,ImbalanceSide`؛ فرمول دقیق در attrs. | type/ستون/bool نامعتبر `InvalidParameterError`؛ خطاهای TOP در حالت fetch؛ مثال فصل TOP. |
 
 ### قرارداد API: تاریخچهٔ محلی و fundamentals
 
@@ -2826,6 +3019,7 @@ python -m pytest -m "not online" -q
 
 این بخش در هر انتشار به‌روزرسانی می‌شود؛ جزئیات کامل‌تر در [HISTORY.rst](HISTORY.rst) ثبت شده است.
 
+- **1.4.0 — 2026-09-12:** تجمیع تقویم و نمای کلان بازار با ابزارهای پیش‌گشایش؛ تقویم رسمی بورس/فرابورس، ارزش بازار تاریخی، فعالیت روزانه، اثر نمادها بر شاخص، خلاصهٔ bulk روز، مستر کامل ابزارها و diff مبتنی بر `InsCode`، TOP رسمی مشترکان و عدم تعادل پیش‌گشایش.
 - **1.3.0 — 2026-09-12:** طبقه‌بندی چندمحورهٔ صندوق‌ها، اصلاح شناسه‌های registry، افزودن پنج دستهٔ جدید، پوشش صندوق‌های بورسی نوع ۳۸۰، فیلتر طلا/نقره/زعفران و شواهد قابل ممیزی.
 - **1.2.4 — 2026-09-02:** رویدادهای افزوده/حذف‌شدهٔ اعضای شاخص صنعت.
 - **1.2.3 — 2026-09-01:** churn، تمرکز، مومنتوم، همسایگی همبستگی و امتیاز سلامت صنایع.

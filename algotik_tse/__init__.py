@@ -41,6 +41,11 @@ Quick Start
     # Live market snapshot
     att.get_market_snapshot()
 
+    # Trading calendar, market value and index impact
+    att.get_trading_calendar(market='tse')
+    att.get_market_value_history(market='all')
+    att.get_index_impact(top=10)
+
     # Options chain
     att.list_options(underlying='اهرم')
     att.get_options_chain('اهرم')
@@ -63,7 +68,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (
@@ -203,6 +208,17 @@ from algotik_tse.core.fundamentals import (
 from algotik_tse.core.price_adjustments import (
     get_price_adjustments,
     get_latest_price_adjustment,
+)
+from algotik_tse.core.market_reference import (
+    get_trading_calendar,
+    get_market_activity,
+    get_market_value_history,
+    get_index_impact,
+    get_market_trades,
+    get_instrument_master,
+    get_instrument_changes,
+    get_theoretical_opening_price,
+    get_preopen_imbalance,
 )
 
 # ── Standard API aliases (recommended) ────────────────────────
@@ -492,6 +508,15 @@ __all__ = [
     "get_market_fundamentals_history",
     "get_price_adjustments",
     "get_latest_price_adjustment",
+    "get_trading_calendar",
+    "get_market_activity",
+    "get_market_value_history",
+    "get_index_impact",
+    "get_market_trades",
+    "get_instrument_master",
+    "get_instrument_changes",
+    "get_theoretical_opening_price",
+    "get_preopen_imbalance",
     "get_order_book",
     "get_live_market",
     "get_live_symbol",

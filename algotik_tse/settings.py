@@ -180,6 +180,21 @@ class Settings:
         self.url_price_adjustments = (
             "https://cdn.tsetmc.com/api/ClosingPrice/GetPriceAdjustList/{}"
         )
+        self.url_instrument_calendar = (
+            "https://cdn.tsetmc.com/api/Index/GetIndexB2History/{}"
+        )
+        self.url_market_value_history = (
+            "https://cdn.tsetmc.com/api/MarketData/GetMarketValueByFlow/{}/{}"
+        )
+        self.url_index_impact = (
+            "https://cdn.tsetmc.com/api/Index/GetInstEffect/{}/{}/{}"
+        )
+        self.url_market_trades_by_date = (
+            "https://cdn.tsetmc.com/api/ClosingPrice/GetInstrmentsHistoryInDay/{}"
+        )
+        self.url_tsetmc_public_soap = (
+            "https://service.tsetmc.com/WebService/TsePublicV2.asmx"
+        )
         self.url_option_info = (
             "https://cdn.tsetmc.com/api/Instrument/GetInstrumentOptionByInstrumentID/{}"
         )
