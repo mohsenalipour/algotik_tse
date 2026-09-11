@@ -100,6 +100,7 @@ INSTRUMENT_TYPE_ASSET_MAP = {
     "303": "equity",
     "309": "equity",
     "305": "fund",
+    "380": "fund",
     "306": "bond",
     "311": "option",
     "312": "option",

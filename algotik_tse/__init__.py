@@ -63,7 +63,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.2.4"
+__version__ = "1.3.0"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (
@@ -128,6 +128,7 @@ from algotik_tse.core.market_history import (
     get_instrument_state_changes_history,
 )
 from algotik_tse.core.instruments import (
+    FUND_TAXONOMY_VERSION,
     list_options,
     get_options_chain,
     list_etfs,
@@ -552,6 +553,7 @@ __all__ = [
     "save_option_snapshot",
     "load_option_snapshots",
     "list_etfs",
+    "FUND_TAXONOMY_VERSION",
     "list_bonds",
     "list_funds",
     "list_listed_funds",

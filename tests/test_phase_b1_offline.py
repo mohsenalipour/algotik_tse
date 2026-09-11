@@ -684,25 +684,7 @@ def test_listed_funds_one_bulk_call_exact_identity_and_shape(monkeypatch):
         {"Symbol": "طلا", "InsCode": "11", "ISIN": "IRTK11"},
         {"Symbol": "زر", "InsCode": "12", "ISIN": "IRTK12"},
     ]
-    assert list(result.columns) == [
-        "InsCode",
-        "ISIN",
-        "Symbol",
-        "Name",
-        "Last",
-        "Close",
-        "Yesterday",
-        "Volume",
-        "Value",
-        "TradeCount",
-        "Low",
-        "High",
-        "NAV",
-        "NAV_Discount",
-        "Change",
-        "ChangePct",
-        "MarketCode",
-    ]
+    assert list(result.columns) == instrument_module.LISTED_FUND_COLUMNS
     assert result.attrs["no_fuzzy_join"] is True
     assert result.attrs["registry_joined"] is False
 
@@ -729,7 +711,10 @@ def test_listed_funds_empty_has_same_typed_schema_without_changing_list_etfs(
 
 def test_list_funds_default_signature_and_registry_behavior_unchanged(monkeypatch):
     signature = inspect.signature(instrument_module.list_funds)
-    assert str(signature) == "(fund_type=None, progress=True, *, listed_only=False)"
+    assert str(signature) == (
+        "(fund_type=None, progress=True, *, listed_only=False, strategy=None, "
+        "commodity_underlying=None, classification_status=None)"
+    )
     calls = []
 
     def request(url):

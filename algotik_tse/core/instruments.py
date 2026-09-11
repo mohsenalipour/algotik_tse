@@ -8,7 +8,10 @@ Also provides ``list_funds()`` which fetches detailed fund information
 (NAV, returns, portfolio composition, manager, etc.) from TSETMC Fund API.
 """
 
+import json
+import re
 import time
+from pathlib import Path
 import numpy as np
 import pandas as pd
 
@@ -16,6 +19,7 @@ from algotik_tse.settings import settings
 from algotik_tse.http_client import safe_get
 from algotik_tse.exceptions import InvalidParameterError
 from algotik_tse.core.market_data import market_watch
+from algotik_tse.core.resolver import normalize_instrument_text
 from algotik_tse.core.parsers import (
     parse_option_name,
     parse_option_symbol,
@@ -29,6 +33,9 @@ LISTED_FUND_COLUMNS = [
     "ISIN",
     "Symbol",
     "Name",
+    "InstrumentType",
+    "Flow",
+    "MarketCode",
     "Last",
     "Close",
     "Yesterday",
@@ -41,17 +48,270 @@ LISTED_FUND_COLUMNS = [
     "NAV_Discount",
     "Change",
     "ChangePct",
-    "MarketCode",
+    "fund_category",
+    "asset_exposure",
+    "strategy_tags",
+    "trading_mechanism",
+    "unit_class",
+    "commodity_profile",
+    "commodity_underlyings",
+    "primary_commodity",
+    "classification_status",
+    "classification_source",
+    "classification_evidence",
+    "taxonomy_version",
+    "needs_review",
 ]
+
+FUND_TAXONOMY_VERSION = "2026-09-11"
+LISTED_FUND_INSTRUMENT_TYPES = frozenset({305, 380})
+_FUND_TAXONOMY_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "fund_taxonomy.json"
+)
+_REGISTRY_ASSET_EXPOSURE = {
+    "fixed_income": "fixed_income",
+    "commodity": "commodity",
+    "equity": "equity",
+    "mixed": "mixed",
+    "venture_capital": "venture",
+    "project": "project",
+    "private": "private_equity",
+    "fund_of_funds": "fund_of_funds",
+    "real_estate": "real_estate",
+}
+_REGISTRY_STRATEGIES = {
+    "market_maker": ["market_making"],
+    "sector": ["sector"],
+    "leveraged": ["leveraged"],
+    "index": ["index_tracking"],
+    "capital_guaranteed": ["capital_guaranteed"],
+    "supplementary_retirement": ["supplementary_retirement"],
+}
+_FUND_TYPE_ALIASES = {"venture": "venture_capital"}
+_FUND_CATEGORIES = frozenset({*settings.fund_type_ids, "unknown"})
+_FUND_STRATEGY_TAGS = frozenset(
+    {
+        "broad_market",
+        "sector",
+        "index_tracking",
+        "leveraged",
+        "market_making",
+        "capital_guaranteed",
+        "supplementary_retirement",
+        "charity",
+        "unknown",
+    }
+)
+_COMMODITY_UNDERLYINGS = frozenset({"gold", "silver", "saffron", "other", "unknown"})
+_CLASSIFICATION_STATUSES = frozenset(
+    {
+        "authoritative_field",
+        "verified_exact_mapping",
+        "explicit_official_name",
+        "unknown",
+    }
+)
+
+
+def _validate_fund_filter(name, value, allowed):
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise InvalidParameterError(f"{name} must be a non-empty string or None")
+    normalized = value.strip()
+    if normalized not in allowed:
+        choices = ", ".join(sorted(allowed))
+        raise InvalidParameterError(f"{name} must be one of {choices}; got {value!r}")
+    return normalized
+
+
+def _load_fund_taxonomy():
+    """Load and validate the exact-identifier classification registry."""
+    with _FUND_TAXONOMY_PATH.open(encoding="utf-8") as handle:
+        payload = json.load(handle)
+    if payload.get("taxonomy_version") != FUND_TAXONOMY_VERSION:
+        raise RuntimeError("fund taxonomy version does not match package contract")
+    instruments = payload.get("instruments")
+    if not isinstance(instruments, dict):
+        raise RuntimeError("fund taxonomy instruments must be an object")
+    return instruments
+
+
+_EXACT_FUND_TAXONOMY = _load_fund_taxonomy()
+
+
+def _normalized_official_name(value):
+    text = normalize_instrument_text(value)
+    text = re.sub(r"[\u060c\u061b\u061f،؛؟:;,_()\[\]{}\-/]+", " ", text)
+    return " ".join(text.split())
+
+
+def _exact_fund_classification(ins_code, isin):
+    """Return an exact mapping only while both stable identifiers agree."""
+    entry = _EXACT_FUND_TAXONOMY.get(str(ins_code))
+    if not entry:
+        return None
+    expected_isin = str(entry.get("instrument_id", "")).strip()
+    if not expected_isin or expected_isin != str(isin).strip():
+        return None
+    return entry
+
+
+def _classify_listed_fund(row):
+    instrument_type = int(row["InstrumentType"])
+    normalized_name = _normalized_official_name(row.get("Name"))
+    result = {
+        "fund_category": "commodity" if instrument_type == 380 else "unknown",
+        "asset_exposure": "commodity" if instrument_type == 380 else "unknown",
+        "strategy_tags": [],
+        "trading_mechanism": "exchange_traded",
+        "unit_class": "unknown",
+        "commodity_profile": "unknown",
+        "commodity_underlyings": [],
+        "primary_commodity": None,
+        "classification_status": "unknown",
+        "classification_source": "tsetmc_instrument_type",
+        "classification_evidence": {
+            "InstrumentType": instrument_type,
+            "normalized_official_name": normalized_name,
+        },
+        "taxonomy_version": FUND_TAXONOMY_VERSION,
+        "needs_review": True,
+    }
+
+    exact = _exact_fund_classification(row.get("InsCode"), row.get("ISIN"))
+    if exact is not None:
+        underlyings = list(exact.get("commodity_underlyings") or [])
+        result.update(
+            {
+                "commodity_underlyings": underlyings,
+                "primary_commodity": exact.get("primary_commodity"),
+                "commodity_profile": (
+                    "multi"
+                    if len(underlyings) > 1
+                    else "single" if underlyings else "unknown"
+                ),
+                "classification_status": "verified_exact_mapping",
+                "classification_source": "versioned_exact_identifier_registry",
+                "classification_evidence": {
+                    "InstrumentType": instrument_type,
+                    "evidence_type": exact.get("evidence_type"),
+                    "evidence_url": exact.get("evidence_url"),
+                    "evidence_date": exact.get("evidence_date"),
+                },
+                "needs_review": False,
+            }
+        )
+        return result
+
+    if instrument_type != 380:
+        return result
+
+    matched = []
+    if re.search(r"(?:^| )طلا(?:ی)?(?: |$)", normalized_name):
+        matched.append("gold")
+    if re.search(r"(?:^| )نقره(?: |$)", normalized_name):
+        matched.append("silver")
+    if re.search(r"(?:^| )زعفران(?: |$)", normalized_name):
+        matched.append("saffron")
+
+    multi_named = "چند کالایی" in normalized_name
+    if matched or multi_named:
+        result.update(
+            {
+                "commodity_underlyings": matched,
+                "primary_commodity": matched[0] if len(matched) == 1 else None,
+                "commodity_profile": (
+                    "multi" if multi_named or len(matched) > 1 else "single"
+                ),
+                "classification_status": "explicit_official_name",
+                "classification_source": "tsetmc_official_instrument_name",
+                "classification_evidence": {
+                    "InstrumentType": instrument_type,
+                    "normalized_official_name": normalized_name,
+                    "matched_rule": "explicit_semantic_commodity_term",
+                },
+                "needs_review": False,
+            }
+        )
+    return result
+
+
+def _classify_registry_fund(raw, requested_type_id, requested_category):
+    """Classify a registry row while preserving contradictory raw type data."""
+    raw_type = raw.get("fixIncome")
+    try:
+        registry_type_id = (
+            int(raw_type) if raw_type not in (None, "") else requested_type_id
+        )
+    except (TypeError, ValueError):
+        registry_type_id = raw_type
+    type_matches = registry_type_id == requested_type_id
+    category = requested_category if type_matches else "unknown"
+    classification = {
+        "registry_type_id": registry_type_id,
+        "registry_category": category,
+        "asset_exposure": _REGISTRY_ASSET_EXPOSURE.get(category, "unknown"),
+        "strategy_tags": list(_REGISTRY_STRATEGIES.get(category, [])),
+        "commodity_underlyings": [],
+        "primary_commodity": None,
+        "classification_status": "authoritative_field" if type_matches else "unknown",
+        "classification_source": "tsetmc_fund_registry_type",
+        "classification_evidence": {
+            "requested_type_id": requested_type_id,
+            "raw_fixIncome": raw_type,
+        },
+        "taxonomy_version": FUND_TAXONOMY_VERSION,
+        "record_date": raw.get("updateDate") or raw.get("modifyDate"),
+        "needs_review": not type_matches,
+    }
+    if category == "commodity":
+        named = _classify_listed_fund(
+            {
+                "InstrumentType": 380,
+                "InsCode": "",
+                "ISIN": "",
+                "Name": raw.get("mfName", ""),
+            }
+        )
+        classification["commodity_underlyings"] = named["commodity_underlyings"]
+        classification["primary_commodity"] = named["primary_commodity"]
+        if named["classification_status"] == "explicit_official_name":
+            classification["classification_status"] = "explicit_official_name"
+            classification["classification_source"] = "tsetmc_official_registry_name"
+            classification["classification_evidence"].update(
+                named["classification_evidence"]
+            )
+            classification["needs_review"] = False
+        elif type_matches:
+            classification["needs_review"] = True
+    return classification
 
 
 def _cast_listed_funds(frame):
     """Give the additive listed-fund API one stable empty/non-empty schema."""
     source_attrs = dict(frame.attrs)
     result = frame.reindex(columns=LISTED_FUND_COLUMNS).copy()
-    for column in ("InsCode", "ISIN", "Symbol", "Name", "MarketCode"):
+    for column in (
+        "InsCode",
+        "ISIN",
+        "Symbol",
+        "Name",
+        "MarketCode",
+        "fund_category",
+        "asset_exposure",
+        "trading_mechanism",
+        "unit_class",
+        "commodity_profile",
+        "primary_commodity",
+        "classification_status",
+        "classification_source",
+        "taxonomy_version",
+    ):
         result[column] = result[column].astype("string")
     for column in (
+        "InstrumentType",
+        "Flow",
         "Last",
         "Close",
         "Yesterday",
@@ -68,6 +328,13 @@ def _cast_listed_funds(frame):
         result[column] = pd.to_numeric(result[column], errors="coerce").astype(
             "Float64"
         )
+    for column in (
+        "strategy_tags",
+        "commodity_underlyings",
+        "classification_evidence",
+    ):
+        result[column] = result[column].astype("object")
+    result["needs_review"] = result["needs_review"].astype("boolean")
     result.attrs.update(source_attrs)
     return result.reset_index(drop=True)
 
@@ -391,10 +658,11 @@ def _empty_oi():
 
 
 def list_etfs(progress=True):
-    """List all ETF/fund instruments with NAV and discount/premium.
+    """List legacy general listed funds with NAV and discount/premium.
 
     Fetches ``market_watch()`` and filters to ETF instruments
-    (InstrumentType 305), then computes NAV discount or premium.
+    (InstrumentType 305), then computes NAV discount or premium. Use
+    :func:`list_listed_funds` for the complete classified 305+380 universe.
 
     Parameters
     ----------
@@ -444,7 +712,7 @@ def list_etfs(progress=True):
         result.attrs.update(
             {
                 "source": "tsetmc_market_watch",
-                "coverage": "current_listed_fund_universe",
+                "coverage": "legacy_general_listed_funds_type_305",
                 "request_count": 1,
                 "no_fuzzy_join": True,
                 "no_backfill": True,
@@ -494,7 +762,7 @@ def list_etfs(progress=True):
     result.attrs.update(
         {
             "source": "tsetmc_market_watch",
-            "coverage": "current_listed_fund_universe",
+            "coverage": "legacy_general_listed_funds_type_305",
             "request_count": 1,
             "no_fuzzy_join": True,
             "no_backfill": True,
@@ -507,16 +775,101 @@ def list_etfs(progress=True):
     return result
 
 
-def list_listed_funds(progress=True):
-    """Return the authoritative current exchange-listed fund universe.
+def list_listed_funds(
+    progress=True,
+    *,
+    fund_category=None,
+    strategy=None,
+    commodity_underlying=None,
+    classification_status=None,
+    include_unknown=True,
+):
+    """Return classified exchange-listed funds from one MarketWatch snapshot.
 
-    This is an identity-bearing market view sourced with one bulk MarketWatch
-    request. It deliberately does not fuzzy-join TSETMC's separate fund
-    registry, whose names do not provide a stable exchange identity.
+    Both general listed funds (``InstrumentType=305``) and listed commodity
+    funds (``InstrumentType=380``) are included. Classification uses structured
+    TSETMC fields, an exact InsCode/ISIN registry, or explicit semantic terms in
+    the official instrument name. Missing evidence remains ``unknown``.
+
+    Parameters are keyword-only filters. For example,
+    ``commodity_underlying='gold'`` returns only funds explicitly proved to
+    hold gold; generic commodity names are not guessed. ``include_unknown=False``
+    removes rows whose classification status is unknown.
     """
-    result = _cast_listed_funds(list_etfs(progress=progress))
+    if not isinstance(include_unknown, bool):
+        raise InvalidParameterError("include_unknown must be bool")
+
+    fund_category = _validate_fund_filter(
+        "fund_category", fund_category, _FUND_CATEGORIES
+    )
+    strategy = _validate_fund_filter("strategy", strategy, _FUND_STRATEGY_TAGS)
+    commodity_underlying = _validate_fund_filter(
+        "commodity_underlying", commodity_underlying, _COMMODITY_UNDERLYINGS
+    )
+    classification_status = _validate_fund_filter(
+        "classification_status", classification_status, _CLASSIFICATION_STATUSES
+    )
+
+    if progress:
+        print("Fetching and classifying listed funds...")
+    data = market_watch()
+    stocks = data["stocks"]
+    instrument_types = pd.to_numeric(stocks["InstrumentType"], errors="coerce")
+    funds = stocks.loc[instrument_types.isin(LISTED_FUND_INSTRUMENT_TYPES)].copy()
+    funds["NAV_Discount"] = np.nan
+    nav_mask = pd.to_numeric(funds.get("NAV"), errors="coerce") > 0
+    funds.loc[nav_mask, "NAV_Discount"] = (
+        (funds.loc[nav_mask, "Close"] - funds.loc[nav_mask, "NAV"])
+        / funds.loc[nav_mask, "NAV"]
+        * 100
+    ).round(2)
+
+    classifications = [_classify_listed_fund(row) for _, row in funds.iterrows()]
+    if classifications:
+        classified = pd.DataFrame(classifications, index=funds.index)
+        for column in classified.columns:
+            funds[column] = classified[column]
+
+    result = _cast_listed_funds(funds)
+    if fund_category is not None:
+        result = result.loc[result["fund_category"] == fund_category].copy()
+    if strategy is not None:
+        target = strategy
+        result = result.loc[
+            result["strategy_tags"].map(lambda values: target in (values or []))
+        ].copy()
+    if commodity_underlying is not None:
+        target = commodity_underlying
+        result = result.loc[
+            result["commodity_underlyings"].map(lambda values: target in (values or []))
+        ].copy()
+    if classification_status is not None:
+        result = result.loc[
+            result["classification_status"] == classification_status
+        ].copy()
+    if not include_unknown:
+        result = result.loc[result["classification_status"] != "unknown"].copy()
+
+    result = result.reset_index(drop=True)
+    result.attrs.update(
+        {
+            "source": "tsetmc_market_watch",
+            "coverage": "current_listed_fund_universe_305_380",
+            "request_count": 1,
+            "no_fuzzy_join": True,
+            "no_backfill": True,
+            "as_of": data.get("fetched_at"),
+            "trade_date": data.get("trade_date"),
+            "is_realtime_fresh": data.get("is_realtime_fresh", False),
+            "is_stale": data.get("is_stale", True),
+            "taxonomy_version": FUND_TAXONOMY_VERSION,
+            "classification_policy": "unknown_without_exact_or_explicit_evidence",
+        }
+    )
     result.attrs["api"] = "list_listed_funds"
     result.attrs["registry_joined"] = False
+    if progress:
+        print(f"Done. {len(result)} listed funds matched.")
     return result
 
 
@@ -633,7 +986,15 @@ def list_bonds(progress=True):
 # ══════════════════════════════════════════════════════════════
 
 
-def list_funds(fund_type=None, progress=True, *, listed_only=False):
+def list_funds(
+    fund_type=None,
+    progress=True,
+    *,
+    listed_only=False,
+    strategy=None,
+    commodity_underlying=None,
+    classification_status=None,
+):
     """List investment funds with NAV, returns, portfolio composition and manager info.
 
     Fetches data from the TSETMC Fund API which provides rich information
@@ -652,12 +1013,14 @@ def list_funds(fund_type=None, progress=True, *, listed_only=False):
         - ``'fixed_income'`` — صندوق درآمد ثابت
         - ``'mixed'``        — صندوق مختلط
         - ``'market_maker'`` — صندوق بازارگردانی
-        - ``'venture'``      — صندوق جسورانه
+        - ``'venture_capital'`` — صندوق جسورانه (``'venture'`` نیز پذیرفته می‌شود)
         - ``'project'``      — صندوق پروژه
         - ``'real_estate'``  — صندوق زمین و ساختمان
         - ``'commodity'``    — صندوق کالایی (طلا، نقره، ...)
         - ``'private'``      — صندوق خصوصی
         - ``'fund_of_funds'``— صندوق در صندوق (ابر صندوق)
+        - ``'sector'`` / ``'leveraged'`` / ``'index'``
+        - ``'capital_guaranteed'`` / ``'supplementary_retirement'``
 
         If ``None`` (default), returns **all** fund types.
         If a string, returns only that type.
@@ -669,6 +1032,14 @@ def list_funds(fund_type=None, progress=True, *, listed_only=False):
         Return current exchange-listed funds from one MarketWatch snapshot.
         Cannot be combined with ``fund_type`` because the registry has no
         exact exchange identity suitable for that join.
+    strategy : str, keyword-only, optional
+        Exact strategy tag such as ``'sector'``, ``'leveraged'`` or
+        ``'index_tracking'``.
+    commodity_underlying : str, keyword-only, optional
+        Explicit commodity subtype such as ``'gold'``, ``'silver'`` or
+        ``'saffron'``. Rows without proof are not returned by this filter.
+    classification_status : str, keyword-only, optional
+        Auditable classification status to retain.
 
     Returns
     -------
@@ -719,26 +1090,42 @@ def list_funds(fund_type=None, progress=True, *, listed_only=False):
     >>> equity = att.list_funds(fund_type='equity')              # Equity only
     >>> fixed = att.list_funds(fund_type='fixed_income')         # Fixed income
     >>> multi = att.list_funds(fund_type=['equity', 'mixed'])    # Equity + Mixed
-    >>> gold = att.list_funds(fund_type='commodity')             # Gold/commodity
+    >>> commodity = att.list_funds(fund_type='commodity')        # All commodity
+    >>> gold = att.list_funds(
+    ...     fund_type='commodity', commodity_underlying='gold'
+    ... )
     >>> top = all_funds.nlargest(10, 'return_365d')              # Best annual return
     """
     if not isinstance(listed_only, bool):
         raise InvalidParameterError("listed_only must be bool")
+    strategy = _validate_fund_filter("strategy", strategy, _FUND_STRATEGY_TAGS)
+    commodity_underlying = _validate_fund_filter(
+        "commodity_underlying", commodity_underlying, _COMMODITY_UNDERLYINGS
+    )
+    classification_status = _validate_fund_filter(
+        "classification_status", classification_status, _CLASSIFICATION_STATUSES
+    )
     if listed_only:
         if fund_type is not None:
             raise InvalidParameterError(
                 "fund_type cannot be combined with listed_only because the "
                 "fund registry has no exact exchange identity"
             )
-        return list_listed_funds(progress=progress)
+        return list_listed_funds(
+            progress=progress,
+            strategy=strategy,
+            commodity_underlying=commodity_underlying,
+            classification_status=classification_status,
+        )
 
     # ── Determine which fund types to fetch ───────────────────
     all_type_ids = settings.fund_type_ids
     type_labels = settings.fund_type_labels
 
     if fund_type is None:
-        types_to_fetch = list(all_type_ids.values())
+        types_to_fetch = list(dict.fromkeys(all_type_ids.values()))
     elif isinstance(fund_type, str):
+        fund_type = _FUND_TYPE_ALIASES.get(fund_type, fund_type)
         if fund_type not in all_type_ids:
             valid = ", ".join(sorted(all_type_ids.keys()))
             print(f"Invalid fund_type '{fund_type}'. Valid types: {valid}")
@@ -747,6 +1134,7 @@ def list_funds(fund_type=None, progress=True, *, listed_only=False):
     elif isinstance(fund_type, list):
         types_to_fetch = []
         for ft in fund_type:
+            ft = _FUND_TYPE_ALIASES.get(ft, ft)
             if ft not in all_type_ids:
                 valid = ", ".join(sorted(all_type_ids.keys()))
                 print(f"Invalid fund_type '{ft}'. Valid types: {valid}")
@@ -780,11 +1168,13 @@ def list_funds(fund_type=None, progress=True, *, listed_only=False):
             continue
 
         for f in funds_list:
+            classification = _classify_registry_fund(f, type_id, label)
             all_rows.append(
                 {
                     "fund_name": f.get("mfName", ""),
-                    "fund_type": label,
+                    "fund_type": classification["registry_category"],
                     "reg_no": int(f["regNo"]) if f.get("regNo") else None,
+                    **classification,
                     # NAV & Assets
                     "nav_redemption": f.get("navRed"),
                     "nav_subscription": f.get("navSub"),
@@ -837,6 +1227,17 @@ def list_funds(fund_type=None, progress=True, *, listed_only=False):
 
     df = pd.DataFrame(all_rows)
 
+    if strategy is not None:
+        target = strategy
+        df = df.loc[df["strategy_tags"].map(lambda values: target in values)].copy()
+    if commodity_underlying is not None:
+        target = commodity_underlying
+        df = df.loc[
+            df["commodity_underlyings"].map(lambda values: target in values)
+        ].copy()
+    if classification_status is not None:
+        df = df.loc[df["classification_status"] == classification_status].copy()
+
     # Sort by fund_type then fund_name
     df = df.sort_values(["fund_type", "fund_name"], ignore_index=True)
 
@@ -845,6 +1246,15 @@ def list_funds(fund_type=None, progress=True, *, listed_only=False):
         summary = ", ".join(f"{v} {k}" for k, v in type_counts.items())
         print(f"Done. {len(df)} funds total ({summary}).")
 
+    df.attrs.update(
+        {
+            "source": "tsetmc_fund_registry",
+            "taxonomy_version": FUND_TAXONOMY_VERSION,
+            "no_fuzzy_join": True,
+            "registry_joined": False,
+            "discovery_signals": int((df["classification_status"] == "unknown").sum()),
+        }
+    )
     return df
 
 

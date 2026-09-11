@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.2.4-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.3.0-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -26,7 +26,8 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 - معاملات ریز، order book و صف خرید/فروش به‌صورت زنده و تاریخی
 - watcher بازار، پیام‌ها، تغییر وضعیت، breadth، جریان صنایع و ذخیرهٔ اختیاری تاریخچه روی SQLite
 - ۴۵ شاخص صنعت، اعضای رسمی، snapshot تحلیلی، تاریخچهٔ اعضا، کندل درون‌روزی، مقایسه و هم‌بستگی صنایع
-- EPS و P/E، صندوق‌های قابل معامله، رخدادهای تعدیل قیمت و حل دقیق هویت ابزار با `InsCode`
+- EPS و P/E، رخدادهای تعدیل قیمت و حل دقیق هویت ابزار با `InsCode`
+- صندوق‌های ثبت‌شده و بورسی با طبقه‌بندی چندمحوره، پوشش ابزارهای ۳۰۵ و ۳۸۰ و فیلتر مستقیم طلا، نقره، کالایی، اهرمی، بخشی و شاخصی
 - تحلیل اخزا شامل YTM، duration، convexity، DV01 و منحنی بازده زنده و تاریخی
 - تحلیل اختیار معامله شامل Black–Scholes، IV، Greeks، put-call parity، PCR و نقدشوندگی
 - ارز و سکه، اینترادی، سهامداران، شاخص‌ها، ETFها، صندوق‌ها و اوراق بدهی
@@ -68,6 +69,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | ⭐ `rank_industries()` | رتبه‌بندی صنایع با معیار انتخابی | `DataFrame` |
 | ⭐ `list_etfs()` | ETFها همراه قیمت و NAV | `DataFrame` |
 | ⭐ `list_funds()` | صندوق‌ها همراه NAV، بازده و ترکیب دارایی | `DataFrame` |
+| ⭐ `list_listed_funds()` | صندوق‌های بورسی و فیلتر نوع دارایی، استراتژی و کالای پایه | `DataFrame` |
 
 ### نقشهٔ کامل توابع کاربری
 
@@ -149,8 +151,9 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 | `get_symbols()` | فهرست سهام، حق‌تقدم، صندوق، اوراق و اختیار |
 | `list_options()` | فهرست قراردادهای اختیار فعال |
 | `get_options_chain()` | زنجیرهٔ call/put یک دارایی پایه |
-| `list_etfs()` | ETFها همراه NAV و discount/premium |
-| `list_funds()`, `list_listed_funds()` | صندوق‌های ثبت‌شده و ابزارهای بورسی دقیق |
+| `list_etfs()` | مسیر قدیمی صندوق‌های بورسی عمومی نوع ۳۰۵ همراه NAV و discount/premium |
+| `list_funds()` | صندوق‌های ثبتی با NAV، بازده، ترکیب دارایی و دسته/استراتژی قابل فیلتر |
+| `list_listed_funds()` | ابزارهای بورسی دقیق، شامل صندوق‌های عمومی و کالایی با فیلتر طلا/نقره |
 | `list_bonds()` | اوراق بدهی همراه سررسید |
 | `list_indices()`, `get_index_companies()` | API قدیمی شاخص‌ها و اعضای شاخص؛ برای صنعت APIهای بالا پیشنهاد می‌شوند |
 | `get_currency()` | ارز و سکه از API قدیمی TGJU |
@@ -217,6 +220,7 @@ Fetch TSETMC prices, client type, trades, order books, funds, bonds and options 
 - [مرجع تفصیلی همهٔ توابع](#مرجع-تفصیلی-همهٔ-توابع)
 - [مثال‌های کاربردی](#الگوهای-کاربردی)
 - [تست و مشارکت](#تست-و-مشارکت)
+- [تاریخچهٔ تغییرات](#تاریخچهٔ-تغییرات)
 
 ---
 
@@ -540,7 +544,12 @@ get_queue(symbol=None, side="both", strict=True, *, selector_strict=False)
 
 ```python
 list_etfs(progress=True)
-list_funds(fund_type=None, progress=True, *, listed_only=False)
+list_funds(fund_type=None, progress=True, *, listed_only=False,
+           strategy=None, commodity_underlying=None,
+           classification_status=None)
+list_listed_funds(progress=True, *, fund_category=None, strategy=None,
+                  commodity_underlying=None, classification_status=None,
+                  include_unknown=True)
 list_bonds(progress=True)
 list_options(underlying=None, progress=True)
 get_options_chain(underlying, fetch_oi=False, progress=True)
@@ -549,8 +558,13 @@ get_options_chain(underlying, fetch_oi=False, progress=True)
 | تابع/ورودی | گزینه‌ها و معنی |
 |---|---|
 | `progress` | در همهٔ این توابع فقط نمایش پیشرفت را کنترل می‌کند. |
-| `fund_type` | `None` برای همه یا `"equity"`, `"fixed_income"`, `"mixed"`, `"commodity"`, `"market_maker"`, `"venture"`, `"project"`, `"real_estate"`, `"private"`, `"fund_of_funds"`. فهرست چند نوع نیز مجاز است. |
+| `fund_type` | `None` برای همه یا یکی/فهرستی از `fixed_income`, `commodity`, `equity`, `mixed`, `market_maker`, `venture_capital`, `project`, `private`, `fund_of_funds`, `real_estate`, `sector`, `leveraged`, `index`, `capital_guaranteed`, `supplementary_retirement`. نام قدیمی `venture` نیز پذیرفته می‌شود. |
 | `listed_only` | در `list_funds()` فقط ابزارهای قابل معامله را برمی‌گرداند؛ هم‌زمان با `fund_type` مجاز نیست. |
+| `fund_category` | در `list_listed_funds()` دستهٔ اثبات‌شده، مانند `"commodity"`. |
+| `strategy` | تگ دقیق مانند `"sector"`, `"leveraged"`, `"index_tracking"` یا `"market_making"`. |
+| `commodity_underlying` | کالای پایهٔ اثبات‌شده: `"gold"`, `"silver"` یا `"saffron"`؛ نام عمومی حدس زده نمی‌شود. |
+| `classification_status` | فیلتر بر اساس `authoritative_field`, `verified_exact_mapping`, `explicit_official_name` یا `unknown`. |
+| `include_unknown` | در فهرست بورسی، با `False` ردیف‌های فاقد طبقه‌بندی کافی را حذف می‌کند؛ پیش‌فرض `True` همه را نگه می‌دارد. |
 | `underlying` | در `list_options()` فیلتر اختیاری و در `get_options_chain()` دارایی پایهٔ اجباری. |
 | `fetch_oi` | در زنجیرهٔ اختیار، دریافت Open Interest و metadata تکمیلی را فعال می‌کند و ممکن است درخواست‌های بیشتری بسازد. |
 
@@ -1534,15 +1548,32 @@ AsOf                         Symbol Close  EPS   PE  EPSSource    Source        
 
 ```python
 listed = att.list_listed_funds(progress=False)
-# معادل صریح:
-listed2 = att.list_funds(listed_only=True, progress=False)
+
+gold = att.list_listed_funds(
+    fund_category="commodity",
+    commodity_underlying="gold",
+    progress=False,
+)
+silver = att.list_listed_funds(commodity_underlying="silver", progress=False)
+
+sector_registry = att.list_funds(fund_type="sector", progress=False)
+leveraged_registry = att.list_funds(fund_type="leveraged", progress=False)
+index_registry = att.list_funds(fund_type="index", progress=False)
 ```
 
-`list_listed_funds()` یک bulk call بازار دارد و join fuzzy با registry صندوق‌ها انجام نمی‌دهد. schema:
+`list_listed_funds()` با یک bulk call هر دو گروه `InstrumentType=305` (صندوق بورسی عمومی) و `InstrumentType=380` (صندوق کالایی بورسی) را می‌گیرد. `list_funds()` از registry صندوق‌ها می‌آید و اطلاعاتی مثل NAV، بازده، ترکیب دارایی و مدیر را برمی‌گرداند. این دو منبع شناسهٔ مشترک قطعی ندارند و با شباهت نام به هم متصل نمی‌شوند.
+
+«کالایی» مترادف «طلا» نیست و ETF نیز سازوکار معامله است، نه طبقه دارایی. طلا، نقره و زعفران فقط از نگاشت دقیق `InsCode+ISIN` یا عبارت صریح در نام رسمی تشخیص داده می‌شوند. عباراتی مثل «زر»، «گوهر» یا «سیمین» به‌تنهایی مدرک نیستند. اگر مدرک کافی وجود نداشته باشد، مقدار `unknown` برمی‌گردد و `needs_review=True` می‌شود؛ پوشش زیرنوع‌ها ممکن است کامل نباشد.
+
+schema فهرست بورسی:
 
 ```text
-InsCode, ISIN, Symbol, Name, Last, Close, Yesterday, Volume, Value,
-TradeCount, Low, High, NAV, NAV_Discount, Change, ChangePct, MarketCode
+InsCode, ISIN, Symbol, Name, InstrumentType, Flow, MarketCode,
+Last, Close, Yesterday, Volume, Value, TradeCount, Low, High, NAV,
+NAV_Discount, Change, ChangePct, fund_category, asset_exposure,
+strategy_tags, trading_mechanism, unit_class, commodity_profile,
+commodity_underlyings, primary_commodity, classification_status,
+classification_source, classification_evidence, taxonomy_version, needs_review
 ```
 
 ```text
@@ -1550,7 +1581,7 @@ Symbol InsCode ISIN          Last Close NAV NAV_Discount Volume
 افران  ...     IRO3AFRZ0001  21650 21620 ... ...          1250040
 ```
 
-attrsهای `no_fuzzy_join=True` و `registry_joined=False` قرارداد هویتی را روشن می‌کنند. `list_funds()` بدون `listed_only` همان API قدیمی registry صندوق‌هاست و ستون/منبع متفاوتی دارد.
+در خروجی registry نیز `registry_type_id`, `registry_category`, `asset_exposure`, `strategy_tags`, `classification_status`, `classification_source`, `classification_evidence`, `taxonomy_version`, `record_date` و `needs_review` در کنار ستون‌های قبلی حفظ می‌شوند. ثابت `FUND_TAXONOMY_VERSION` نسخهٔ مرجع طبقه‌بندی را نشان می‌دهد. attrsهای `no_fuzzy_join=True` و `registry_joined=False` قرارداد هویتی را روشن می‌کنند.
 
 ### رخدادهای تعدیل قیمت
 
@@ -2007,7 +2038,7 @@ industry_snapshot = att.get_industry_snapshot("بانک", progress=False)
 
 `get_symbols(output="list")` فقط نام نمادها را می‌دهد؛ `dataframe` metadata بازار/نوع ابزار را نگه می‌دارد. `payeh_color` یکی از `زرد`, `نارنجی`, `قرمز` است. برای جلوگیری از universe اشتباه، asset-type flagها را صریح تنظیم کنید.
 
-`list_etfs()` اطلاعات معامله و NAV/discount را می‌دهد. `list_bonds()` metadata اوراق و سررسید را فهرست می‌کند ولی analytics دقیق اخزا در APIهای fixed-income بالاست. `list_funds()` registry صندوق‌هاست؛ `list_listed_funds()` فقط ابزارهای واقعاً قابل معامله در feed بازار را با InsCode/ISIN دقیق می‌دهد.
+`list_etfs()` برای سازگاری قبلی فقط صندوق‌های بورسی عمومی نوع ۳۰۵ و NAV/discount را می‌دهد. `list_bonds()` metadata اوراق و سررسید را فهرست می‌کند ولی analytics دقیق اخزا در APIهای fixed-income بالاست. `list_funds()` registry صندوق‌هاست؛ `list_listed_funds()` ابزارهای واقعاً قابل معاملهٔ نوع ۳۰۵ و ۳۸۰ را با InsCode/ISIN دقیق و طبقه‌بندی قابل فیلتر می‌دهد.
 
 ### شاخص‌ها
 
@@ -2605,8 +2636,8 @@ save_option_snapshot(path, options=None, exchange=0, progress=True, *, lock_time
 load_option_snapshots(path)
 list_etfs(progress=True)
 list_bonds(progress=True)
-list_funds(fund_type=None, progress=True, *, listed_only=False)
-list_listed_funds(progress=True)
+list_funds(fund_type=None, progress=True, *, listed_only=False, strategy=None, commodity_underlying=None, classification_status=None)
+list_listed_funds(progress=True, *, fund_category=None, strategy=None, commodity_underlying=None, classification_status=None, include_unknown=True)
 list_indices(progress=True)
 get_index_companies(index_name, progress=True)
 ```
@@ -2627,8 +2658,8 @@ get_index_companies(index_name, progress=True)
 | `load_option_snapshots` | `path` JSON versioned. | `DataFrame` با `OPTION_COLUMNS` و attrs؛ فایل گم‌شده **خطا نیست** و frame تهی با `attrs['status']='missing'` می‌دهد. | JSON خراب `JSONDecodeError` و version ناسازگار `ValueError`; مثال history. |
 | `list_etfs` | فقط `progress`. | `DataFrame[InsCode,ISIN,Symbol,Name,Last,Close,Yesterday,Volume,Value,TradeCount,Low,High,NAV,NAV_Discount,Change,ChangePct,MarketCode]`. | provider typed/empty؛ مثال `list_etfs().query("NAV_Discount < -1")`. |
 | `list_bonds` | فقط `progress`. | `DataFrame[InsCode,ISIN,Symbol,Name,BondType,Ticker,MaturityJalali,MaturityGregorian,DaysToMaturity,Last,Close,Yesterday,Volume,Value,TradeCount,Change,ChangePct]`. | parse/provider؛ maturity نامعلوم nullable؛ مثال فصل ابزارها. |
-| `list_funds` | `fund_type: str|list|None` از categories settings؛ `listed_only=False`; listed_only با type filter قابل ترکیب نیست. | registry rich funds (NAV/returns/composition/manager) بدون تضمین InsCode؛ با `listed_only=True` دقیقاً schema `list_listed_funds`. attrs `no_fuzzy_join=True`. | type/category/combo نامعتبر `ValueError`; provider errors؛ مثال funds. |
-| `list_listed_funds` | فقط `progress`; یک MarketWatch bulk. | `LISTED_FUND_COLUMNS`؛ attrs `no_fuzzy_join=True,registry_joined=False`. | connection/parsing؛ مثال فصل صندوق. |
+| `list_funds` | `fund_type: str|list|None` از ۱۵ دستهٔ ثبتی؛ `listed_only=False`؛ فیلترهای keyword-only: `strategy`, `commodity_underlying`, `classification_status`؛ نام قدیمی `venture` alias است. | registry rich funds با NAV/returns/composition/manager و محورهای `registry_category,asset_exposure,strategy_tags` و شواهد طبقه‌بندی؛ بدون تضمین InsCode. | type/category/combo/filter نامعتبر `InvalidParameterError` یا رفتار سازگار legacy؛ provider خطادار کنار گذاشته می‌شود؛ مثال فصل صندوق. |
+| `list_listed_funds` | یک MarketWatch bulk؛ `fund_category`, `strategy`, `commodity_underlying`, `classification_status`; `include_unknown=True`. | `LISTED_FUND_COLUMNS` شامل `InstrumentType` و تمام محورهای taxonomy؛ هر دو نوع ۳۰۵ و ۳۸۰؛ attrs `no_fuzzy_join=True,registry_joined=False,taxonomy_version`. | فیلتر نامعتبر `InvalidParameterError`؛ connection/parsing؛ مثال `list_listed_funds(commodity_underlying="gold")`. |
 | `list_indices` | فقط `progress`. | `DataFrame[Name,InsCode,Value,High,Low,Change,ChangePct]`؛ از 1.2.0 `Change` حرکت واحد شاخص و `ChangePct` درصد است. | مسیر legacy در خطای provider frame تهی/پیام؛ برای صنعت `list_industry_indices` پیشنهاد می‌شود. |
 | `get_index_companies` | `index_name: str` فارسی یا InsCode. | `DataFrame[Symbol,Name,InsCode,Close,Yesterday,Last]`. | index گم‌شده/provider در مسیر legacy frame تهی/پیام؛ مثال فصل شاخص. |
 
@@ -2790,5 +2821,25 @@ python -m pytest -m "not online" -q
 - وب‌سایت: [algotik.com](https://algotik.com)
 - تلگرام: [t.me/algotik](https://t.me/algotik)
 - نویسنده: Mohsen Alipour — `alipour@algotik.ir`
+
+## تاریخچهٔ تغییرات
+
+این بخش در هر انتشار به‌روزرسانی می‌شود؛ جزئیات کامل‌تر در [HISTORY.rst](HISTORY.rst) ثبت شده است.
+
+- **1.3.0 — 2026-09-12:** طبقه‌بندی چندمحورهٔ صندوق‌ها، اصلاح شناسه‌های registry، افزودن پنج دستهٔ جدید، پوشش صندوق‌های بورسی نوع ۳۸۰، فیلتر طلا/نقره/زعفران و شواهد قابل ممیزی.
+- **1.2.4 — 2026-09-02:** رویدادهای افزوده/حذف‌شدهٔ اعضای شاخص صنعت.
+- **1.2.3 — 2026-09-01:** churn، تمرکز، مومنتوم، همسایگی همبستگی و امتیاز سلامت صنایع.
+- **1.2.2 — 2026-09-01:** سنجش همپوشانی اعضای رسمی صنایع.
+- **1.2.1 — 2026-09-01:** مقایسه، قدرت نسبی و همبستگی صنایع.
+- **1.2.0 — 2026-09-01:** API کامل شاخص‌های صنعت، اعضا، تاریخچه، intraday و رتبه‌بندی.
+- **1.1.3 — 2026-08-28:** بازطراحی راهنمای PDF و هماهنگ‌سازی badge نسخه.
+- **1.1.2 — 2026-08-28:** بازطراحی README و تکمیل قرارداد ورودی/خروجی توابع.
+- **1.1.1 — 2026-08-25:** بهبود نمایش فارسی و تکمیل badgeهای پروژه.
+- **1.1.0 — 2026-08-24:** دادهٔ زنده/تاریخی، watcher، SQLite، اخزا، منحنی بازده و اختیار معامله.
+- **1.0.3 — 2026-07-12:** جست‌وجوی املای canonical نماد با نرمال‌سازی فارسی/عربی.
+- **1.0.2 — 2026-03-24:** گسترش شاخص‌های صنعت و افزودن فهرست شاخص‌ها و اعضا.
+- **1.0.1 — 2026-02-19:** تکمیل وابستگی‌ها و اصلاح نوع دادهٔ `NAV_Discount`.
+- **1.0.0 — 2025-07-12:** انتشار پایدار با HTTP client مرکزی، تنظیمات و exceptionهای اختصاصی.
+- **0.3.12 تا 0.2.8 — 2023 تا 2024:** نسخه‌های آغازین قیمت، سهامداران، افزایش سرمایه، اطلاعات نماد، ارز و فهرست ابزارها.
 
 </div>

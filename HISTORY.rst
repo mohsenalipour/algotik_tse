@@ -2,6 +2,20 @@
 History
 =======
 
+1.3.0 (2026-09-12)
+------------------
+
+* Added a multi-axis, evidence-bearing fund taxonomy covering registry category,
+  asset exposure, strategy, trading mechanism, unit class and commodity exposure.
+* Corrected registry IDs for real-estate funds, retained market makers at ID 11,
+  and added sector, leveraged, index, capital-guaranteed and supplementary-retirement
+  registry categories.
+* Expanded ``list_listed_funds()`` to include TSETMC instrument types 305 and 380,
+  with exact gold, silver and saffron filters and explicit ``unknown`` fallbacks.
+* Added a versioned machine-readable taxonomy registry and fail-closed InsCode/ISIN
+  identity checks; registry and listed surfaces remain separate without fuzzy joins.
+* Expanded the README feature map, fund API contracts, examples and embedded changelog.
+
 1.2.4 (2026-09-02)
 -------------------
 

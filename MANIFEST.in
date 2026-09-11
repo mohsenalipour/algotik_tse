@@ -7,6 +7,7 @@ include README.md
 include requirements.txt
 
 recursive-include algotik_tse *.py
+recursive-include algotik_tse/data *.json
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 

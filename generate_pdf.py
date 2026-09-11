@@ -31,9 +31,9 @@ README_PATH = ROOT / "README.md"
 FONT_DIR = ROOT / "fonts"
 LOGO_PATH = ROOT / "docs" / "assets" / "algotik_logo_stacked_1024.png"
 TMP_DIR = ROOT / "tmp" / "pdfs"
-DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.2.4_preview.pdf"
-VERSION = "1.2.4"
-RELEASE_DATE = "1 September 2026"
+DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.3.0_preview.pdf"
+VERSION = "1.3.0"
+RELEASE_DATE = "12 September 2026"
 
 
 def parse_args():

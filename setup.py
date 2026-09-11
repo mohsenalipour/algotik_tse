@@ -51,6 +51,7 @@ setup(
     long_description=read_readme(),
     long_description_content_type="text/markdown",
     include_package_data=True,
+    package_data={"algotik_tse.data": ["*.json"]},
     keywords="tse, tsetmc, tehran stock exchange, bourse, algotik, stock, market data, iran",
     name="algotik_tse",
     packages=find_packages(include=["algotik_tse", "algotik_tse.*"]),
@@ -61,6 +62,6 @@ setup(
         "Documentation": "https://github.com/mohsenalipour/algotik_tse#readme",
         "Telegram": "https://t.me/algotik",
     },
-    version="1.2.4",
+    version="1.3.0",
     zip_safe=False,
 )

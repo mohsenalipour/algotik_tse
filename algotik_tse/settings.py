@@ -191,28 +191,38 @@ class Settings:
         self.url_ifb_yield_table = "https://ifb.ir/ytm.aspx"
 
         self.fund_type_ids = {
-            "equity": 6,
             "fixed_income": 4,
+            "commodity": 5,
+            "equity": 6,
             "mixed": 7,
             "market_maker": 11,
-            "venture": 12,
+            "venture_capital": 12,
             "project": 13,
-            "real_estate": 14,
-            "commodity": 5,
             "private": 16,
             "fund_of_funds": 17,
+            "real_estate": 18,
+            "sector": 21,
+            "leveraged": 22,
+            "index": 23,
+            "capital_guaranteed": 24,
+            "supplementary_retirement": 25,
         }
         self.fund_type_labels = {
-            6: "equity",
             4: "fixed_income",
+            5: "commodity",
+            6: "equity",
             7: "mixed",
             11: "market_maker",
-            12: "venture",
+            12: "venture_capital",
             13: "project",
-            14: "real_estate",
-            5: "commodity",
             16: "private",
             17: "fund_of_funds",
+            18: "real_estate",
+            21: "sector",
+            22: "leveraged",
+            23: "index",
+            24: "capital_guaranteed",
+            25: "supplementary_retirement",
         }
 
         self.currency_web_word = {
