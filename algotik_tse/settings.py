@@ -120,6 +120,10 @@ class Settings:
             "https://cdn.tsetmc.com/api/Shareholder/GetInstrumentShareHolderLast/{}"
         )
         self.url_share_holders_history = "https://cdn.tsetmc.com/api/Shareholder/{}/{}"
+        self.url_major_shareholder_changes = (
+            "https://cdn.tsetmc.com/api/Shareholder/GetShareHolderChanges/false"
+        )
+        self.url_symbol_messages = "https://cdn.tsetmc.com/api/Msg/GetMsgByInsCode/{}"
         self.url_capital_increase = (
             "https://cdn.tsetmc.com/api/Instrument/GetInstrumentShareChange/{}"
         )

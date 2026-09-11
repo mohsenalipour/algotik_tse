@@ -62,6 +62,6 @@ setup(
         "Documentation": "https://github.com/mohsenalipour/algotik_tse#readme",
         "Telegram": "https://t.me/algotik",
     },
-    version="1.4.0",
+    version="1.5.0",
     zip_safe=False,
 )

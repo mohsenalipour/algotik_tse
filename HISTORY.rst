@@ -2,6 +2,22 @@
 History
 =======
 
+1.5.0 (2026-09-12)
+------------------
+
+* Added explicit rolling major-shareholder snapshots for the at-most-five
+  dates published by TSETMC, without representing the feed as full history.
+* Added consecutive-snapshot change rows and active-holder accumulation and
+  distribution summaries with exact ``InsCode`` identity enrichment.
+* Preserved provider caveats in machine-readable metadata: recent-change-board
+  coverage only, no server backfill, non-trade transfers, delayed session
+  semantics, no stable holder ID, and official-inquiry limitations.
+* Added an exact-instrument TSETMC-native event timeline for supervisor
+  messages, capital changes and price adjustments; Codal disclosures and
+  unconfirmed DPS classification remain excluded.
+* Added deterministic parser/contract tests, bounded live checks, README
+  contracts and the RTL PDF guide update for version 1.5.0.
+
 1.4.0 (2026-09-12)
 ------------------
 
