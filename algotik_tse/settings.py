@@ -211,8 +211,7 @@ class Settings:
 
         # Official Iran Energy Exchange / Iran Mercantile Exchange feeds.
         self.url_energy_auction_list = (
-            "https://cdn.tsetmc.com/api/Energy/"
-            "GetGetAuctionListItemByType/{}/{}/{}"
+            "https://cdn.tsetmc.com/api/Energy/" "GetGetAuctionListItemByType/{}/{}/{}"
         )
         self.url_energy_auction_detail = (
             "https://cdn.tsetmc.com/api/Energy/GetAuctionById/{}"
@@ -327,6 +326,24 @@ class Settings:
             "ربع سکه": "rob-seke",
             "سکه گرمی": "seke-gerami",
         }
+        # Keep the long-standing public settings dictionaries in sync with the
+        # verified TGJU catalog used by get_currency()/get_tgju_history().
+        from algotik_tse.core.tgju import TGJU_ASSETS
+
+        self.currency_web_word = {
+            name: {
+                "web_word": asset["Slug"],
+                "persian_word": asset["PersianName"],
+                "category": asset["Category"],
+                "unit": asset["Unit"],
+            }
+            for name, asset in TGJU_ASSETS.items()
+        }
+        self.currency_persian = {}
+        for name, asset in TGJU_ASSETS.items():
+            for alias in (asset["PersianName"],) + asset["Aliases"]:
+                if not alias.isascii():
+                    self.currency_persian[alias] = name
         self.payeh_market_color_num = {"زرد": [0, 1], "نارنجی": [1, 2], "قرمز": [2, 4]}
         self.payeh_market_color = [
             "بازار پايه زرد فرابورس",

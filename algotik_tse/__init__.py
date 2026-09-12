@@ -1,7 +1,7 @@
 """AlgoTik TSE — Tehran Stock Exchange data library for Python.
 
 A comprehensive Python library for fetching market data from the Tehran Stock
-Exchange (TSETMC) and currency/coin prices from TGJU. All outputs are returned
+Exchange (TSETMC) and currency, precious-metal and coin prices from TGJU. Most outputs are returned
 as Pandas DataFrames with Jalali (Shamsi) date support.
 
 Main module code by @Python4finance
@@ -31,7 +31,7 @@ Quick Start
     att.get_shareholders('شتران')
     att.get_capital_increase('شتران')
 
-    # Currency / Coin prices
+    # Currency / precious-metal / coin prices
     att.get_currency('dollar')
     att.get_currency(['ربع سکه', 'euro'])
 
@@ -64,6 +64,12 @@ Quick Start
     att.get_commodity_market(kind='certificate')
     att.get_commodity_physical_history('1405-01-01')
 
+    # Manager analytics — comparison, liquidity, regime and market map
+    att.compare_symbols(['فولاد', 'فملی'], benchmark='شاخص کل')
+    att.get_liquidity_metrics(['فولاد', 'فملی'])
+    att.get_market_regime()
+    att.plot_market_map(att.get_market_map(top=50))
+
     # Investment funds — NAV, returns, portfolio, manager
     att.list_funds()
     att.list_funds(fund_type='equity')
@@ -76,7 +82,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.6.0"
+__version__ = "1.8.0"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (
@@ -107,6 +113,7 @@ from algotik_tse.core.ownership import (
 )
 from algotik_tse.core.symbol_events import get_symbol_events
 from algotik_tse.core.currency import currency_coin
+from algotik_tse.core.tgju import get_tgju_history, list_tgju_assets
 from algotik_tse.core.intraday import stock_intraday, _INTRADAY_DEFAULT_SYMBOL
 from algotik_tse.core.market_data import (
     market_watch,
@@ -155,6 +162,7 @@ from algotik_tse.core.instruments import (
     get_options_chain,
     list_etfs,
     list_bonds,
+    list_debt_instruments,
     list_funds,
     list_listed_funds,
     list_indices,
@@ -205,6 +213,7 @@ from algotik_tse.core.fixed_income import (
     bond_analytics,
     build_yield_curve,
     get_ifb_yield_table,
+    get_debt_yields,
     get_treasury_yields,
     get_treasury_yield_history,
     get_treasury_yields_history,
@@ -251,6 +260,13 @@ from algotik_tse.core.energy_commodity import (
     get_futures_curve,
     get_calendar_spreads,
     analyze_cash_and_carry,
+)
+from algotik_tse.core.manager_analytics import (
+    compare_symbols,
+    get_liquidity_metrics,
+    get_market_regime,
+    get_market_map,
+    plot_market_map,
 )
 
 # ── Standard API aliases (recommended) ────────────────────────
@@ -478,7 +494,7 @@ def get_currency(
     save_path=None,
     **kwargs,
 ):
-    """Get currency/coin price history."""
+    """Get TGJU currency, precious-metal or coin price history."""
     return currency_coin(
         name=name,
         start=start,
@@ -557,6 +573,12 @@ __all__ = [
     "get_instrument_changes",
     "get_theoretical_opening_price",
     "get_preopen_imbalance",
+    # ── Manager analytics ──
+    "compare_symbols",
+    "get_liquidity_metrics",
+    "get_market_regime",
+    "get_market_map",
+    "plot_market_map",
     # ── Energy and commodity markets ──
     "get_energy_auctions",
     "get_energy_auction",
@@ -612,6 +634,7 @@ __all__ = [
     "bond_analytics",
     "build_yield_curve",
     "get_ifb_yield_table",
+    "get_debt_yields",
     "get_treasury_yields",
     "get_treasury_yield_history",
     "get_treasury_yields_history",
@@ -634,6 +657,7 @@ __all__ = [
     "list_etfs",
     "FUND_TAXONOMY_VERSION",
     "list_bonds",
+    "list_debt_instruments",
     "list_funds",
     "list_listed_funds",
     # ── Indices ──
@@ -669,6 +693,8 @@ __all__ = [
     "stocklist",
     "shareholders",
     "currency_coin",
+    "get_tgju_history",
+    "list_tgju_assets",
     "market_watch",
     "market_client_type",
     "market_data",

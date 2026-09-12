@@ -31,8 +31,8 @@ README_PATH = ROOT / "README.md"
 FONT_DIR = ROOT / "fonts"
 LOGO_PATH = ROOT / "docs" / "assets" / "algotik_logo_stacked_1024.png"
 TMP_DIR = ROOT / "tmp" / "pdfs"
-DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.6.0_preview.pdf"
-VERSION = "1.6.0"
+DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.8.0_preview.pdf"
+VERSION = "1.8.0"
 RELEASE_DATE = "13 September 2026"
 
 
@@ -236,8 +236,8 @@ img {{ max-width: 100%; }}
   <p class="subtitle-en">Tehran Stock Exchange Data &amp; Analytics Library</p>
   <p class="subtitle-fa">کتابخانهٔ داده و تحلیل بازار سرمایهٔ ایران</p>
   <div class="rule"></div>
-  <p class="tags">Stocks · Live Market · Options · ETFs · Bonds · Currency</p>
-  <p class="tags-fa">سهام · بازار زنده · اختیار معامله · صندوق · اوراق بدهی · ارز و سکه</p>
+  <p class="tags">Stocks · Live Market · Options · ETFs · Debt · Gold &amp; FX</p>
+  <p class="tags-fa">سهام · بازار زنده · اختیار معامله · صندوق · اراد و گام · طلا و ارز</p>
   <div class="meta">Python 3.8–3.14<br>{date}<br><span class="site">algotik.com</span><br>Mohsen Alipour · @algotik</div>
 </section>
 
@@ -247,7 +247,7 @@ img {{ max-width: 100%; }}
   <p class="lead">این راهنما دو لایه دارد: ابتدا مسیرهای سریع و توابعی که بیشتر کاربران هر روز نیاز دارند؛ سپس مرجع کامل ورودی‌ها، گزینه‌ها، خروجی‌ها و نکات رفتاری همهٔ APIهای عمومی پکیج.</p>
   <div class="path-grid">
     <a class="path-card" href="#شروع-سریع"><span class="num">۱</span><h3>شروع سریع</h3><p>نصب، import و اولین دریافت تاریخچهٔ قیمت در چند دقیقه.</p></a>
-    <a class="path-card" href="#راهنمای-توابع-پرکاربرد"><span class="num">۲</span><h3>توابع پرکاربرد</h3><p>قیمت، حقیقی/حقوقی، بازار زنده، سفارش، ارز، صندوق، اخزا و اختیار.</p></a>
+    <a class="path-card" href="#راهنمای-توابع-پرکاربرد"><span class="num">۲</span><h3>توابع پرکاربرد</h3><p>قیمت، بازار زنده، سفارش، طلا و ارز، صندوق، اخزا، اراد، گام و اختیار.</p></a>
     <a class="path-card" href="#قراردادهای-مهم-داده"><span class="num">۳</span><h3>قراردادهای داده</h3><p>نوع خروجی، تاریخ، freshness، ردیف امروز، CSV و مرز منابع داده.</p></a>
     <a class="path-card" href="#مرجع-تفصیلی-همهٔ-توابع"><span class="num">۴</span><h3>مرجع تفصیلی</h3><p>signatureها، تمام ورودی‌ها، مقدارهای مجاز، پیش‌فرض‌ها و خروجی هر خانوادهٔ تابع.</p></a>
   </div>

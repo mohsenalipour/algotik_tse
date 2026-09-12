@@ -100,9 +100,17 @@ def parse_option_symbol(symbol):
 #   Government: "مرابحه عام دولت175-ش.خ060327" → ش.خ{YYMMDD}
 #   Corporate:  "مرابحه طبيعت سبز-سپهر060920"  → trailing YYMMDD
 #   With 14-prefix: "اجاره دومينو14061003"       → trailing YYMMDD
-_BOND_MATURITY_SHKH = re.compile(r"ش\.خ\.?(\d{6})")  # Government bonds
-_BOND_MATURITY_TAIL = re.compile(r"(\d{6})\s*(?:\(|$)")  # Corporate bonds
+_BOND_MATURITY_SHKH = re.compile(r"ش\.خ\.?(\d{8}|\d{6})")  # Government bonds
+_BOND_MATURITY_TAIL = re.compile(r"(\d{8}|\d{6})\s*(?:\(|$)")  # Corporate/GAM
 _BOND_TICKER_RE = re.compile(r"\(([^)]+)\)")
+
+
+def _bond_date_to_jalali(value):
+    """Normalize either YYYYMMDD or YYMMDD Jalali encodings."""
+    text = str(value).translate(_PERSIAN_ARABIC_DIGITS)
+    if len(text) == 8:
+        return "{}/{}/{}".format(text[:4], text[4:6], text[6:8])
+    return _yymmdd_to_jalali(text)
 
 
 def parse_bond_name(name):
@@ -119,7 +127,7 @@ def parse_bond_name(name):
     dict or None
         Dictionary with keys:
 
-        - ``bond_type`` — ``'murabaha'``, ``'ijara'``, ``'salaf'``, or ``'other'``
+        - ``bond_type`` — ``'gam'``, ``'murabaha'``, ``'ijara'``, ``'salaf'``, or ``'other'``
         - ``maturity_jalali`` — Maturity date string (e.g. ``'1406/03/27'``)
         - ``maturity_gregorian`` — Maturity as ``datetime.date`` or None
         - ``ticker`` — Ticker symbol (e.g. ``'اراد1754'``) or None
@@ -127,8 +135,17 @@ def parse_bond_name(name):
         Returns ``None`` if no maturity date can be extracted.
     """
     # Determine bond sub-type
-    name_lower = name.strip()
-    if "مرابحه" in name_lower:
+    name_lower = (
+        str(name)
+        .translate(_PERSIAN_ARABIC_DIGITS)
+        .replace("ي", "ی")
+        .replace("ك", "ک")
+        .strip()
+    )
+    compact = name_lower.replace("\u200c", "").replace(" ", "")
+    if "گواهیاعتبارمولد" in compact or compact.startswith("گام"):
+        bond_type = "gam"
+    elif "مرابحه" in name_lower:
         bond_type = "murabaha"
     elif "اجاره" in name_lower:
         bond_type = "ijara"
@@ -144,7 +161,7 @@ def parse_bond_name(name):
     if not m:
         return None
 
-    maturity_jalali = _yymmdd_to_jalali(m.group(1))
+    maturity_jalali = _bond_date_to_jalali(m.group(1))
     maturity_greg = _jalali_str_to_date(maturity_jalali)
 
     # Extract ticker from parentheses

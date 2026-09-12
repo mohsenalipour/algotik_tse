@@ -45,8 +45,9 @@ setup(
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.14",
     ],
-    description="A comprehensive Python library for fetching Tehran Stock Exchange (TSETMC) and currency/coin market data.",
+    description="Iran capital-market data and analytics for TSETMC, debt, gold, FX, energy and commodities.",
     install_requires=requirements,
+    extras_require={"visualization": ["plotly>=5.0"]},
     license="GNU General Public License v3",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
@@ -62,6 +63,6 @@ setup(
         "Documentation": "https://github.com/mohsenalipour/algotik_tse#readme",
         "Telegram": "https://t.me/algotik",
     },
-    version="1.6.0",
+    version="1.8.0",
     zip_safe=False,
 )

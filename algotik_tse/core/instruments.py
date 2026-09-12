@@ -898,7 +898,7 @@ def list_bonds(progress=True):
         - ``ISIN`` — International Securities ID
         - ``Symbol`` — Symbol
         - ``Name`` — Full name
-        - ``BondType`` — ``'murabaha'``, ``'treasury'``, ``'ijara'``, ``'salaf'``, ``'other'``
+        - ``BondType`` — ``'gam'``, ``'murabaha'``, ``'treasury'``, ``'ijara'``, ``'salaf'``, ``'other'``
         - ``Ticker`` — Short ticker (e.g. ``'اراد1754'``, ``'اخزا4024'``)
         - ``MaturityJalali`` — Maturity date (Jalali string)
         - ``MaturityGregorian`` — Maturity as datetime.date
@@ -928,16 +928,24 @@ def list_bonds(progress=True):
 
     parsed_rows = []
     for _, row in stocks_df.iterrows():
-        name = row["Name"]
+        name = str(row["Name"])
+        symbol = str(row["Symbol"])
+        normalized_name = name.replace("ي", "ی").replace("ك", "ک")
+        compact_name = normalized_name.replace("\u200c", "").replace(" ", "")
         parsed = None
 
         # Try treasury first (اسناد خزانه / اخزا)
-        if any(kw in name for kw in ["اسناد", "خزانه", "اخزا"]):
+        if any(kw in normalized_name for kw in ["اسناد", "خزانه", "اخزا"]):
             parsed = parse_treasury_name(name)
 
         # Try bond (مرابحه, اجاره, etc.)
-        if parsed is None and any(
-            kw in name for kw in ["مرابحه", "اجاره", "سلف", "اراد", "ش.خ"]
+        is_gam = symbol.startswith("گام") or "گواهیاعتبارمولد" in compact_name
+        if parsed is None and (
+            is_gam
+            or any(
+                kw in normalized_name
+                for kw in ["مرابحه", "اجاره", "سلف", "اراد", "ش.خ"]
+            )
         ):
             parsed = parse_bond_name(name)
 
@@ -979,6 +987,68 @@ def list_bonds(progress=True):
             print(f"Done. {len(result)} instruments found ({summary}).")
 
     return result.reset_index(drop=True) if not result.empty else result
+
+
+_DEBT_TYPES = ("treasury", "erad", "gam", "murabaha", "ijara", "salaf", "other")
+
+
+def _debt_type(row):
+    symbol = str(row.get("Symbol", "")).replace("ي", "ی").strip()
+    bond_type = str(row.get("BondType", "other")).lower()
+    if symbol.startswith("اخزا") or bond_type == "treasury":
+        return "treasury"
+    if symbol.startswith("اراد"):
+        return "erad"
+    if symbol.startswith("گام") or bond_type == "gam":
+        return "gam"
+    return bond_type if bond_type in _DEBT_TYPES else "other"
+
+
+def list_debt_instruments(debt_type=None, active_only=False, progress=True):
+    """List current TSETMC debt instruments, including ERAD and GAM.
+
+    Parameters
+    ----------
+    debt_type : str or sequence of str, optional
+        Filter by ``treasury``, ``erad``, ``gam``, ``murabaha``, ``ijara``,
+        ``salaf`` or ``other``. ``erad`` is separated from other Murabaha
+        securities by its official market symbol prefix.
+    active_only : bool, default False
+        Keep instruments whose maturity date is today or later.
+    progress : bool, default True
+        Print retrieval progress.
+    """
+    if not isinstance(active_only, bool) or not isinstance(progress, bool):
+        raise InvalidParameterError("active_only and progress must be bool")
+    if debt_type is None:
+        selected = None
+    else:
+        values = [debt_type] if isinstance(debt_type, str) else list(debt_type)
+        selected = {str(value).strip().lower() for value in values}
+        invalid = selected.difference(_DEBT_TYPES)
+        if invalid:
+            raise InvalidParameterError(
+                "debt_type must contain only: {}".format(", ".join(_DEBT_TYPES))
+            )
+    result = list_bonds(progress=progress).copy()
+    if result.empty:
+        result.insert(4, "DebtType", pd.Series(dtype="object"))
+    else:
+        result.insert(4, "DebtType", result.apply(_debt_type, axis=1))
+        if selected is not None:
+            result = result.loc[result["DebtType"].isin(selected)].copy()
+        if active_only:
+            result = result.loc[result["DaysToMaturity"].ge(0)].copy()
+        result = result.reset_index(drop=True)
+    result.attrs.update(
+        {
+            "source": "tsetmc_market_watch",
+            "debt_type": debt_type,
+            "active_only": active_only,
+            "coverage": "current_market_snapshot",
+        }
+    )
+    return result
 
 
 # ══════════════════════════════════════════════════════════════

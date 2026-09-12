@@ -2,6 +2,40 @@
 History
 =======
 
+1.8.0 (2026-09-13)
+------------------
+
+* Added first-class ERAD and GAM discovery with exact debt-type filters,
+  six/eight-digit Jalali maturity parsing and unchanged ``list_bonds``
+  compatibility.
+* Added official IFB all-debt reference yields for ``treasury``, ``erad`` and
+  ``gam`` without inferring coupon cashflows or face values.
+* Expanded TGJU history coverage to a verified 87-series catalog: 36
+  free-market currencies, 24 published official-rate series, domestic gold
+  and silver, coins and coin bubbles, and four global precious metals.
+* Added ``list_tgju_assets`` and ``get_tgju_history`` with Persian aliases,
+  official slugs, explicit units, typed provider/schema errors and legacy
+  ``get_currency``/``currency_coin`` compatibility.
+* Added deterministic debt/TGJU regression tests, bounded live verification,
+  complete README contracts and the RTL PDF guide update.
+
+1.7.0 (2026-09-13)
+------------------
+
+* Added multi-symbol return, risk, drawdown, benchmark, liquidity and
+  individual-flow comparison with explicit alignment and coverage semantics.
+* Added historical/live liquidity metrics covering zero-trade days, Amihud
+  impact per billion rial, turnover, spread, order imbalance and five-level
+  depth, with current-share assumptions disclosed in quality metadata.
+* Added an explainable market-regime classifier based on trend, equity
+  breadth, individual flow, whole-market liquidity and fresh equity queues;
+  missing components are reweighted and reflected in confidence.
+* Added renderer-independent market-map data plus an optional Plotly treemap
+  for symbol, sector, market-flow and instrument-type views.
+* Added explicit DataFrame inputs for reproducible replay, stable schemas and
+  dtypes, offline regression tests, bounded live checks and complete README
+  and RTL PDF documentation.
+
 1.6.0 (2026-09-13)
 ------------------
 

@@ -38,6 +38,7 @@ from algotik_tse.exceptions import (
     AmbiguousSymbolError,
     ConnectionError,
     DataParsingError,
+    InvalidParameterError,
     StockNotFoundError,
 )
 from algotik_tse.http_client import safe_get
@@ -1089,6 +1090,62 @@ def get_ifb_yield_table(category="treasury"):
         raise ConnectionError("IFB YTM page returned status {!r}".format(status))
     result = _parse_ifb_yield_html(response.text, category=category)
     result.attrs["fetched_at"] = pd.Timestamp(tehran_now())
+    return result
+
+
+_REFERENCE_DEBT_TYPES = ("treasury", "erad", "gam", "other")
+
+
+def _reference_debt_type(symbol):
+    text = _normalise_symbol(symbol)
+    if text.startswith("اخزا"):
+        return "treasury"
+    if text.startswith("اراد"):
+        return "erad"
+    if text.startswith("گام"):
+        return "gam"
+    return "other"
+
+
+def get_debt_yields(debt_type=None):
+    """Return official IFB reference yields for ERAD, GAM and other debt.
+
+    This function reads the official ``all securities`` YTM table and does
+    not infer coupon cashflows or face values.  ``DebtType`` is classified by
+    exact market symbol prefixes: ``اخزا``, ``اراد`` and ``گام``.
+
+    Parameters
+    ----------
+    debt_type : str or sequence of str, optional
+        Filter by ``treasury``, ``erad``, ``gam`` or ``other``.
+    """
+    if debt_type is None:
+        selected = None
+    else:
+        values = [debt_type] if isinstance(debt_type, str) else list(debt_type)
+        selected = {str(value).strip().lower() for value in values}
+        invalid = selected.difference(_REFERENCE_DEBT_TYPES)
+        if invalid:
+            raise InvalidParameterError(
+                "debt_type must contain only: {}".format(
+                    ", ".join(_REFERENCE_DEBT_TYPES)
+                )
+            )
+    source = get_ifb_yield_table("all")
+    result = source.copy()
+    result.insert(1, "DebtType", result["Symbol"].map(_reference_debt_type))
+    if selected is not None:
+        result = result.loc[result["DebtType"].isin(selected)].copy()
+    result = result.reset_index(drop=True)
+    result.attrs.update(source.attrs)
+    result.attrs.update(
+        {
+            "api": "get_debt_yields",
+            "debt_type": debt_type,
+            "classification": "exact_symbol_prefix",
+            "cashflows_inferred": False,
+        }
+    )
     return result
 
 
@@ -2568,6 +2625,7 @@ __all__ = [
     "bond_analytics",
     "build_yield_curve",
     "get_ifb_yield_table",
+    "get_debt_yields",
     "get_treasury_yields",
     "get_treasury_yield_history",
     "get_treasury_yields_history",

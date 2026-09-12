@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.6.0-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.8.0-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -8,13 +8,13 @@
 
 **A Python toolkit for historical, live and analytical data from Iran's capital market.**
 
-Fetch TSETMC prices, client type, trades, order books, market calendars, index impact, instrument reference data, funds, bonds, options, Iran Energy Exchange auctions, IME commodity markets and official subscriber TOP with Jalali date support, then use the built-in analytics for research and algorithmic trading.
+Fetch TSETMC prices, client type, trades, order books, market calendars, index impact, instrument reference data, funds, bonds, options, Iran Energy Exchange auctions, IME commodity markets and official subscriber TOP with Jalali date support, then use explainable comparison, liquidity, market-regime and market-map analytics for research and algorithmic trading.
 
 <div dir="rtl" align="right">
 
 ### 🇮🇷 معرفی فارسی
 
-`algotik-tse` برای دریافت و تحلیل داده‌های بازار سرمایهٔ ایران ساخته شده است. با نام فارسی نماد می‌توانید تاریخچهٔ قیمت، حقیقی/حقوقی، معاملات ریز، سفارش‌ها و اطلاعات لحظه‌ای بازار را بگیرید؛ شاخص‌های صنعت و اعضای دقیق آن‌ها را تحلیل کنید؛ حراج و ابزارهای بورس انرژی و تابلوها و بازار فیزیکی بورس کالا را بخوانید؛ فهرست صندوق‌ها، اوراق و اختیارها را بسازید؛ و تحلیل‌های تخصصی اخزا، اختیار معامله و ساختار زمانی آتی را روی همان داده‌ها انجام دهید.
+`algotik-tse` برای دریافت و تحلیل داده‌های بازار سرمایهٔ ایران ساخته شده است. با نام فارسی نماد می‌توانید تاریخچهٔ قیمت، حقیقی/حقوقی، معاملات ریز، سفارش‌ها و اطلاعات لحظه‌ای بازار را بگیرید؛ شاخص‌های صنعت و اعضای دقیق آن‌ها را تحلیل کنید؛ حراج و ابزارهای بورس انرژی و تابلوها و بازار فیزیکی بورس کالا را بخوانید؛ اراد، گام، اخزا، صندوق و اختیارها را بسازید؛ و تاریخچهٔ ۸۷ سری تأییدشدهٔ ارز، طلا، نقره، سکه و فلزات گران‌بها را از TGJU دریافت کنید.
 
 بیشتر خروجی‌های جدولی به‌صورت **Pandas DataFrame** ارائه می‌شوند و تاریخ شمسی، تاریخ میلادی و داده‌های چندنمادی پشتیبانی می‌شوند. خروجی‌های ساختاریافته‌ای مانند snapshot بازار، زنجیرهٔ اختیار و منحنی بازده در بخش [نوع خروجی](#نوع-خروجی) توضیح داده شده‌اند.
 
@@ -33,6 +33,7 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 - سهامداران عمدهٔ هر نماد با تفکیک تاریخ معامله/تاریخ مؤثر، تغییر دارایی اصلاح‌شده و تاریخچهٔ روزانه، هفتگی یا ماهانه با بودجهٔ درخواست
 - snapshot پنج‌روزهٔ فعالیت سهامداران عمدهٔ کل بازار، تغییرات روزانه، رتبه‌بندی انباشت/توزیع، شبکهٔ سهامدار–نماد، تمرکز مالکیت و timeline رویدادهای TSETMC هر نماد
 - صندوق‌های ثبت‌شده و بورسی با طبقه‌بندی چندمحوره، پوشش ابزارهای ۳۰۵ و ۳۸۰ و فیلتر مستقیم طلا، نقره، کالایی، اهرمی، بخشی و شاخصی
+- فهرست و فیلتر دقیق اوراق `اراد` و `گام` با سررسید شمسی/میلادی و جدول رسمی YTM فرابورس، بدون حدس جریان نقدی
 - تحلیل اخزا شامل YTM، duration، convexity، DV01 و منحنی بازده زنده و تاریخی
 - تحلیل اختیار معامله شامل Black–Scholes، IV، Greeks، put-call parity، PCR و نقدشوندگی
 - حراج‌های بورس انرژی با شرایط پرداخت و تحویل، حجم، دامنهٔ قیمت، اندازهٔ lot، قیمت کشف‌شده و معاملات همان حراج
@@ -40,7 +41,12 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 - تابلوی رسمی بورس کالا برای گواهی سپرده، سلف استاندارد، صندوق کالایی و آتی همراه پنج سطح سفارش و حقیقی/حقوقی
 - تاریخچه و خلاصهٔ بازار فیزیکی بورس کالا، نسبت معامله به عرضه و آمار تجمیعی بازارهای فیزیکی، آتی، اختیار و مالی
 - منحنی سررسید آتی، calendar spread و تحلیل cash-and-carry با فرض‌های صریح نرخ، انبارداری و convenience yield
-- ارز و سکه، اینترادی، سهامداران، شاخص‌ها، ETFها، صندوق‌ها و اوراق بدهی
+- مقایسهٔ هم‌زمان نمادها از نظر بازده، ریسک، افت سرمایه، نقدشوندگی، بتا و جریان پول حقیقی
+- سنجه‌های نقدشوندگی تاریخی و زنده شامل Amihud، گردش، spread، عمق پنج‌سطحی و روزهای بدون معامله
+- تشخیص توضیح‌پذیر وضعیت `risk_on`، `neutral` یا `risk_off` بازار با نمایش امتیاز و وزن هر مؤلفه
+- داده و نمودار نقشهٔ بازار با گروه‌بندی نماد، صنعت، بازار یا نوع ابزار و معیارهای قابل انتخاب اندازه/رنگ
+- کاتالوگ ۸۷ سری TGJU: ۳۶ ارز آزاد، ۲۴ نرخ رسمی، طلای ۱۸/۲۴ عیار، مثقال و آب‌شده، نقره، سکه و حباب، و فلزات جهانی
+- اینترادی، سهامداران، شاخص‌ها، ETFها، صندوق‌ها و اوراق بدهی
 - HTTPS و اعتبارسنجی TLS به‌صورت پیش‌فرض، retry، rate limiting و محدودسازی منبع داده
 
 ##### 🌐 وب‌سایت: [algotik.com](https://algotik.com) | 📱 تلگرام: [t.me/algotik](https://t.me/algotik)
@@ -62,7 +68,15 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 | ⭐ `get_market_snapshot()` | snapshot خام قیمت و پنج سطح سفارش کل بازار | `dict` |
 | ⭐ `get_intraday()` | تیک یا کندل اینترادی | `DataFrame` یا `None` در API قدیمی |
 | ⭐ `get_symbols()` | فهرست نمادها بر اساس بازار و نوع ابزار | `DataFrame` یا فهرست |
-| ⭐ `get_currency()` | تاریخچهٔ ارز و سکه | `DataFrame` |
+| ⭐ `get_tgju_history()` | تاریخچهٔ طلا، ارز، نقره، سکه، حباب و فلزات جهانی | `DataFrame` |
+| ⭐ `list_tgju_assets()` | کاتالوگ نام‌ها، slugها، دسته و واحد ۸۷ سری TGJU | `DataFrame` |
+| ⭐ `list_debt_instruments()` | فهرست و فیلتر `erad`، `gam`، اخزا و سایر اوراق | `DataFrame` |
+| ⭐ `get_debt_yields()` | YTM مرجع رسمی فرابورس برای اراد و گام | `DataFrame` |
+| ⭐ `compare_symbols()` | مقایسهٔ بازده، ریسک، نقدشوندگی و جریان پول چند نماد | `DataFrame` |
+| ⭐ `get_liquidity_metrics()` | سنجه‌های نقدشوندگی تاریخی و زنده | `DataFrame` |
+| ⭐ `get_market_regime()` | رژیم توضیح‌پذیر بازار و پنج امتیاز سازنده | `DataFrame` یک‌ردیفی |
+| ⭐ `get_market_map()` | دادهٔ مستقل از renderer برای نقشهٔ بازار | `DataFrame` |
+| ⭐ `plot_market_map()` | نمودار تعاملی treemap با Plotly | `plotly.graph_objects.Figure` |
 | ⭐ `get_energy_auctions()` | حراج‌های بورس انرژی با شرایط کامل عرضه | `DataFrame` |
 | ⭐ `list_power_instruments()` | قراردادهای برق استاندارد، سبز و آزاد | `DataFrame` |
 | ⭐ `list_energy_securities()` | سلف، گواهی‌ها و آتی انرژی | `DataFrame` |
@@ -149,6 +163,11 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 | `get_market_trades()` | خلاصهٔ bulk روزانهٔ ابزارها؛ معاملات ریز نیست |
 | `get_theoretical_opening_price()` | TOP رسمی برای مشترکان وب‌سرویس TSETMC |
 | `get_preopen_imbalance()` | عدم تعادل حجم خرید و فروش روی خروجی TOP |
+| `compare_symbols()` | مقایسهٔ چند نماد با benchmark از نظر بازده، ریسک، افت سرمایه، نقدشوندگی و جریان حقیقی |
+| `get_liquidity_metrics()` | نقدشوندگی تاریخی و snapshot زنده با Amihud، گردش، spread، imbalance و عمق سفارش |
+| `get_market_regime()` | طبقه‌بندی توضیح‌پذیر `risk_on/neutral/risk_off` از پنج مؤلفهٔ قابل مشاهده |
+| `get_market_map()` | ساخت جدول نقشهٔ بازار برای نماد، صنعت، flow یا نوع ابزار |
+| `plot_market_map()` | رندر treemap تعاملی از جدول نقشه با وابستگی اختیاری Plotly |
 
 #### شاخص‌ها و تحلیل صنایع
 
@@ -202,8 +221,10 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 | `list_funds()` | صندوق‌های ثبتی با NAV، بازده، ترکیب دارایی و دسته/استراتژی قابل فیلتر |
 | `list_listed_funds()` | ابزارهای بورسی دقیق، شامل صندوق‌های عمومی و کالایی با فیلتر طلا/نقره |
 | `list_bonds()` | اوراق بدهی همراه سررسید |
+| `list_debt_instruments()` | نمای جدید اوراق با `DebtType` دقیق و فیلتر `erad`/`gam` |
 | `list_indices()`, `get_index_companies()` | API قدیمی شاخص‌ها و اعضای شاخص؛ برای صنعت APIهای بالا پیشنهاد می‌شوند |
-| `get_currency()` | ارز و سکه از API قدیمی TGJU |
+| `list_tgju_assets()` | کاتالوگ تأییدشدهٔ دارایی‌های TGJU، دسته و واحد هر سری |
+| `get_tgju_history()`, `get_currency()` | تاریخچهٔ ارز، طلا، نقره، سکه/حباب و فلزات جهانی؛ نام قدیمی حفظ شده است |
 
 #### بورس انرژی و بورس کالا
 
@@ -234,6 +255,7 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 | `bond_analytics()` | duration، convexity و DV01 |
 | `build_yield_curve()` | ساخت شیء `YieldCurve` از nodeها |
 | `get_ifb_yield_table()` | جدول مرجع YTM فرابورس |
+| `get_debt_yields()` | جدول رسمی همهٔ اوراق با فیلتر دقیق `treasury`، `erad` و `gam` |
 | `get_treasury_yields()` | snapshot اخزا و تحلیل بازده |
 | `get_treasury_yield_history()` | تاریخچهٔ YTM اخزا |
 | `get_yield_curve()`, `get_yield_curve_history()` | منحنی بازده زنده و تاریخی |
@@ -276,6 +298,7 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 - [سفارش و صف](#سفارش-و-صف)
 - [Watcher و تحلیل کل بازار](#watcher-و-تحلیل-کل-بازار)
 - [تقویم، نمای کلان، مستر ابزار و پیش‌گشایش](#تقویم،-نمای-کلان،-مستر-ابزار-و-پیشگشایش)
+- [تحلیل مدیریتی بازار](#تحلیل-مدیریتی-بازار)
 - [شاخص‌ها و تحلیل صنایع](#شاخصها-و-تحلیل-صنایع)
 - [تاریخچهٔ محلی SQLite](#تاریخچهٔ-محلی-sqlite)
 - [فاندامنتال، صندوق و تعدیل قیمت](#فاندامنتال-بازار،-صندوق-و-تعدیل-قیمت)
@@ -337,9 +360,12 @@ import algotik_tse as att
 | تصویر تحلیلی صنایع | `att.get_industry_snapshot()` |
 | رتبه‌بندی صنایع | `att.rank_industries(metric="breadth")` |
 | فهرست نمادها و ابزارها | `att.get_symbols()` |
-| قیمت ارز و سکه | `att.get_currency("dollar")` |
+| طلای ۱۸/۲۴ عیار، ارز و سکه | `att.get_tgju_history("gold-18k")` |
+| دیدن همهٔ سری‌های TGJU | `att.list_tgju_assets()` |
 | صندوق‌های ETF با NAV | `att.list_etfs()` |
 | اخزا و YTM | `att.get_treasury_yields()` |
+| اراد و گام | `att.list_debt_instruments(["erad", "gam"])` |
+| YTM مرجع اراد و گام | `att.get_debt_yields(["erad", "gam"])` |
 | زنجیره و تحلیل اختیار | `att.get_option_market()` و `att.analyze_option_chain()` |
 | عرضه‌های بورس انرژی | `att.get_energy_auctions(top=10)` |
 | برق سبز، استاندارد و آزاد | `att.list_power_instruments()` |
@@ -564,7 +590,7 @@ get_symbols(
 
 **خروجی:** فهرست ابزارها با هویت، نماد، نام، بازار و نوع دارایی.
 
-### `get_currency()` — ارز و سکه
+### `get_tgju_history()` و `get_currency()` — طلا، ارز، سکه و فلزات
 
 ```python
 get_currency(
@@ -573,11 +599,13 @@ get_currency(
     save_to_file=False, dropna=True, return_type=None,
     ascending=True, save_path=None, **kwargs,
 )
+get_tgju_history(...)  # همان قرارداد؛ نام پیشنهادی برای همهٔ دسته‌های TGJU
+list_tgju_assets(category=None, include_aliases=False)
 ```
 
 | ورودی | گزینه‌ها و معنی |
 |---|---|
-| `name` | یک نام یا فهرست؛ مانند `"dollar"`, `"euro"`, `"seke"`, `"نیم سکه"`. |
+| `name` | یک نام canonical، نام فارسی، slug رسمی یا فهرست؛ مانند `"gold-18k"`, `"طلای ۲۴ عیار"`, `"geram18"`, `"dollar"`, `"seke"`. |
 | `start`, `end`, `limit` | بازه یا آخرین تعداد ردیف. |
 | `output_type` | `"standard"` یا حالت کامل پشتیبانی‌شدهٔ API قدیمی. |
 | `date_format` | `"jalali"`, `"gregorian"`, `"both"`. |
@@ -585,8 +613,10 @@ get_currency(
 | `progress`, `dropna`, `ascending` | پیشرفت، خروجی چندارزی و ترتیب زمانی. |
 | `save_to_file`, `save_path` | ذخیرهٔ CSV و پوشهٔ مقصد. |
 | `**kwargs` | aliasهای سازگاری قدیمی. |
+| `category` | در `list_tgju_assets()` یکی یا فهرستی از `currency`, `official_rate`, `gold`, `silver`, `coin`, `coin_bubble`, `global_metal`. |
+| `include_aliases` | افزودن tuple نام‌های جایگزین به کاتالوگ. |
 
-**خروجی:** `DataFrame[Open, High, Low, Close]`؛ برای چند ارز ستون‌ها MultiIndex می‌شوند.
+**خروجی:** تاریخچه `DataFrame[Open, High, Low, Close]` است؛ چند دارایی ستون‌های MultiIndex می‌سازد. کاتالوگ ستون‌های `Name, PersianName, Slug, Category, Unit` دارد. واحد سری در `df.attrs['unit']` هم ثبت می‌شود.
 
 ### `get_trades()` و `get_live_trades()` — معاملات ریز
 
@@ -628,7 +658,7 @@ get_queue(symbol=None, side="both", strict=True, *, selector_strict=False)
 
 **خروجی:** order book به‌شکل long با پنج level؛ queue با سمت، قیمت، حجم، تعداد سفارش و ارزش صف.
 
-### `list_etfs()`, `list_funds()`, `list_bonds()` و اختیارها
+### `list_etfs()`, `list_funds()`, `list_bonds()`، اوراق و اختیارها
 
 ```python
 list_etfs(progress=True)
@@ -639,6 +669,7 @@ list_listed_funds(progress=True, *, fund_category=None, strategy=None,
                   commodity_underlying=None, classification_status=None,
                   include_unknown=True)
 list_bonds(progress=True)
+list_debt_instruments(debt_type=None, active_only=False, progress=True)
 list_options(underlying=None, progress=True)
 get_options_chain(underlying, fetch_oi=False, progress=True)
 ```
@@ -653,6 +684,8 @@ get_options_chain(underlying, fetch_oi=False, progress=True)
 | `commodity_underlying` | کالای پایهٔ اثبات‌شده: `"gold"`, `"silver"` یا `"saffron"`؛ نام عمومی حدس زده نمی‌شود. |
 | `classification_status` | فیلتر بر اساس `authoritative_field`, `verified_exact_mapping`, `explicit_official_name` یا `unknown`. |
 | `include_unknown` | در فهرست بورسی، با `False` ردیف‌های فاقد طبقه‌بندی کافی را حذف می‌کند؛ پیش‌فرض `True` همه را نگه می‌دارد. |
+| `debt_type` | در `list_debt_instruments()` یک نوع یا فهرست از `treasury`, `erad`, `gam`, `murabaha`, `ijara`, `salaf`, `other`. |
+| `active_only` | فقط اوراقی را نگه می‌دارد که سررسیدشان امروز یا بعد از امروز است. |
 | `underlying` | در `list_options()` فیلتر اختیاری و در `get_options_chain()` دارایی پایهٔ اجباری. |
 | `fetch_oi` | در زنجیرهٔ اختیار، دریافت Open Interest و metadata تکمیلی را فعال می‌کند و ممکن است درخواست‌های بیشتری بسازد. |
 
@@ -740,7 +773,7 @@ att.get_history(
 
 ### source boundary
 
-درخواست‌های runtime فقط به providerهای پشتیبانی‌شدهٔ TSETMC، صفحهٔ مرجع YTM فرابورس ایران (`ifb.ir`) و API قدیمی ارز/سکهٔ TGJU محدودند. redirect به origin دیگر پیش از درخواست دوم رد می‌شود. هیچ API کدال در این پکیج وجود ندارد.
+درخواست‌های runtime فقط به providerهای پشتیبانی‌شدهٔ TSETMC، صفحهٔ مرجع YTM فرابورس ایران (`ifb.ir`) و API تاریخچهٔ بازار TGJU برای دارایی‌های کاتالوگ محدودند. redirect به origin دیگر پیش از درخواست دوم رد می‌شود. هیچ API کدال در این پکیج وجود ندارد.
 
 TSETMC برای رخداد تعدیل قیمت، DPS قطعی و قابل استناد منتشر نمی‌کند. اختلاف قیمت تعدیل‌شده و تعدیل‌نشده **معادل سود نقدی نیست** و کتابخانه از آن DPS استنتاج نمی‌کند.
 
@@ -1270,6 +1303,104 @@ ImbalanceSide   = buy | sell | balanced | unavailable
 ```
 
 این نسبت صرفاً عدم تعادل حجم‌های TOP رسمی است و سیگنال خرید یا فروش محسوب نمی‌شود. در مجموع حجم صفر یا دادهٔ ناقص، نسبت `NaN` و سمت `unavailable` است.
+
+## تحلیل مدیریتی بازار
+
+این لایه دادهٔ تازه‌ای را حدس نمی‌زند؛ محاسبات آن روی خروجی‌های تاریخچه، حقیقی/حقوقی، نمای زنده و فعالیت روزانهٔ همین پکیج انجام می‌شود. هر تابع تحلیلی علاوه بر حالت دریافت خودکار، ورودی `DataFrame` صریح می‌پذیرد تا یک snapshot مشخص را بازپخش کنید، تست تکرارپذیر بسازید و از look-ahead جلوگیری شود.
+
+### مقایسهٔ نمادها
+
+```python
+comparison = att.compare_symbols(
+    ["فولاد", "فملی", "شپنا"],
+    start="1404-01-01",
+    benchmark="شاخص کل",
+    align="inner",
+    min_observations=20,
+)
+
+print(comparison[[
+    "Symbol", "TotalReturnPct", "AnnualizedVolatilityPct",
+    "MaxDrawdownPct", "Beta", "NetIndividualFlow"
+]])
+```
+
+`symbols` یک نماد یا iterable نمادهای غیرخالی است. `start` و `end` تاریخ شمسی/میلادی را می‌پذیرند. `benchmark` اختیاری است و با همان قرارداد هویت به تاریخچه اضافه می‌شود. `align='inner'` فقط تاریخ‌های مشترک همهٔ سری‌ها را نگه می‌دارد؛ `align='outer'` اتحاد تاریخ‌ها را نگه می‌دارد و هر متریک از مشاهدات موجود خودش محاسبه می‌شود. `annualization` تعداد جلسات سال، با پیش‌فرض ۲۴۰ و بازهٔ ۱ تا ۳۶۶ است. `min_observations` حداقل بازده روزانهٔ لازم برای آمار ریسک است؛ کمبود داده به `NaN` و `QualityFlags` تبدیل می‌شود.
+
+با `include_client_type=False` دریافت حقیقی/حقوقی حذف می‌شود. `history_data` و `client_data` نگاشت `{symbol: DataFrame}` برای محاسبهٔ آفلاین هستند و ورودی کاربر mutate نمی‌شود. `strict=True` برای نماد فاقد تاریخچه `DataParsingError` می‌دهد؛ در حالت پیش‌فرض ردیف همان نماد با flag برمی‌گردد. `progress` فقط نمایش پیشرفت دریافت چندنمادی را کنترل می‌کند.
+
+خروجی شامل بازده کل/سالانه، نوسان سالانه، بیشینه افت، بهترین/بدترین روز، درصد روز مثبت، `Beta`، همبستگی، آلفا، tracking error، information ratio، ارزش و حجم متوسط، ارزش متوسط هر معامله، خالص پول حقیقی و قدرت حقیقی است. ستون‌های مبلغی بر حسب **ریال** هستند. `Observations` تعداد قیمت‌ها، `ReturnObservations` تعداد بازده‌ها و `CoveragePct` پوشش سری روی تقویم هم‌تراز را ثبت می‌کنند.
+
+### سنجه‌های نقدشوندگی
+
+```python
+liquidity = att.get_liquidity_metrics(
+    ["فولاد", "فملی"],
+    window=20,
+    include_live=True,
+)
+
+print(liquidity[[
+    "Symbol", "AverageDailyValue", "Amihud1B", "CurrentTurnover",
+    "SpreadBps", "L5DepthValue", "ZeroTradeRatio"
+]])
+```
+
+`symbols=None` یک حالت سریع فقط-زنده برای تمام نمادهای snapshot است؛ اگر نماد بدهید، تاریخچهٔ هر نماد هم خوانده می‌شود. `window` تعداد آخرین جلسات تاریخی است و `None` کل بازهٔ `start/end` را به کار می‌گیرد. `annualization` فقط نوسان را سالانه می‌کند. `include_live=False` سنجه‌های snapshot را حذف می‌کند و در این حالت دادن `live_data` خطاست. `history_data` نگاشت تاریخچه‌ها و `live_data` خروجی صریح `get_live_market()` است. `strict`, `progress`, `start` و `end` همان معنای بخش قبل را دارند.
+
+`Amihud1B` برابر میانگین قدرمطلق بازده تقسیم بر ارزش معامله به میلیارد ریال است و واحد آن در `AmihudUnit` می‌آید. `HistoricalTurnover` حجم متوسط تاریخی را بر **تعداد سهام فعلی snapshot** تقسیم می‌کند؛ این فرض در `SharesOutstandingSource` و `QualityFlags` ثبت می‌شود. `CurrentTurnover`, `SpreadBps`, `L1Imbalance`, `L5Imbalance`, `L5DepthValue`, `MarketCap` و `VolumeToBaseVolume` از snapshot زنده می‌آیند. عمق پنج‌سطحی مجموع قیمت ضربدر حجم سفارش خرید و فروش است و واحد مبلغی آن ریال است. `HistoryCoveragePct` و `LiveCoveragePct` کامل‌بودن داده را نشان می‌دهند.
+
+### رژیم توضیح‌پذیر بازار
+
+```python
+regime = att.get_market_regime()
+print(regime[[
+    "Regime", "Score", "Confidence", "TrendScore", "BreadthScore",
+    "FlowScore", "LiquidityScore", "QueueScore"
+]])
+```
+
+`benchmark='شاخص کل'`, `lookback=60`, `liquidity_window=20` و `annualization=240` پنجره‌های محاسبه را تعیین می‌کنند. `weights` نگاشتی اختیاری با کلیدهای `trend`, `breadth`, `flow`, `liquidity`, `queue` است؛ وزن‌های پیش‌فرض به‌ترتیب ۰٫۳۰، ۰٫۲۵، ۰٫۲۰، ۰٫۱۵ و ۰٫۱۰ هستند و پس از اعتبارسنجی نرمال می‌شوند. `max_requests` سقف دریافت تاریخچهٔ فعالیت روزانه است. `benchmark_history`, `live_data` و `activity_history` سه ورودی صریح برای بازپخش کامل محاسبه‌اند. `start`, `end` و `progress` دریافت خودکار را کنترل می‌کنند.
+
+پنج امتیاز در بازهٔ تقریبی منفی یک تا مثبت یک‌اند:
+
+- `TrendScore`: بازده لگاریتمی benchmark نسبت به نوسان همان افق؛
+- `BreadthScore`: نسبت خالص نمادهای مثبت به منفی در ابزارهای سهامی نوع ۳۰۰، ۳۰۳ و ۳۰۹؛
+- `FlowScore`: خالص برآوردی پول حقیقی نسبت به ارزش معاملات همان ابزارهای سهامی و فقط برای snapshot سازگار؛
+- `LiquidityScore`: نسبت ارزش کل snapshot بازار به میانهٔ ارزش روزانهٔ `get_market_activity(market='all')`؛
+- `QueueScore`: عدم تعادل ارزش صف خرید و فروش تازه در ابزارهای سهامی.
+
+`Score` میانگین وزنی **مؤلفه‌های موجود** است. مؤلفهٔ گمشده صفر فرض نمی‌شود؛ وزن‌های باقی‌مانده برای score دوباره نرمال می‌شوند و جمع وزن اولیهٔ موجود در `Confidence` می‌آید. آستانه‌های ثابت `Score > 0.25` برای `risk_on`، `Score < -0.25` برای `risk_off` و فاصلهٔ میان آن‌ها برای `neutral` است. اگر هیچ مؤلفه‌ای موجود نباشد، `Regime='unavailable'` می‌شود. وزن‌ها، آستانه‌ها، فهرست مؤلفه‌های مفقود و `is_partial` در `DataFrame.attrs` ثبت می‌شوند؛ بنابراین این برچسب سیگنال معامله یا مدل پیش‌بینی نیست.
+
+### نقشهٔ بازار؛ داده و نمودار
+
+```python
+market_map = att.get_market_map(
+    group_by="sector",
+    size="market_cap",
+    color="net_individual_flow",
+    top=30,
+)
+
+fig = att.plot_market_map(
+    market_map,
+    output_path="market-map.html",
+    show=False,
+    title="نقشه جریان پول صنایع",
+)
+```
+
+`get_market_map()` مستقل از کتابخانهٔ رسم است. `group_by` یکی از `symbol`, `sector`, `flow`, `instrument_type`؛ `size` یکی از `value`, `volume`, `market_cap`, `queue_value`؛ و `color` یکی از `return`, `net_individual_flow`, `individual_power`, `order_imbalance` است. `top=None` همهٔ گروه‌ها و عدد مثبت حداکثر ردیف‌ها را نگه می‌دارد. `flow` یک یا چند کد جریان بازار را فیلتر می‌کند. `instrument_types=None` فقط سهام ۳۰۰/۳۰۳/۳۰۹، مقدار `'all'` همهٔ ابزارها و یک مقدار/iterable مجموعهٔ دلخواه را انتخاب می‌کند. `data` یک snapshot صریح از `get_live_market()` است؛ نبود آن یک snapshot تازه می‌گیرد.
+
+در گروه‌بندی تجمیعی، بازده/قدرت/عدم تعادل با معیار `size` وزن‌دهی و جریان پول جمع می‌شود. `UniverseWeightPct` سهم از کل universe پیش از `top` و `DisplayedWeightPct` سهم از ردیف‌های نمایش‌داده‌شده است؛ پس بعد از برش، فقط دومی جمع ۱۰۰ می‌شود. `ColorCoveragePct`, `IsRealtimeFresh`, `QualityFlags` و attrs کیفیت نقشه را قابل بررسی می‌کنند.
+
+رسم اختیاری است و dependency اصلی پکیج را سنگین نمی‌کند:
+
+```bash
+pip install "algotik-tse[visualization]"
+```
+
+`plot_market_map(map_data=None, output_path=None, show=False, title=None)` یک `Figure` از Plotly برمی‌گرداند. `map_data=None` ابتدا `get_market_map()` را اجرا می‌کند؛ `output_path` فایل HTML تعاملی می‌نویسد؛ `show=True` مرورگر/renderer تنظیم‌شدهٔ Plotly را باز می‌کند و `title` عنوان نمودار است. اگر Plotly نصب نباشد `ImportError` با دستور نصب بالا صادر می‌شود. `map_data` باید DataFrame قرارداد نقشه باشد و دادهٔ تهی یا ستون‌های ضروری ناقص `DataParsingError` می‌دهد.
 
 ## شاخص‌ها و تحلیل صنایع
 
@@ -1971,6 +2102,32 @@ MaturityJalali, Maturity, Volume, ReferenceYTM,
 ReferenceSimpleYield, ReferenceSource
 ```
 
+### اراد و گام
+
+`list_bonds()` از نسخه‌های قبلی اراد را در گروه `murabaha` می‌شناخت، اما گام را وارد universe نمی‌کرد. اکنون امضای قدیمی آن بدون تغییر مانده و گام نیز با `BondType='gam'`، تاریخ سررسید شش یا هشت‌رقمی و قیمت/حجم روز دیده می‌شود. برای فیلتر روشن نوع بدهی از API جدید استفاده کنید:
+
+```python
+debt = att.list_debt_instruments(
+    debt_type=["erad", "gam"],
+    active_only=True,
+    progress=False,
+)
+
+gam = att.list_debt_instruments("gam", progress=False)
+print(gam[["Symbol", "MaturityJalali", "DaysToMaturity", "Last"]])
+```
+
+`DebtType` با قواعد صریح تعیین می‌شود: پیشوند `اخزا` برابر `treasury`، پیشوند `اراد` برابر `erad` و پیشوند `گام` برابر `gam` است. `BondType` قدیمی نیز حفظ شده تا کد قبلی نشکند. این snapshot فهرست و قیمت امروز TSETMC است و تاریخچهٔ بازده محسوب نمی‌شود.
+
+برای YTM منتشرشدهٔ فرابورس:
+
+```python
+reference = att.get_debt_yields(["erad", "gam"])
+print(reference[["Symbol", "DebtType", "Price", "MaturityJalali", "ReferenceYTM"]])
+```
+
+این تابع نمای `all` جدول رسمی `ifb.ir/ytm.aspx` را می‌خواند. بازده درصدی منبع به عدد اعشاری تبدیل می‌شود؛ مثلاً ۳۵٪ برابر `0.35` است. پکیج برای اراد و گام ارزش اسمی، کوپن یا جریان نقدی حدس نمی‌زند (`cashflows_inferred=False`). برای ارزش‌گذاری مستقل اوراق کوپنی باید cashflowهای قطعی قرارداد را به `bond_price()`، `yield_to_maturity()` یا `bond_analytics()` بدهید. اگر صفحهٔ فرابورس در دسترس نباشد `ConnectionError` می‌گیرید؛ این خطا با بازده محاسبه‌شدهٔ ساختگی جایگزین نمی‌شود.
+
 ### تاریخچهٔ YTM
 
 ```python
@@ -2612,6 +2769,7 @@ symbols = att.get_symbols(
 
 etfs = att.list_etfs(progress=False)
 bonds = att.list_bonds(progress=False)
+debt = att.list_debt_instruments(["erad", "gam"], active_only=True, progress=False)
 funds = att.list_funds(fund_type="fixed_income", progress=False)
 listed_funds = att.list_listed_funds(progress=False)
 options = att.list_options(underlying="خودرو", progress=False)
@@ -2623,7 +2781,7 @@ industry_snapshot = att.get_industry_snapshot("بانک", progress=False)
 
 `get_symbols(output="list")` فقط نام نمادها را می‌دهد؛ `dataframe` metadata بازار/نوع ابزار را نگه می‌دارد. `payeh_color` یکی از `زرد`, `نارنجی`, `قرمز` است. برای جلوگیری از universe اشتباه، asset-type flagها را صریح تنظیم کنید.
 
-`list_etfs()` برای سازگاری قبلی فقط صندوق‌های بورسی عمومی نوع ۳۰۵ و NAV/discount را می‌دهد. `list_bonds()` metadata اوراق و سررسید را فهرست می‌کند ولی analytics دقیق اخزا در APIهای fixed-income بالاست. `list_funds()` registry صندوق‌هاست؛ `list_listed_funds()` ابزارهای واقعاً قابل معاملهٔ نوع ۳۰۵ و ۳۸۰ را با InsCode/ISIN دقیق و طبقه‌بندی قابل فیلتر می‌دهد.
+`list_etfs()` برای سازگاری قبلی فقط صندوق‌های بورسی عمومی نوع ۳۰۵ و NAV/discount را می‌دهد. `list_bonds()` metadata اوراق و سررسید را با امضای قدیمی فهرست می‌کند؛ `list_debt_instruments()` ستون `DebtType` و فیلتر مستقیم اخزا/اراد/گام را اضافه می‌کند. analytics محاسباتی اخزا و YTM مرجع سایر اوراق در فصل درآمد ثابت آمده است. `list_funds()` registry صندوق‌هاست؛ `list_listed_funds()` ابزارهای واقعاً قابل معاملهٔ نوع ۳۰۵ و ۳۸۰ را با InsCode/ISIN دقیق و طبقه‌بندی قابل فیلتر می‌دهد.
 
 ### شاخص‌ها
 
@@ -2635,9 +2793,9 @@ members = att.get_industry_members("بانک", progress=False)
 
 برای شاخص‌های عمومی همچنان `get_history()` را به‌کار ببرید. برای شاخص صنعت، APIهای اختصاصی فصل [شاخص‌ها و تحلیل صنایع](#شاخصها-و-تحلیل-صنایع) عضویت رسمی، تاریخچهٔ اعضا، snapshot و intraday را یکدست ارائه می‌کنند. schema شاخص با سهام فرق دارد و volume جعلی ساخته نمی‌شود. `list_indices()` و `get_index_companies()` برای سازگاری با کد قدیمی حفظ شده‌اند.
 
-### ارز و سکه
+### طلا، ارز، نقره و سکه از TGJU
 
-این API legacy از TGJU استفاده می‌کند و برای backward compatibility حفظ شده است:
+`get_tgju_history()` نام عمومی این provider است. `get_currency()` و `currency_coin()` با همان رفتار قبلی حفظ شده‌اند و اکنون تمام دارایی‌های کاتالوگ را هم می‌پذیرند:
 
 ```python
 fx = att.get_currency(
@@ -2646,21 +2804,47 @@ fx = att.get_currency(
 )
 
 coins = att.get_currency(["seke", "nim-seke"], limit=10, progress=False)
+gold = att.get_tgju_history(
+    ["gold-18k", "طلای ۲۴ عیار", "gold-mesghal"],
+    limit=30,
+    date_format="both",
+    progress=False,
+)
 ```
 
-نام‌های انگلیسی دقیق:
+پیش از انتخاب نام، کاتالوگ را ببینید:
+
+```python
+catalog = att.list_tgju_assets()
+gold_assets = att.list_tgju_assets(category=["gold", "silver"])
+print(gold_assets[["Name", "PersianName", "Slug", "Unit"]])
+```
+
+گروه‌های کاتالوگ:
+
+| دسته | تعداد | نمونه‌ها | واحد |
+|---|---:|---|---|
+| `currency` | ۳۶ | دلار، یورو، فرانک، ۱۰۰ ین، ارزهای منطقه | ریال برای هر واحد؛ ین ژاپن برای ۱۰۰ واحد |
+| `official_rate` | ۲۴ | سری‌های منتشرشدهٔ سنا، نیما و بانکی | ریال برای هر واحد |
+| `gold` | ۱۱ | ۱۸ و ۲۴ عیار، مثقال، دست‌دوم، آب‌شده، عیار ۷۴۰ | ریال بر گرم یا مثقال |
+| `silver` | ۲ | نقرهٔ ۹۲۵ و ۹۹۹ | ریال بر گرم |
+| `coin` / `coin_bubble` | ۵ + ۵ | امامی، بهار آزادی، نیم، ربع، گرمی و حباب هرکدام | ریال بر سکه |
+| `global_metal` | ۴ | انس طلا، نقره، پلاتین و پالادیوم | دلار بر انس تروا |
+
+نام‌های پرکاربرد:
 
 ```text
-dollar, euro, yuan, dirham, pound, lira,
-dollar-sana-sell, dollar-sana-buy,
-dollar-nima-buy, dollar-nima-sell,
-dollar-sarafimelli-buy,
-seke, seke-bahar-azadi, nim-seke, rob-seke, seke-gerami
+gold-18k, gold-24k, gold-mesghal, used-gold,
+melted-gold-cash, melted-gold-wholesale, silver-999, silver-925,
+gold-ounce, silver-ounce, platinum-ounce, palladium-ounce,
+dollar, euro, yuan, dirham, pound, swiss-franc,
+seke, seke-bahar-azadi, nim-seke, rob-seke, seke-gerami,
+seke-bubble, nim-seke-bubble, rob-seke-bubble
 ```
 
-نام‌های فارسی پشتیبانی‌شده شامل `دلار`, `یورو`, `یوان`, `درهم`, `پوند`, `لیر`, `سکه`, `سکه بهار آزادی`, `نیم سکه`, `ربع سکه`, `سکه گرمی` و صورت‌های سنا/نیما در settings است. spelling کلیدها را دقیق رعایت کنید؛ نام سکه در API انگلیسی `seke` است، نه `sekke`.
+نام canonical، نام فارسی و slug رسمی هر سه پذیرفته می‌شوند؛ بنابراین `gold-18k`، `طلای ۱۸ عیار` و `geram18` یک سری هستند. رقم فارسی/عربی و ی/ک عربی نرمال می‌شود. برای نام نامعتبر `InvalidParameterError`، برای HTTP ناموفق `ConnectionError` و برای payload ناسازگار `DataParsingError` صادر می‌شود.
 
-خروجی standard ستون‌های `Open, High, Low, Close` دارد. multi-currency یک DataFrame با MultiIndex ستونی می‌دهد. `save_path` در اینجا نیز پوشه است.
+خروجی standard ستون‌های `Open, High, Low, Close` دارد و در حالت چنددارایی یک DataFrame با MultiIndex ستونی برمی‌گردد. در حالت تک‌دارایی، `attrs` شامل `source`, `asset`, `persian_name`, `slug`, `category`, `unit` است. `save_path` پوشهٔ مقصد CSV است. «قیمت» و واحد را از `Unit`/`attrs['unit']` بخوانید؛ مخصوصاً انس جهانی ریالی نیست و ین ژاپن به ازای ۱۰۰ ین منتشر می‌شود.
 
 ## تنظیمات و خطاها
 
@@ -2795,6 +2979,7 @@ except att.UnsupportedDataSourceError as exc:
 | `get_market_messages_history`, `get_instrument_state_changes_history` |
 | `get_trading_calendar`, `get_market_activity`, `get_market_value_history`, `get_index_impact`, `get_market_trades` |
 | `get_theoretical_opening_price`, `get_preopen_imbalance` |
+| `compare_symbols`, `get_liquidity_metrics`, `get_market_regime`, `get_market_map`, `plot_market_map` |
 
 سه wrapper صفرآرگومان legacy نیز عمومی‌اند: `market_watch()`, `market_client_type()`, `market_data()`. `market_data()` wrapper deprecated است؛ برای کد جدید `get_market_snapshot()` یا `get_live_market()` را انتخاب کنید.
 
@@ -2805,10 +2990,16 @@ except att.UnsupportedDataSourceError as exc:
 | `get_market_fundamentals`, `get_market_fundamentals_history` |
 | `get_price_adjustments`, `get_latest_price_adjustment` |
 | `get_instrument_master`, `get_instrument_changes` |
-| `list_options`, `get_options_chain`, `list_etfs`, `list_bonds`, `list_funds`, `list_listed_funds` |
+| `list_options`, `get_options_chain`, `list_etfs`, `list_bonds`, `list_debt_instruments`, `list_funds`, `list_listed_funds` |
 | `list_indices`, `get_index_companies` |
 | `list_industry_indices`, `get_industry_members`, `get_industry_snapshot`, `get_industry_membership_events` |
 | `get_industry_history`, `get_industry_members_history`, `get_industry_membership_overlap`, `get_industry_membership_churn`, `get_industry_intraday`, `rank_industries` |
+
+#### TGJU: ارز و فلزات گران‌بها
+
+| Exportها |
+|---|
+| `list_tgju_assets`, `get_tgju_history`, `get_currency`, `currency_coin` |
 
 #### درآمد ثابت
 
@@ -2817,7 +3008,7 @@ except att.UnsupportedDataSourceError as exc:
 | `IRAN_TREASURY_FACE_VALUE`, `YieldCurve` |
 | `parse_treasury_maturity`, `day_count_fraction`, `treasury_yield` |
 | `bond_price`, `yield_to_maturity`, `bond_analytics`, `build_yield_curve` |
-| `get_ifb_yield_table`, `get_treasury_yields` |
+| `get_ifb_yield_table`, `get_debt_yields`, `get_treasury_yields` |
 | `get_treasury_yield_history`, `get_treasury_yields_history` |
 | `get_yield_curve`, `get_yield_curve_history` |
 
@@ -2851,6 +3042,11 @@ get_trades(symbol=None, *, ins_code=None, start=None, end=None,
 get_market_messages(flow=0, top=20, since_id=None, *, archive_to=None)
 get_instrument_state_changes(top=20, since_id=None, *, archive_to=None)
 get_market_overview(flow=0, *, archive_to=None)
+compare_symbols(symbols, start=None, end=None, benchmark=None, align='inner', annualization=240, min_observations=20, include_client_type=True, progress=True, history_data=None, client_data=None, strict=False)
+get_liquidity_metrics(symbols=None, start=None, end=None, window=20, annualization=240, include_live=True, progress=True, history_data=None, live_data=None, strict=False)
+get_market_regime(benchmark='شاخص کل', start=None, end=None, lookback=60, liquidity_window=20, annualization=240, weights=None, progress=True, max_requests=30, live_data=None, benchmark_history=None, activity_history=None)
+get_market_map(group_by='symbol', size='value', color='return', top=100, flow=None, instrument_types=None, data=None)
+plot_market_map(map_data=None, output_path=None, show=False, title=None)
 get_energy_auctions(status='upcoming', board='physical', top=100)
 get_energy_auction(auction_id, include_trades=True, include_instrument_history=False)
 get_energy_market_overview(market='all')
@@ -2939,6 +3135,35 @@ Python/pandas.
 | `max_consecutive_retries`, `max_retries` | `int | None` | سقف retry؛ `max_retries` نام قدیمی سازگار است. |
 | `include_initial`, `emit_heartbeats`, `copy_snapshot`, `record_heartbeats` | `bool` | کنترل emission/copy/persistence eventها. |
 | `notification_top`, `max_seen_notifications`, `checkpoint_interval` | `int` | `notification_top` بین ۱ و ۱۰۰۰؛ دو مقدار دیگر مثبت. `record_max_records` بین ۱ و ۱۰۰۰۰ است. |
+
+#### پارامترهای تحلیل مدیریتی
+
+| نام | type/default | معنا و constraint |
+|---|---|---|
+| `benchmark` | `str | None` | شاخص یا نماد مبنا؛ در مقایسه اختیاری و در رژیم بازار پیش‌فرض `شاخص کل` است. |
+| `align` | `str='inner'` | `inner` برای تقویم مشترک همهٔ سری‌ها یا `outer` برای اتحاد تاریخ‌ها. |
+| `annualization` | `int=240` | تعداد جلسات سال برای نوسان، آلفا و tracking error؛ عدد صحیح ۱ تا ۳۶۶. |
+| `min_observations` | `int=20` | حداقل بازده معتبر برای سنجه‌های ریسک؛ کمبود با `NaN` و flag گزارش می‌شود. |
+| `include_client_type` | `bool=True` | دریافت حقیقی/حقوقی در مقایسه؛ خاموش‌کردن آن fan-out را کم می‌کند. |
+| `history_data` | `Mapping[str, DataFrame] | None` | تاریخچهٔ قیمت صریح به تفکیک نماد؛ جایگزین دریافت شبکه و بدون mutation. |
+| `client_data` | `Mapping[str, DataFrame] | None` | تاریخچهٔ حقیقی/حقوقی صریح به تفکیک نماد. |
+| `window` | `int | None=20` | آخرین جلسات سنجهٔ نقدشوندگی؛ `None` یعنی تمام بازهٔ موجود. |
+| `include_live` | `bool=True` | افزودن گردش، spread، imbalance، depth و market cap از snapshot. |
+| `live_data` | `DataFrame | None` | snapshot صریح `get_live_market()` برای تکرارپذیری و جلوگیری از دریافت تازه. |
+| `lookback` | `int=60` | تعداد مشاهدات انتهایی benchmark در مؤلفهٔ trend. |
+| `liquidity_window` | `int=20` | تعداد روزهای انتهایی فعالیت بازار برای میانهٔ ارزش تاریخی. |
+| `weights` | `Mapping[str, number] | None` | وزن `trend/breadth/flow/liquidity/queue`؛ نامنفی، finite و با مجموع مثبت. |
+| `benchmark_history` | `DataFrame | None` | تاریخچهٔ صریح benchmark برای رژیم بازار. |
+| `activity_history` | `DataFrame | None` | تاریخچهٔ صریح فعالیت کل بازار با ستون `Value`. |
+| `group_by` | `str='symbol'` | گروه‌بندی نقشه: `symbol`, `sector`, `flow`, `instrument_type`. |
+| `size` | `str='value'` | اندازهٔ treemap: `value`, `volume`, `market_cap`, `queue_value`. |
+| `color` | `str='return'` | رنگ: `return`, `net_individual_flow`, `individual_power`, `order_imbalance`. |
+| `instrument_types` | scalar/iterable/`None`/`'all'` | پیش‌فرض انواع سهامی ۳۰۰/۳۰۳/۳۰۹؛ `'all'` فیلتر نوع را حذف می‌کند. |
+| `data` | `DataFrame | None` | ورودی صریح `get_market_map()`؛ در نبود آن snapshot زنده گرفته می‌شود. |
+| `map_data` | `DataFrame | None` | جدول آمادهٔ نقشه برای renderer؛ `None` نقشهٔ پیش‌فرض را می‌سازد. |
+| `output_path` | `str | Path | None` | مسیر فایل HTML تعاملی؛ `None` یعنی فقط ساخت `Figure`. |
+| `show` | `bool=False` | نمایش figure با renderer تنظیم‌شدهٔ Plotly. |
+| `title` | `str | None` | عنوان دلخواه نمودار؛ `None` عنوان خودکار فارسی. |
 
 #### پارامترهای درآمد ثابت و اختیار
 
@@ -3084,6 +3309,8 @@ get_symbols(bourse=True, farabourse=True, payeh=True, haghe_taqadom=False, sando
 get_shareholders(symbol='', date=None, include_id=False, *, ins_code=None, asset_type='auto', **kwargs)
 get_shareholder_history(symbol='', start=None, end=None, frequency='daily', max_requests=60, include_id=False, progress=True, *, ins_code=None, asset_type='auto')
 get_currency(name='', start=None, end=None, limit=0, output_type='standard', date_format='jalali', progress=True, save_to_file=False, dropna=True, return_type=None, ascending=True, save_path=None, **kwargs)
+get_tgju_history(name='', start=None, end=None, limit=0, output_type='standard', date_format='jalali', progress=True, save_to_file=False, dropna=True, return_type=None, ascending=True, save_path=None, **kwargs)
+list_tgju_assets(category=None, include_aliases=False)
 get_market_snapshot(*args, **kwargs)
 get_market_client_type(*args, **kwargs)
 ```
@@ -3106,7 +3333,9 @@ get_market_client_type(*args, **kwargs)
 | `get_symbols` | booleanهای market/asset، `payeh_color: str|list|None`; `output: str='dataframe'`; aliasهای انگلیسی در `kwargs`. | `DataFrame` فهرست ابزارها یا format قدیمی انتخابی؛ ستون‌های هویت/نام/بازار و type؛ خروجی تهی schema پایدار دارد. | فیلتر/output نامعتبر `ValueError` یا legacy `None`; مثال فصل فهرست ابزارها. |
 | `get_shareholders` | `symbol/ins_code/asset_type` هویت؛ `date=None` آخرین فهرست و تاریخ مشخص، روز معامله است؛ `include_id=False` شناسهٔ رکورد snapshot را حذف می‌کند؛ aliasهای `stock/shh_id` حفظ شده‌اند. | `DataFrame|None[share_holder_name,number_of_shares,percentage_of_shares,change_state,change_amount,date,trade_date,effective_date,trade_date_jalali,effective_date_jalali,identity_quality,change_quality,source]` و با opt-in `share_holder_id`. `date` همان `effective_date` و معمولاً روز معاملاتی بعد از `trade_date` است؛ تغییر با نام exact محاسبه و برای ورودی مبهم `NA` می‌شود. attrs هشدار انتقال غیرمعاملاتی، تأخیر جلسه، نبود شناسهٔ پایدار و غیررسمی‌بودن ثبت را دارد. | provider/selector/تاریخ در قرارداد legacy پیام و `None`؛ مثال فصل اطلاعات نماد. |
 | `get_shareholder_history` | `start/end` اجباری و بر مبنای **تاریخ مؤثر**؛ `frequency∈{daily,weekly,monthly}`؛ `max_requests=60` سقف سخت ۱..۱۰۰۰؛ `include_id`; `progress`; هویت exact با `symbol/ins_code/asset_type`. daily هر دو snapshot پاسخ را مصرف می‌کند؛ weekly آخرین جلسهٔ هفتهٔ شنبه‌محور و monthly آخرین جلسهٔ ماه شمسی است. | همان schema توسعه‌یافتهٔ `get_shareholders` در long-form برای چند تاریخ. attrs شامل `date_basis='effective_date'`, `coverage_start/end`, `requested_snapshot_count`, `returned_snapshot_count`, `missing_effective_dates`, `shareholder_requests_used`, `pair_request_optimization`, `change_period` و تمام هشدارهای رسمی منبع است. | بازه/enum/bool/bودجه `InvalidParameterError`؛ هویت، شبکه یا schema خطاهای typed؛ مثال `att.get_shareholder_history('فولاد', start='1404-01-01', end='1404-12-29', max_requests=150)`. |
-| `get_currency` | `name: str|list` نام ارز/سکه؛ `start/end/limit/ascending` بازه؛ `output_type` schema؛ `date_format∈{jalali,gregorian,both}`؛ `return_type` بازده؛ `progress/dropna` نمایش/چندارزی؛ `save_to_file/save_path` CSV؛ `kwargs` aliasهای قدیمی. منبع TGJU است. | تک ارز `DataFrame[Open,High,Low,Close]`; چند ارز ستون MultiIndex؛ index تاریخ. | نام نامعتبر/provider ممکن است `ValueError`/`None`; مثال فصل ارز. |
+| `get_currency` | `name: str|list` نام canonical، فارسی یا slug برای هر دارایی کاتالوگ؛ `start/end/limit/ascending` بازه؛ `output_type` schema؛ `date_format∈{jalali,gregorian,both}`؛ `return_type` بازده؛ `progress/dropna` نمایش/چنددارایی؛ `save_to_file/save_path` CSV؛ `kwargs` aliasهای قدیمی. | تک دارایی `DataFrame[Open,High,Low,Close]` با attrs منبع/نام/slug/category/unit؛ چند دارایی ستون MultiIndex. | نام `InvalidParameterError`، HTTP `ConnectionError`، schema `DataParsingError`؛ `att.get_currency("gold-18k", limit=30)`. |
+| `get_tgju_history` | قرارداد و defaultهای دقیق `get_currency`؛ نام پیشنهادی چون دامنه فقط ارز نیست. | همان frame/MultiIndex و attrs؛ wrapper معنایی است. | همان؛ `att.get_tgju_history("طلای ۲۴ عیار", limit=30)`. |
+| `list_tgju_assets` | `category=None` یا str/sequence از هفت دسته؛ `include_aliases=False` tuple aliasها را اضافه می‌کند. | `DataFrame[Name,PersianName,Slug,Category,Unit]` و در حالت opt-in `Aliases`؛ attrs endpoint و عرض ردیف تأییدشده. | category/bool نامعتبر `InvalidParameterError`؛ بدون شبکه؛ `att.list_tgju_assets("gold")`. |
 | `get_market_snapshot` | `*args/**kwargs` برای BC به تابع صفرآرگومان `market_watch` forward می‌شود؛ در عمل آرگومان غیرتهی `TypeError` می‌دهد. | `dict` با کلیدهای دقیق `stocks,order_book,market_time,index_value,migration,trade_date,market_state,exchange_time,fetched_at,snapshot_age_seconds,is_today_trade_date,is_history_eligible,is_realtime_fresh,is_previous_trade_date,is_stale,is_partial`. | `ConnectionError`, `DataParsingError`; مثال live. |
 | `get_market_client_type` | `*args/**kwargs` wrapper `market_client_type`. | `DataFrame[InsCode,Buy_I_Count,...,Net_I_Volume,Net_N_Volume]`. | `ConnectionError`, `DataParsingError`; مثال live. |
 
@@ -3247,6 +3476,7 @@ yield_to_maturity(price, cashflows=None, settlement_date=None, day_count='ACT/36
 bond_analytics(price, cashflows=None, settlement_date=None, day_count='ACT/365F', compounding='nominal', frequency=1, price_type='dirty', accrued_interest=None, maturity_date=None, face_value=None, coupon_rate=None, issue_date=None, annual_yield=None, bump_size=0.0001)
 build_yield_curve(nodes, settlement_date, interpolation='log_discount', extrapolate=False, duplicate_policy='error', day_count='ACT/365F', rate_compounding='effective', rate_frequency=1, enforce_monotonic_discount=True)
 get_ifb_yield_table(category='treasury')
+get_debt_yields(debt_type=None)
 get_treasury_yields(symbol=None, settlement_date=None, face_value=1000000.0, include_stale=False, min_volume=0, price_source='auto', day_count='ACT/365F', strict=False, face_value_source=None, source='tsetmc', maturity_date=None, maturity_map=None, allow_no_trade=False)
 get_treasury_yield_history(symbol=None, start=None, end=None, limit=0, settlement_date=None, face_value=1000000.0, include_today=False, date_format='jalali', price_source='auto', day_count='ACT/365F', ascending=True, progress=True, strict=False, face_value_source=None, max_requests=250, maturity_date=None, maturity_map=None, use_ifb_reference=False)
 get_treasury_yields_history(symbol=None, start=None, end=None, limit=0, settlement_date=None, face_value=1000000.0, include_today=False, date_format='jalali', price_source='auto', day_count='ACT/365F', ascending=True, progress=True, strict=False, face_value_source=None, max_requests=250, maturity_date=None, maturity_map=None, use_ifb_reference=False)
@@ -3264,6 +3494,7 @@ get_yield_curve_history(symbol=None, start=None, end=None, limit=0, face_value=1
 | `bond_analytics` | ورودی schedule مانند `yield_to_maturity`؛ `annual_yield=None` یعنی حل YTM از `price`؛ `day_count/compounding/price_type` convention؛ `bump_size=0.0001` شوک DV01. | `dict` با price/yield، `MacaulayDuration,ModifiedDuration,Convexity,DV01` و metadata schedule. | cashflow/rate/date/price نامعتبر یا solver ناموفق `ValueError`; مثال deterministic. |
 | `build_yield_curve` | nodeهای rate/discount، compounding، duplicate و monotonic guard. | `YieldCurve`; `node_metadata` و `diagnostics` با کلیدهای دقیق `input_node_count,node_count,duplicate_count,duplicate_policy,monotonic_discount_enforced`. | node کم/duplicate/discount غیرمثبت/non-monotonic `ValueError`; مثال curve. |
 | `get_ifb_yield_table` | `category: str='treasury'` دستهٔ جدول صفحهٔ IFB. | `DataFrame[Symbol,Price,LastTradeJalali,LastTradeDate,PublishJalali,PublishDate,MaturityJalali,Maturity,Volume,ReferenceYTM,ReferenceSimpleYield,ReferenceSource]`; attrs provenance URL/time. | category/HTML/schema/connection typed؛ مثال comparison IFB. |
+| `get_debt_yields` | `debt_type=None` یا str/sequence از `treasury,erad,gam,other`؛ نمای `all` رسمی IFB و طبقه‌بندی exact بر پیشوند نماد. | schema IFB + `DebtType`؛ attrs `cashflows_inferred=False`, `classification='exact_symbol_prefix'`. | فیلتر `InvalidParameterError` و HTTP/HTML `ConnectionError/DataParsingError`؛ `att.get_debt_yields(["erad", "gam"])`. |
 | `get_treasury_yields` | live universe؛ `min_volume`; `face_value_source`; maturity override/map؛ `allow_no_trade`; source. | `TREASURY_COLUMNS`: هویت/سررسید/تسویه/price provenance، چهار yield، duration/convexity/DV01، stale/status؛ attrs source/universe/fetch time. | `InvalidParameterError`, `StockNotFoundError/AmbiguousSymbolError`, `ConnectionError/DataParsingError`; مثال live اخزا. |
 | `get_treasury_yield_history` | history OHLC؛ `max_requests` hard؛ `use_ifb_reference` فقط reference؛ settlement per row مگر override. | `TREASURY_HISTORY_COLUMNS` با `TradeDate,JalaliDate,Open,High,Low,Close,Final,Volume...` و analytics؛ attrs failures/request/provenance. | parameter/resolver/provider/parsing؛ partial در attrs/warning؛ مثال history. |
 | `get_treasury_yields_history` | alias identity با signature کامل یکسان. | دقیقاً همان object/schema/attrs `get_treasury_yield_history`. | همان؛ `att.get_treasury_yields_history is att.get_treasury_yield_history`. |
@@ -3329,6 +3560,7 @@ save_option_snapshot(path, options=None, exchange=0, progress=True, *, lock_time
 load_option_snapshots(path)
 list_etfs(progress=True)
 list_bonds(progress=True)
+list_debt_instruments(debt_type=None, active_only=False, progress=True)
 list_funds(fund_type=None, progress=True, *, listed_only=False, strategy=None, commodity_underlying=None, classification_status=None)
 list_listed_funds(progress=True, *, fund_category=None, strategy=None, commodity_underlying=None, classification_status=None, include_unknown=True)
 list_indices(progress=True)
@@ -3350,11 +3582,30 @@ get_index_companies(index_name, progress=True)
 | `save_option_snapshot` | `options=None` یک fetch؛ lock timeout نامنفی و stale lock مثبت. | `DataFrame` ترکیب dedupeشده با `OPTION_COLUMNS`; attrs `schema_version,source,path`. فایل JSON versioned با lock و replace اتمیک نوشته می‌شود. | parent گم‌شده `FileNotFoundError`، options غیرDataFrame `TypeError`، مقدار نامعتبر `ValueError`، قفل `TimeoutError`؛ provider اگر fetch؛ مثال snapshot. |
 | `load_option_snapshots` | `path` JSON versioned. | `DataFrame` با `OPTION_COLUMNS` و attrs؛ فایل گم‌شده **خطا نیست** و frame تهی با `attrs['status']='missing'` می‌دهد. | JSON خراب `JSONDecodeError` و version ناسازگار `ValueError`; مثال history. |
 | `list_etfs` | فقط `progress`. | `DataFrame[InsCode,ISIN,Symbol,Name,Last,Close,Yesterday,Volume,Value,TradeCount,Low,High,NAV,NAV_Discount,Change,ChangePct,MarketCode]`. | provider typed/empty؛ مثال `list_etfs().query("NAV_Discount < -1")`. |
-| `list_bonds` | فقط `progress`. | `DataFrame[InsCode,ISIN,Symbol,Name,BondType,Ticker,MaturityJalali,MaturityGregorian,DaysToMaturity,Last,Close,Yesterday,Volume,Value,TradeCount,Change,ChangePct]`. | parse/provider؛ maturity نامعلوم nullable؛ مثال فصل ابزارها. |
+| `list_bonds` | فقط `progress`؛ signature قدیمی ثابت است. | `DataFrame[InsCode,ISIN,Symbol,Name,BondType,Ticker,MaturityJalali,MaturityGregorian,DaysToMaturity,Last,Close,Yesterday,Volume,Value,TradeCount,Change,ChangePct]`؛ `BondType='gam'` نیز پشتیبانی می‌شود. | parse/provider؛ maturity نامعلوم nullable؛ `att.list_bonds(progress=False)`. |
+| `list_debt_instruments` | `debt_type=None` یا str/sequence از `treasury,erad,gam,murabaha,ijara,salaf,other`؛ `active_only=False`؛ `progress`. | schema `list_bonds` + `DebtType`؛ attrs منبع، coverage و فیلترها. | فیلتر/bool `InvalidParameterError` و خطاهای provider؛ `att.list_debt_instruments("gam", active_only=True)`. |
 | `list_funds` | `fund_type: str|list|None` از ۱۵ دستهٔ ثبتی؛ `listed_only=False`؛ فیلترهای keyword-only: `strategy`, `commodity_underlying`, `classification_status`؛ نام قدیمی `venture` alias است. | registry rich funds با NAV/returns/composition/manager و محورهای `registry_category,asset_exposure,strategy_tags` و شواهد طبقه‌بندی؛ بدون تضمین InsCode. | type/category/combo/filter نامعتبر `InvalidParameterError` یا رفتار سازگار legacy؛ provider خطادار کنار گذاشته می‌شود؛ مثال فصل صندوق. |
 | `list_listed_funds` | یک MarketWatch bulk؛ `fund_category`, `strategy`, `commodity_underlying`, `classification_status`; `include_unknown=True`. | `LISTED_FUND_COLUMNS` شامل `InstrumentType` و تمام محورهای taxonomy؛ هر دو نوع ۳۰۵ و ۳۸۰؛ attrs `no_fuzzy_join=True,registry_joined=False,taxonomy_version`. | فیلتر نامعتبر `InvalidParameterError`؛ connection/parsing؛ مثال `list_listed_funds(commodity_underlying="gold")`. |
 | `list_indices` | فقط `progress`. | `DataFrame[Name,InsCode,Value,High,Low,Change,ChangePct]`؛ از 1.2.0 `Change` حرکت واحد شاخص و `ChangePct` درصد است. | مسیر legacy در خطای provider frame تهی/پیام؛ برای صنعت `list_industry_indices` پیشنهاد می‌شود. |
 | `get_index_companies` | `index_name: str` فارسی یا InsCode. | `DataFrame[Symbol,Name,InsCode,Close,Yesterday,Last]`. | index گم‌شده/provider در مسیر legacy frame تهی/پیام؛ مثال فصل شاخص. |
+
+### قرارداد API: تحلیل مدیریتی بازار
+
+```text
+compare_symbols(symbols, start=None, end=None, benchmark=None, align='inner', annualization=240, min_observations=20, include_client_type=True, progress=True, history_data=None, client_data=None, strict=False)
+get_liquidity_metrics(symbols=None, start=None, end=None, window=20, annualization=240, include_live=True, progress=True, history_data=None, live_data=None, strict=False)
+get_market_regime(benchmark='شاخص کل', start=None, end=None, lookback=60, liquidity_window=20, annualization=240, weights=None, progress=True, max_requests=30, live_data=None, benchmark_history=None, activity_history=None)
+get_market_map(group_by='symbol', size='value', color='return', top=100, flow=None, instrument_types=None, data=None)
+plot_market_map(map_data=None, output_path=None, show=False, title=None)
+```
+
+| تابع | ورودی‌ها و گزینه‌ها | خروجی/schema/attrs | خطا و مثال |
+|---|---|---|---|
+| `compare_symbols` | `symbols` الزامی؛ تاریخ، benchmark، تقویم `align`، annualization و حداقل مشاهده؛ دریافت client type و ورودی‌های صریح قابل کنترل‌اند. | ۳۱ ستون شامل بازده/ریسک/افت، beta/correlation/alpha، نقدشوندگی و حقیقی؛ attrs مبنا، alignment، پوشش، نماد مفقود و واحد ریال. | enum/count/date نامعتبر `InvalidParameterError`؛ history صریح malformed یا `strict` ناموفق `DataParsingError`؛ نمونه فصل تحلیل مدیریتی. |
+| `get_liquidity_metrics` | `symbols=None` فقط snapshot کل بازار؛ نماد مشخص تاریخچه را هم می‌گیرد؛ `window=None` کل بازه؛ live و ورودی صریح قابل کنترل. | ۳۲ ستون؛ zero-trade/return، Amihud به میلیارد ریال، ارزش/حجم/معامله، volatility، turnover، spread، L1/L5 و depth؛ attrs پوشش و واحد. | پارامتر/date نامعتبر `InvalidParameterError`؛ history malformed/strict `DataParsingError`؛ نمونه فصل نقدشوندگی. |
+| `get_market_regime` | benchmark و پنجره‌ها؛ پنج وزن اختیاری؛ بودجهٔ درخواست؛ سه DataFrame صریح برای replay. | یک ردیف ۳۰ ستونی با label/score/confidence، هر پنج component و weight، اجزای خام و quality؛ attrs آستانه، روش و missing. | وزن/نوع/date/budget نامعتبر `InvalidParameterError`؛ تاریخچهٔ benchmark malformed `DataParsingError`؛ نمونه فصل رژیم. |
+| `get_market_map` | چهار گروه‌بندی، چهار معیار اندازه، چهار معیار رنگ؛ `top`, `flow`, نوع ابزار و snapshot صریح. | ۲۳ ستون renderer-independent شامل اندازه/رنگ، دو وزن universe/display، پوشش رنگ، freshness و ریال؛ attrs انتخاب‌ها و partial بودن. | enum/filter نامعتبر `InvalidParameterError`؛ ستون لازم ناقص `DataParsingError`؛ نمونه نقشه. |
+| `plot_market_map` | `map_data` اختیاری، مسیر HTML، نمایش و عنوان. | `plotly.graph_objects.Figure`؛ نوشتن HTML فقط با `output_path`. | Plotly مفقود `ImportError`؛ frame تهی/ناقص `DataParsingError`؛ مثال فصل نقشه. |
 
 ### قرارداد API: بورس انرژی و بورس کالا
 
@@ -3427,7 +3678,7 @@ market_data()
 | `stock_introduction` | target `get_introduction`; wrapper legacy unsupported. | هیچ خروجی موفق. | همیشه `UnsupportedDataSourceError` پیش از I/O. |
 | `stocklist` | target `get_symbols`; همان signature و aliasهای kwargs. | همان فهرست. | همان. |
 | `shareholders` | target `get_shareholders`. | همان frame/None. | همان. |
-| `currency_coin` | target `get_currency`. | همان frame/MultiIndex و source TGJU. | همان. |
+| `currency_coin` | target سازگار `get_currency`؛ اکنون همهٔ ۸۷ سری کاتالوگ TGJU را می‌پذیرد. | همان frame/MultiIndex و attrs دقیق source/category/unit. | نام/HTTP/schema typed؛ برای کد جدید `get_tgju_history`. |
 | `market_watch` | تابع صفرآرگومان canonical قدیمی snapshot؛ target مفهومی `get_market_snapshot`. | `dict[stocks,order_book,market_time,...]`; ستون‌های legacy `Yesterday/BaseVolume/Change` حفظ شده و ستون‌های corrected additive هستند. | `ConnectionError/DataParsingError`; `snapshot=att.market_watch()`. |
 | `market_client_type` | تابع صفرآرگومان bulk؛ target مفهومی `get_market_client_type`. | `CLIENT_COLUMNS` DataFrame. | typed provider errors. |
 | `market_data` | wrapper deprecated صفرآرگومان به `market_watch`; identity alias نیست. | همان dict. | همان؛ برای کد جدید `get_market_snapshot/get_live_market`. |
@@ -3510,7 +3761,7 @@ messages = att.get_market_messages_history(db, flow=0)
 | TSETMC / بورس انرژی | حراج‌ها، معاملات همان عرضه، تابلوهای برق و انرژی و مشخصات آتی انرژی |
 | بورس کالای ایران (`ime.co.ir` و `cdn.ime.co.ir`) | تابلوی گواهی/سلف/صندوق/آتی، بازار فیزیکی و آمار تجمیعی بازارها |
 | فرابورس ایران (`ifb.ir/ytm.aspx`) | جدول مرجع YTM برای مقایسه/دسته‌بندی اوراق؛ منبع مجاز و با provenance جدا |
-| TGJU (`api.tgju.org`) | فقط API legacy ارز و سکه |
+| TGJU (`api.tgju.org`) | تاریخچهٔ ۸۷ سری تأییدشدهٔ ارز آزاد/رسمی، طلا، نقره، سکه/حباب و فلزات گران‌بهای جهانی؛ نام و واحد در کاتالوگ عمومی |
 
 کدال منبع این پکیج نیست؛ حتی endpointهای proxyشدهٔ آن زیر host دیگر در boundary شبکه رد می‌شوند.
 
@@ -3555,6 +3806,8 @@ python -m pytest -m "not online" -q
 
 این بخش در هر انتشار به‌روزرسانی می‌شود؛ جزئیات کامل‌تر در [HISTORY.rst](HISTORY.rst) ثبت شده است.
 
+- **1.8.0 — 2026-09-13:** افزودن شناسایی و فیلتر مستقیم اراد/گام و سررسیدهای شش/هشت‌رقمی، YTM مرجع رسمی همهٔ اوراق بدون حدس جریان نقدی، و توسعهٔ TGJU به کاتالوگ ۸۷ سری شامل ۳۶ ارز آزاد، ۲۴ نرخ رسمی، طلای ۱۸/۲۴ عیار و سایر طلاها، نقره، سکه/حباب و فلزات جهانی با alias فارسی، slug رسمی، واحد و خطاهای typed.
+- **1.7.0 — 2026-09-13:** افزودن مقایسهٔ چندنمادی بازده/ریسک/افت/بتا/نقدشوندگی و جریان حقیقی؛ سنجه‌های نقدشوندگی تاریخی و زنده با Amihud، گردش، spread و عمق پنج‌سطحی؛ رژیم توضیح‌پذیر بازار از پنج مؤلفه با confidence و رفتار صریح دادهٔ مفقود؛ داده و treemap نقشهٔ بازار با گروه‌بندی و معیارهای اندازه/رنگ قابل انتخاب؛ پشتیبانی ورودی DataFrame صریح برای replay، schema/attrs پایدار، واحدهای روشن و Plotly اختیاری.
 - **1.6.0 — 2026-09-13:** افزودن حراج‌های بورس انرژی با شرایط کامل عرضه و تفکیک معاملات حراج از سابقهٔ ابزار؛ تابلوهای برق استاندارد/سبز/آزاد، سلف و گواهی‌ها و مشخصات آتی انرژی؛ تابلوی رسمی بورس کالا برای گواهی، سلف، صندوق و آتی با پنج سطح سفارش و حقیقی/حقوقی؛ تاریخچه و خلاصهٔ بازار فیزیکی و آمار تجمیعی بازارهای فیزیکی/آتی/اختیار/مالی؛ منحنی سررسید، calendar spread و cash-and-carry با فرض‌های صریح و ثبت دقیق واحد ریال/هزار ریال/میلیون ریال.
 - **1.5.1 — 2026-09-13:** اصلاح هویت و `change_amount` در `get_shareholders(date=...)` بر پایهٔ اختلاف دو snapshot و تطبیق exact؛ تفکیک صریح تاریخ معامله از تاریخ مؤثر روز معاملاتی بعد؛ افزودن `get_shareholder_history()` با فرکانس روزانه/هفتگی/ماه شمسی و بودجهٔ سخت درخواست؛ افزودن رتبه‌بندی انباشت/توزیع، edge list شبکهٔ سهامدار–نماد و سنجه‌های Top-N/HHI تمرکز مالکیت با metadata کامل محدودیت‌های رسمی منبع.
 - **1.5.0 — 2026-09-12:** تفکیک صریح تاریخچهٔ بلندمدت هر نماد از پنجرهٔ گردان حداکثر پنج‌تاریخهٔ بازار؛ افزودن snapshot، تغییرات متوالی و جمع‌بندی سهامداران فعال با اتصال دقیق `InsCode` و metadata محدودیت منبع؛ افزودن timeline بومی TSETMC برای پیام ناظر، تغییر سرمایه و تعدیل قیمت بدون برچسب‌گذاری ساختگی DPS یا ادغام دادهٔ کدال.

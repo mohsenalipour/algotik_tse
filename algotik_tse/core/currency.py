@@ -1,6 +1,9 @@
 import pandas as pd
+import requests
 from algotik_tse.settings import settings
 from algotik_tse.providers.tgju_convertor import tgju_convertor
+from algotik_tse.core.tgju import resolve_tgju_asset
+from algotik_tse.exceptions import ConnectionError, DataParsingError
 from algotik_tse.core.helper import (
     date_fix,
     apply_date_format,
@@ -26,7 +29,7 @@ def currency_coin(
     **kwargs
 ):
     """
-    Get symbol or symbols price history from tsetmc
+    Get currency, precious-metal and coin price history from TGJU.
     :param name:currency or coin name in persian or english, or a list of currency or  in
                                 persian (['euro', 'سکه امامی'])
                             Default value is 'dollar'.
@@ -114,11 +117,34 @@ def currency_coin(
         return df
 
     def __get_currency_history(currency__name):
-        url_word = settings.currency_web_word[currency__name]["web_word"]
+        asset = resolve_tgju_asset(currency__name)
+        canonical_name = asset["Name"]
+        url_word = asset["Slug"]
         new_start, new_end = date_fix(start=start, end=end)
-        detail = safe_get(settings.url_currency_from_tgju.format(url_word))
+        try:
+            detail = safe_get(settings.url_currency_from_tgju.format(url_word))
+        except requests.exceptions.RequestException as exc:
+            raise ConnectionError(
+                "TGJU history for {!r} could not be fetched".format(canonical_name)
+            ) from exc
+        if detail is None or detail.status_code != 200:
+            status = None if detail is None else detail.status_code
+            raise ConnectionError(
+                "TGJU history for {!r} returned status {!r}".format(
+                    canonical_name, status
+                )
+            )
+        try:
+            payload = detail.json()
+            rows = payload["data"]
+            if not isinstance(rows, list):
+                raise TypeError("data is not a list")
+            df = tgju_convertor(rows)
+        except (KeyError, TypeError, ValueError, IndexError) as exc:
+            raise DataParsingError(
+                "TGJU history for {!r} has an unexpected schema".format(canonical_name)
+            ) from exc
         if detail.status_code == 200:
-            df = tgju_convertor(detail.json()["data"])
             if values is not None or start is not None or end is not None:
                 df = filter_by_date_or_values(df, values, new_start, new_end)
 
@@ -126,7 +152,7 @@ def currency_coin(
             df["Weekday"] = df["Weekday_No"].apply(lambda x: settings.en_weekdays[x])
             df["Weekday_fa"] = df["Weekday_No"].apply(lambda x: settings.fa_weekdays[x])
             df.drop("Weekday_No", axis=1, inplace=True)
-            df["Ticker"] = settings.currency_web_word[currency__name]["persian_word"]
+            df["Ticker"] = asset["PersianName"]
 
             df = apply_date_format(df, date_format)
             if df is None:
@@ -143,10 +169,17 @@ def currency_coin(
             df = apply_return_type(df, return_type, default_price="Close")
             if df is None:
                 return None
+            df.attrs.update(
+                {
+                    "source": "tgju",
+                    "asset": canonical_name,
+                    "persian_name": asset["PersianName"],
+                    "slug": asset["Slug"],
+                    "category": asset["Category"],
+                    "unit": asset["Unit"],
+                }
+            )
             return df
-        else:
-            print("Connection Error!!!")
-            return None
 
     if name == "":
         name = "dollar"
@@ -162,7 +195,7 @@ def currency_coin(
         return _apply_ascending(df)
     else:
         if isinstance(name, str):
-            name = name if name.isascii() else settings.currency_persian[name]
+            name = resolve_tgju_asset(name)["Name"]
             if progress:
                 print("1/1: Getting historical price of {}".format(name))
             df = __get_currency_history(currency__name=name)
@@ -178,7 +211,7 @@ def currency_coin(
             df_dict = {}
             file_name_str = ""
             for cur in name:
-                cur = cur if cur.isascii() else settings.currency_persian[cur]
+                cur = resolve_tgju_asset(cur)["Name"]
                 if progress:
                     print(
                         "{}/{}: Getting historical price of {}".format(
