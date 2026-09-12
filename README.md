@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.5.0-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.5.1-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -30,7 +30,8 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 - watcher بازار، پیام‌ها، تغییر وضعیت، breadth، جریان صنایع و ذخیرهٔ اختیاری تاریخچه روی SQLite
 - ۴۵ شاخص صنعت، اعضای رسمی، snapshot تحلیلی، تاریخچهٔ اعضا، کندل درون‌روزی، مقایسه و هم‌بستگی صنایع
 - EPS و P/E، رخدادهای تعدیل قیمت و حل دقیق هویت ابزار با `InsCode`
-- snapshot پنج‌روزهٔ فعالیت سهامداران عمده، تغییرات روزانه، رتبه‌بندی انباشت/توزیع و timeline رویدادهای TSETMC هر نماد
+- سهامداران عمدهٔ هر نماد با تفکیک تاریخ معامله/تاریخ مؤثر، تغییر دارایی اصلاح‌شده و تاریخچهٔ روزانه، هفتگی یا ماهانه با بودجهٔ درخواست
+- snapshot پنج‌روزهٔ فعالیت سهامداران عمدهٔ کل بازار، تغییرات روزانه، رتبه‌بندی انباشت/توزیع، شبکهٔ سهامدار–نماد، تمرکز مالکیت و timeline رویدادهای TSETMC هر نماد
 - صندوق‌های ثبت‌شده و بورسی با طبقه‌بندی چندمحوره، پوشش ابزارهای ۳۰۵ و ۳۸۰ و فیلتر مستقیم طلا، نقره، کالایی، اهرمی، بخشی و شاخصی
 - تحلیل اخزا شامل YTM، duration، convexity، DV01 و منحنی بازده زنده و تاریخی
 - تحلیل اختیار معامله شامل Black–Scholes، IV، Greeks، put-call parity، PCR و نقدشوندگی
@@ -64,8 +65,13 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 | ⭐ `get_market_value_history()` | تاریخچهٔ ارزش بازار بورس و فرابورس | `DataFrame` |
 | ⭐ `get_index_impact()` | نمادهای اثرگذار مثبت و منفی روی شاخص | `DataFrame` |
 | ⭐ `get_market_trades()` | خلاصهٔ روزانهٔ همهٔ ابزارها در یک درخواست | `DataFrame` |
+| ⭐ `get_shareholders()` | سهامداران عمدهٔ فعلی یا پس از پایان یک روز معاملاتی | `DataFrame` |
+| ⭐ `get_shareholder_history()` | تاریخچهٔ ترکیب سهامداران عمدهٔ یک نماد با درخواست‌های جفتی | `DataFrame` |
 | ⭐ `get_major_shareholder_changes()` | تغییرات سهامداران عمده در پنجرهٔ پنج‌روزهٔ TSETMC | `DataFrame` |
 | ⭐ `get_active_shareholders()` | جمع‌بندی انباشت و توزیع سهامداران فعال | `DataFrame` |
+| ⭐ `rank_shareholder_accumulation()` | رتبه‌بندی فعالیت هر جفت سهامدار–نماد بر پایهٔ درصد یا تعداد سهم | `DataFrame` |
+| ⭐ `get_shareholder_network()` | شبکهٔ دوبخشی سهامداران و نمادها در آخرین snapshot | `DataFrame` edge list |
+| ⭐ `get_ownership_concentration()` | Top-N و HHI سهامداران عمدهٔ یک نماد | `DataFrame` یک‌ردیفی |
 | ⭐ `get_symbol_events()` | timeline پیام ناظر، افزایش سرمایه و تعدیل قیمت یک نماد | `DataFrame` |
 | ⭐ `get_industry_snapshot()` | بازده، breadth، جریان پول و صف یک یا همهٔ صنایع | `DataFrame` |
 | ⭐ `compare_industries()` | مقایسهٔ سری زمانی چند شاخص صنعت | `DataFrame` |
@@ -97,9 +103,13 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 | `get_trades()`, `get_live_trades()` | معاملات ریز تاریخی و امروز |
 | `get_detail()`, `get_info()`, `get_stats()` | جزئیات، اطلاعات و آمار TSETMC نماد |
 | `get_shareholders()` | سهامداران عمدهٔ فعلی یا تاریخی |
+| `get_shareholder_history()` | snapshotهای تاریخی یک نماد روی تاریخ مؤثر، با فرکانس و بودجهٔ درخواست |
 | `get_major_shareholder_snapshots()` | snapshotهای منتشرشدهٔ موارد فعال در تابلوی تغییرات پنج‌روزه |
 | `get_major_shareholder_changes()` | اختلاف دارایی بین snapshotهای متوالی سهامداران عمده |
 | `get_active_shareholders()` | جمع‌بندی ورود/خروج موارد فعال در پنجرهٔ اخیر |
+| `rank_shareholder_accumulation()` | رتبه‌بندی بدون جمع‌زدن تعداد سهم نمادهای ناهمگون |
+| `get_shareholder_network()` | edge list شبکهٔ سهامدار–ابزار در یک snapshot اخیر |
+| `get_ownership_concentration()` | تمرکز فهرست افشاشدهٔ سهامداران عمدهٔ یک نماد |
 | `get_capital_increase()` | تاریخچهٔ افزایش سرمایه |
 | `get_price_adjustments()`, `get_latest_price_adjustment()` | رخدادهای تعدیل قیمت |
 | `get_introduction()` | فقط سازگاری قدیمی؛ همیشه `UnsupportedDataSourceError` |
@@ -2161,14 +2171,59 @@ detail = att.get_detail("فملی")
 info = att.get_info("فملی")
 stats = att.get_stats("فملی")
 shareholders = att.get_shareholders("فملی", include_id=True)
+
+# date تاریخ معامله است؛ خروجی تاریخ مؤثر روز معاملاتی بعد را هم نشان می‌دهد
+dated = att.get_shareholders("فولاد", date="1405-06-18", include_id=True)
+
+# start/end در این تابع تاریخ‌های مؤثر منتشرشدهٔ TSETMC هستند
+history = att.get_shareholder_history(
+    "فولاد",
+    start="1404-01-01",
+    end="1404-12-29",
+    frequency="daily",     # daily | weekly | monthly
+    max_requests=150,
+    progress=False,
+)
 capital = att.get_capital_increase("فملی")
 ```
 
 - `get_detail()` یک `DataFrame|None` کلید–مقدار با index برابر `key`، ستون `value` و ردیف `id` می‌دهد.
 - `get_info()` و `get_stats()` DataFrame کلید–مقدار با index برابر `key` می‌دهند.
-- `get_shareholders(date=None)` سهامداران فعلی و با `date` تاریخچهٔ روز را می‌دهد؛ `include_id=True` شناسه را اضافه می‌کند.
+- `get_shareholders(date=None)` آخرین فهرست را می‌دهد. در حالت تاریخی، `date`
+  **تاریخ معامله** است و `date/effective_date` در خروجی تاریخ روز معاملاتی بعدی
+  است که TSETMC دارایی پس از پایان آن معامله را با آن منتشر می‌کند؛
+  `trade_date` هر دو مفهوم را صریح می‌کند.
+- `get_shareholder_history(start, end)` ترکیب سهامداران عمدهٔ یک نماد را روی
+  **تاریخ مؤثر** می‌سازد. `frequency='daily'` از هر پاسخ دو snapshot متوالی را
+  استخراج می‌کند؛ برای نمونه ۲۳۹ جلسهٔ سال ۱۴۰۴ به حدود ۱۲۰ درخواست نیاز دارد.
+  فرکانس‌های `weekly` و `monthly` به‌ترتیب آخرین جلسهٔ هفتهٔ معاملاتی ایران و
+  آخرین جلسهٔ ماه شمسی را نگه می‌دارند.
+- `max_requests` یک سقف سخت پیش از دریافت است؛ اگر پوشش جفتی یا retry تاریخ
+  گمشده از بودجه بیشتر شود، تابع `InvalidParameterError` می‌دهد. `start/end`
+  تاریخ شمسی یا میلادی می‌پذیرند و `include_id=True` شناسهٔ **رکورد snapshot**
+  را اضافه می‌کند؛ این شناسه هویت پایدار و قابل اتصال بین روزها نیست.
 - `get_capital_increase()` تاریخچهٔ تغییر تعداد سهام/سرمایه را می‌دهد.
 - این توابع `ins_code` و `asset_type` keyword-only را نیز می‌پذیرند.
+
+نمونهٔ ستون‌های تاریخ و تغییر در خروجی تاریخی:
+
+```text
+share_holder_name  change_amount  trade_date  effective_date  change_quality
+Holder_A              225000000    20260907        20260908  exact_normalized_name
+```
+
+`change_amount` از اختلاف دو snapshot و فقط با تطبیق دقیق نام نرمال‌شده محاسبه
+می‌شود، زیرا `shareHolderID` و `changeAmount` پاسخ تاریخی در دادهٔ واقعی صفر
+هستند. برای نام تازه‌وارد یا مبهم مقدار `NA` برمی‌گردد؛ کل دارایی سهامدار تازه
+به‌عنوان خرید همان روز فرض نمی‌شود و fuzzy matching نیز انجام نمی‌شود.
+
+> **قرارداد رسمی منبع:** تاریخ دارایی یک روز معاملاتی بعد از معاملات است؛ تغییر
+> دارایی می‌تواند ناشی از معامله یا سایر نقل‌وانتقالات باشد؛ اطلاعات ساعات بازار
+> مربوط به پایان جلسهٔ قبل است؛ و فهرست عمومی ممکن است جزئیات یا دقت لازم برای
+> استعلام رسمی را نداشته باشد. این موارد در `DataFrame.attrs` با کلیدهای
+> `change_includes_non_trade_transfers`,
+> `during_session_represents_previous_completed_session`,
+> `is_authoritative_register` و `official_verification_required` ثبت می‌شوند.
 
 ### فعالیت اخیر سهامداران عمده و timeline نماد
 
@@ -2178,27 +2233,49 @@ capital = att.get_capital_increase("فملی")
 تاریخ منتشرشده دارد:
 
 ```python
-# مقدار دارایی در پنج snapshot اخیر؛ فقط موارد حاضر در تابلوی تغییرات
+# Holdings in the five published recent-change snapshots
 snapshots = att.get_major_shareholder_snapshots(
     days=5,
-    enrich_identity=True,   # اتصال Symbol/Name فقط با InsCode دقیق
+    enrich_identity=True,   # exact InsCode identity join
     progress=False,
 )
 
-# تغییر امروزِ منتشرشده نسبت به snapshot قبلی
+# Latest published change versus its previous snapshot
 changes = att.get_major_shareholder_changes(
     days=1,
     direction="both",       # both, increase, decrease, unchanged
     progress=False,
 )
 
-# نمای یک نماد یا یک سهامدار با فیلتر exact
-foolad = att.get_major_shareholder_changes("1405-06-18", symbol="فولاد")
-holder = att.get_active_shareholders(holder="شرکت سرمایه گذاری نمونه", days=5)
+# Exact symbol or holder filter
+foolad = att.get_major_shareholder_changes(
+    "1405-06-18", ins_code="46348559193224090"
+)
+holder = att.get_active_shareholders(holder="Exact Holder Name", days=5)
 
-# timeline بومی TSETMC برای یک نماد
+# Rank each holder/instrument pair
+ranking = att.rank_shareholder_accumulation(
+    days=5,
+    direction="accumulation",  # both | accumulation | distribution
+    metric="percent",          # percent | shares
+    top=20,
+    progress=False,
+)
+
+# Latest-snapshot bipartite edge list
+network = att.get_shareholder_network(
+    min_holdings=1_000_000,
+    progress=False,
+)
+
+# Per-instrument major-holder concentration
+concentration = att.get_ownership_concentration(
+    ins_code="46348559193224090", top_n=5, progress=False
+)
+
+# TSETMC-native symbol timeline
 events = att.get_symbol_events(
-    "وبملت",
+    ins_code="778253364357513",
     start="1400-01-01",
     kinds=("messages", "capital_changes", "price_adjustments"),
     limit=100,
@@ -2219,6 +2296,25 @@ JalaliDate, Holdings, Source, FetchedAt` نگه می‌دارد. خروجی chan
 `PreviousHoldings`, `Holdings`, `ChangeShares` و `Direction` را اضافه می‌کند.
 `get_active_shareholders()` برای هر جفت ردیف سهامدار/ابزار، مقدار اولیه و
 آخرین دارایی، تغییر خالص، افزایش و کاهش ناخالص و تعداد روزهای فعال را می‌دهد.
+
+`rank_shareholder_accumulation()` همین جفت‌های سهامدار–نماد را با `metric='percent'`
+بر اساس قدرمطلق درصد تغییر نسبت به دارایی ابتدای پنجره، و با `metric='shares'`
+بر اساس قدرمطلق تعداد سهم رتبه‌بندی می‌کند. تعداد سهم چند شرکت با هم جمع نمی‌شود؛
+جمع‌زدن سهم نمادهایی با سرمایه و قیمت متفاوت یک معیار مالی قابل‌اتکا نمی‌سازد.
+`direction` می‌تواند `both`، `accumulation` یا `distribution` باشد.
+
+`get_shareholder_network()` یک edge list دوبخشی می‌دهد: `HolderNode` و
+`InstrumentNode` دو سر یال‌اند و `Holdings` وزن یال است. ستون‌های
+`HolderInstrumentCount` و `InstrumentHolderCount` درجهٔ هر گره را در همان
+snapshot نشان می‌دهند. این API فقط آخرین تاریخ یا یک تاریخ موجود در پنجرهٔ
+پنج‌تایی را می‌پذیرد؛ `min_holdings` یال‌های کوچک‌تر را حذف می‌کند.
+
+`get_ownership_concentration()` برخلاف دو تحلیل قبلی از فهرست سهامداران عمدهٔ
+یک **نماد** استفاده می‌کند. خروجی شامل درصد افشاشده، سهم Top-1/3/5/10 و Top-N،
+`MajorHolderHHI` بر پایهٔ درصد کل شرکت و `NormalizedDisclosedHHI` پس از نرمال‌کردن
+فقط بخش افشاشده است. باقیماندهٔ گزارش‌نشده به‌صورت یک سهامدار فرض نمی‌شود؛ بنابراین
+`MajorHolderHHI` کران پایین HHI کامل است و این شاخص‌ها تمرکز فهرست عمومی
+سهامداران عمده‌اند، نه دفتر رسمی کامل مالکیت.
 
 > **محدودیت ضروری منبع:** این feed فهرست کامل همهٔ سهامداران عمده نیست؛ فقط
 > مواردی را نشان می‌دهد که در تابلوی تغییرات اخیر TSETMC حاضرند. حداکثر پنج
@@ -2431,6 +2527,8 @@ except att.UnsupportedDataSourceError as exc:
 | `get_stats` | `stock_statistics` |
 | `get_introduction` (همیشه unsupported) | `stock_introduction` (همیشه unsupported) |
 | `get_shareholders` | `shareholders` |
+| `get_shareholder_history`, `get_major_shareholder_snapshots`, `get_major_shareholder_changes`, `get_active_shareholders` | — |
+| `rank_shareholder_accumulation`, `get_shareholder_network`, `get_ownership_concentration` | — |
 | `get_symbols` | `stocklist` |
 | `get_currency` | `currency_coin` |
 
@@ -2690,6 +2788,7 @@ get_stats(symbol='', *, ins_code=None, asset_type='auto', **kwargs)
 get_introduction(symbol='', *, ins_code=None, asset_type='auto', **kwargs)
 get_symbols(bourse=True, farabourse=True, payeh=True, haghe_taqadom=False, sandogh=False, bonds=False, options=False, mortgage=False, commodity=False, energy=False, payeh_color=None, output='dataframe', progress=True, **kwargs)
 get_shareholders(symbol='', date=None, include_id=False, *, ins_code=None, asset_type='auto', **kwargs)
+get_shareholder_history(symbol='', start=None, end=None, frequency='daily', max_requests=60, include_id=False, progress=True, *, ins_code=None, asset_type='auto')
 get_currency(name='', start=None, end=None, limit=0, output_type='standard', date_format='jalali', progress=True, save_to_file=False, dropna=True, return_type=None, ascending=True, save_path=None, **kwargs)
 get_market_snapshot(*args, **kwargs)
 get_market_client_type(*args, **kwargs)
@@ -2711,7 +2810,8 @@ get_market_client_type(*args, **kwargs)
 | `get_stats` | selector دقیق. | `DataFrame|None` key/value آمار با کلید فارسی و value عددی. | legacy `None` یا connection/parsing؛ `att.get_stats("فملی")`. |
 | `get_introduction` | signature فقط برای BC؛ هیچ پارامتر باعث I/O نمی‌شود. | هرگز خروجی موفق ندارد. | همیشه `UnsupportedDataSourceError` **پیش از I/O**؛ جایگزین market-data: `get_info/get_detail`. |
 | `get_symbols` | booleanهای market/asset، `payeh_color: str|list|None`; `output: str='dataframe'`; aliasهای انگلیسی در `kwargs`. | `DataFrame` فهرست ابزارها یا format قدیمی انتخابی؛ ستون‌های هویت/نام/بازار و type؛ خروجی تهی schema پایدار دارد. | فیلتر/output نامعتبر `ValueError` یا legacy `None`; مثال فصل فهرست ابزارها. |
-| `get_shareholders` | `include_id: bool=False`; `date=None` آخرین و تاریخ مشخص snapshot آن روز. | `DataFrame|None[share_holder_name,number_of_shares,percentage_of_shares,change_state,change_amount,date]` و با opt-in `share_holder_id`. | provider/selector در legacy پیام و `None`; مثال فصل اطلاعات نماد. |
+| `get_shareholders` | `symbol/ins_code/asset_type` هویت؛ `date=None` آخرین فهرست و تاریخ مشخص، روز معامله است؛ `include_id=False` شناسهٔ رکورد snapshot را حذف می‌کند؛ aliasهای `stock/shh_id` حفظ شده‌اند. | `DataFrame|None[share_holder_name,number_of_shares,percentage_of_shares,change_state,change_amount,date,trade_date,effective_date,trade_date_jalali,effective_date_jalali,identity_quality,change_quality,source]` و با opt-in `share_holder_id`. `date` همان `effective_date` و معمولاً روز معاملاتی بعد از `trade_date` است؛ تغییر با نام exact محاسبه و برای ورودی مبهم `NA` می‌شود. attrs هشدار انتقال غیرمعاملاتی، تأخیر جلسه، نبود شناسهٔ پایدار و غیررسمی‌بودن ثبت را دارد. | provider/selector/تاریخ در قرارداد legacy پیام و `None`؛ مثال فصل اطلاعات نماد. |
+| `get_shareholder_history` | `start/end` اجباری و بر مبنای **تاریخ مؤثر**؛ `frequency∈{daily,weekly,monthly}`؛ `max_requests=60` سقف سخت ۱..۱۰۰۰؛ `include_id`; `progress`; هویت exact با `symbol/ins_code/asset_type`. daily هر دو snapshot پاسخ را مصرف می‌کند؛ weekly آخرین جلسهٔ هفتهٔ شنبه‌محور و monthly آخرین جلسهٔ ماه شمسی است. | همان schema توسعه‌یافتهٔ `get_shareholders` در long-form برای چند تاریخ. attrs شامل `date_basis='effective_date'`, `coverage_start/end`, `requested_snapshot_count`, `returned_snapshot_count`, `missing_effective_dates`, `shareholder_requests_used`, `pair_request_optimization`, `change_period` و تمام هشدارهای رسمی منبع است. | بازه/enum/bool/bودجه `InvalidParameterError`؛ هویت، شبکه یا schema خطاهای typed؛ مثال `att.get_shareholder_history('فولاد', start='1404-01-01', end='1404-12-29', max_requests=150)`. |
 | `get_currency` | `name: str|list` نام ارز/سکه؛ `start/end/limit/ascending` بازه؛ `output_type` schema؛ `date_format∈{jalali,gregorian,both}`؛ `return_type` بازده؛ `progress/dropna` نمایش/چندارزی؛ `save_to_file/save_path` CSV؛ `kwargs` aliasهای قدیمی. منبع TGJU است. | تک ارز `DataFrame[Open,High,Low,Close]`; چند ارز ستون MultiIndex؛ index تاریخ. | نام نامعتبر/provider ممکن است `ValueError`/`None`; مثال فصل ارز. |
 | `get_market_snapshot` | `*args/**kwargs` برای BC به تابع صفرآرگومان `market_watch` forward می‌شود؛ در عمل آرگومان غیرتهی `TypeError` می‌دهد. | `dict` با کلیدهای دقیق `stocks,order_book,market_time,index_value,migration,trade_date,market_state,exchange_time,fetched_at,snapshot_age_seconds,is_today_trade_date,is_history_eligible,is_realtime_fresh,is_previous_trade_date,is_stale,is_partial`. | `ConnectionError`, `DataParsingError`; مثال live. |
 | `get_market_client_type` | `*args/**kwargs` wrapper `market_client_type`. | `DataFrame[InsCode,Buy_I_Count,...,Net_I_Volume,Net_N_Volume]`. | `ConnectionError`, `DataParsingError`; مثال live. |
@@ -2758,6 +2858,9 @@ get_sector_flow(symbol=None, flow=None, sector=None, traded_only=False, include_
 get_major_shareholder_snapshots(date=None, days=5, symbol=None, *, ins_code=None, holder=None, enrich_identity=True, progress=True)
 get_major_shareholder_changes(date=None, days=5, symbol=None, *, ins_code=None, holder=None, direction='both', enrich_identity=True, progress=True)
 get_active_shareholders(symbol=None, days=5, *, ins_code=None, holder=None, enrich_identity=True, progress=True)
+rank_shareholder_accumulation(days=5, symbol=None, *, ins_code=None, holder=None, direction='both', metric='percent', top=20, enrich_identity=True, progress=True)
+get_shareholder_network(date=None, symbol=None, *, ins_code=None, holder=None, min_holdings=0, enrich_identity=True, progress=True)
+get_ownership_concentration(symbol='', date=None, *, ins_code=None, asset_type='auto', top_n=5, progress=True)
 get_symbol_events(symbol=None, start=None, end=None, kinds=('messages', 'capital_changes', 'price_adjustments'), limit=100, ascending=False, progress=True, *, ins_code=None, max_requests=3)
 ```
 
@@ -2766,6 +2869,9 @@ get_symbol_events(symbol=None, start=None, end=None, kinds=('messages', 'capital
 | `get_major_shareholder_snapshots` | `date=None` یا یک تاریخ منتشرشده؛ `days=1..5` و در حضور date نادیده گرفته می‌شود؛ `symbol/ins_code` فیلتر ابزار؛ `holder` فیلتر نام exact؛ `enrich_identity=True` اتصال دقیق هویت؛ `progress`. | `DataFrame[HolderRecord,HolderName,InsCode,Symbol,InstrumentName,GregorianDate,JalaliDate,Holdings,Source,FetchedAt]`. attrs شامل `available_dates`, `coverage_start/end`, `rolling_window=True`, `no_backfill=True`, `is_complete_major_shareholder_list=False`, `stable_shareholder_id_available=False`, `unmatched_identity_count`. | days/bool/date خارج پنجره `InvalidParameterError`؛ قرارداد/عدد/شناسهٔ خراب `DataParsingError`؛ شبکه `ConnectionError`. مثال فصل فعالیت سهامداران. |
 | `get_major_shareholder_changes` | همان selectorها؛ `direction='both'` برای تغییرهای غیرصفر یا `increase/decrease/unchanged`. `days=1` آخرین تاریخ را همچنان با snapshot قبلی موجود مقایسه می‌کند. | schema snapshot به‌علاوهٔ `PreviousGregorianDate,PreviousJalaliDate,PreviousHoldings,ChangeShares,Direction`. `ChangeShares = Holdings - PreviousHoldings`؛ قدیمی‌ترین snapshot پنجره prior ندارد. | enum/date/provider typed؛ مثال `att.get_major_shareholder_changes(days=1, direction='increase')`. |
 | `get_active_shareholders` | `symbol/ins_code`, `holder`, `days=1..5`, `enrich_identity`, `progress`. فقط تغییرهای غیرصفر را تجمیع می‌کند. | `DataFrame` با `InitialHoldings,LatestHoldings,NetChangeShares,GrossIncreaseShares,GrossDecreaseShares,ActiveDays,ActivityDirection`; direction یکی از `accumulation/distribution/mixed`. attrs تعریف activity و محدودیت rolling feed را حفظ می‌کند. | همان خطاهای snapshot/change؛ مثال `att.get_active_shareholders(symbol='وبملت')`. |
+| `rank_shareholder_accumulation` | `days=1..5`; فیلتر exact `symbol/ins_code/holder`؛ `direction∈{both,accumulation,distribution}`؛ `metric∈{percent,shares}`؛ `top>0`؛ enrichment/progress. | هر ردیف یک جفت سهامدار–نماد با `Rank,NetChangePercent,RankingMetric,Score` و ستون‌های activity است. `Score` قدرمطلق metric و `ranking_unit='holder_instrument_pair'` است؛ تعداد سهم نمادها با هم جمع نمی‌شود. | enum/top/provider typed؛ مثال بالا. |
+| `get_shareholder_network` | `date=None` آخرین snapshot یا یکی از تاریخ‌های موجود؛ فیلتر exact نماد/سهامدار؛ `min_holdings>=0`; enrichment/progress. | edge list با `HolderNode,InstrumentNode,Holdings,HolderInstrumentCount,InstrumentHolderCount`. شناسهٔ holder فقط در همان پاسخ اعتبار دارد؛ attrs نوع شبکه و scope شناسه را نگه می‌دارد. | تاریخ خارج پنجره، حد منفی و provider typed؛ مثال بالا. |
+| `get_ownership_concentration` | هویت exact `symbol/ins_code/asset_type`؛ `date` تاریخ معامله یا `None` برای آخرین فهرست؛ `top_n>0`; progress. | یک ردیف با `DisclosedOwnershipPercent,Top1/3/5/10Percent,TopNPercent,MajorHolderHHI,NormalizedDisclosedHHI`. هر دو HHI روی مقیاس ۰..۱۰۰۰۰‌اند؛ HHI سهامداران گزارش‌شده کران پایین HHI کامل است و attrs صریح می‌کند که فهرست دفتر کامل مالکیت نیست. | selector/top/provider typed؛ درصد منفی، بیش از ۱۰۰ برای یک دارنده یا مجموع ناسازگار `DataParsingError`؛ مثال `att.get_ownership_concentration('فولاد', top_n=5)`. |
 | `get_symbol_events` | هویت exact؛ `start/end` inclusive؛ `kinds` یک یا چند مورد `messages/capital_changes/price_adjustments`؛ `limit=100` و صفر یعنی همه؛ `ascending=False`؛ `max_requests=3` باید پیش از I/O تعداد sourceهای انتخابی را پوشش دهد. | `DataFrame[EventID,EventType,InsCode,Symbol,Name,GregorianDate,JalaliDate,Timestamp,Title,Description,OldValue,NewValue,ChangeValue,Source,FetchedAt]`. attrs شامل `sources`, `request_count`, `codal_included=False`, `excluded_disclosure_kinds`, `price_adjustment_is_not_confirmed_dps=True`, `no_fuzzy_join=True`. | هویت/enum/تاریخ/budget `InvalidParameterError` یا resolver error؛ شبکه/schema typed. مثال فصل timeline نماد. |
 
 ### قرارداد API: تقویم، نمای کلان، مستر ابزار و پیش‌گشایش
@@ -3119,6 +3225,7 @@ python -m pytest -m "not online" -q
 
 این بخش در هر انتشار به‌روزرسانی می‌شود؛ جزئیات کامل‌تر در [HISTORY.rst](HISTORY.rst) ثبت شده است.
 
+- **1.5.1 — 2026-09-13:** اصلاح هویت و `change_amount` در `get_shareholders(date=...)` بر پایهٔ اختلاف دو snapshot و تطبیق exact؛ تفکیک صریح تاریخ معامله از تاریخ مؤثر روز معاملاتی بعد؛ افزودن `get_shareholder_history()` با فرکانس روزانه/هفتگی/ماه شمسی و بودجهٔ سخت درخواست؛ افزودن رتبه‌بندی انباشت/توزیع، edge list شبکهٔ سهامدار–نماد و سنجه‌های Top-N/HHI تمرکز مالکیت با metadata کامل محدودیت‌های رسمی منبع.
 - **1.5.0 — 2026-09-12:** تفکیک صریح تاریخچهٔ بلندمدت هر نماد از پنجرهٔ گردان حداکثر پنج‌تاریخهٔ بازار؛ افزودن snapshot، تغییرات متوالی و جمع‌بندی سهامداران فعال با اتصال دقیق `InsCode` و metadata محدودیت منبع؛ افزودن timeline بومی TSETMC برای پیام ناظر، تغییر سرمایه و تعدیل قیمت بدون برچسب‌گذاری ساختگی DPS یا ادغام دادهٔ کدال.
 - **1.4.0 — 2026-09-12:** تجمیع تقویم و نمای کلان بازار با ابزارهای پیش‌گشایش؛ تقویم رسمی بورس/فرابورس، ارزش بازار تاریخی، فعالیت روزانه، اثر نمادها بر شاخص، خلاصهٔ bulk روز، مستر کامل ابزارها و diff مبتنی بر `InsCode`، TOP رسمی مشترکان و عدم تعادل پیش‌گشایش.
 - **1.3.0 — 2026-09-12:** طبقه‌بندی چندمحورهٔ صندوق‌ها، اصلاح شناسه‌های registry، افزودن پنج دستهٔ جدید، پوشش صندوق‌های بورسی نوع ۳۸۰، فیلتر طلا/نقره/زعفران و شواهد قابل ممیزی.

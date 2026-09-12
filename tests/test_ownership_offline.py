@@ -5,6 +5,8 @@ import pytest
 
 from algotik_tse import DataParsingError, InvalidParameterError
 from algotik_tse.core import ownership
+from algotik_tse.core import shareholders as shareholders_module
+from algotik_tse.core.resolver import InstrumentRef
 
 
 class FakeResponse:
@@ -236,3 +238,126 @@ def test_empty_filter_has_stable_typed_schema():
     assert frame.columns.tolist() == ownership.MAJOR_SHAREHOLDER_CHANGE_COLUMNS
     assert frame["ChangeShares"].dtype == "Int64"
     assert str(frame["FetchedAt"].dtype) == "datetime64[ns, Asia/Tehran]"
+
+
+def test_accumulation_ranking_uses_relative_change_per_instrument():
+    frame = ownership.rank_shareholder_accumulation(
+        days=5,
+        metric="percent",
+        top=2,
+        enrich_identity=False,
+        progress=False,
+    )
+
+    assert frame["Rank"].tolist() == [1, 2]
+    assert frame["InsCode"].tolist() == ["22", "11"]
+    assert frame["NetChangePercent"].tolist() == [-20.0, 10.0]
+    assert frame.attrs["ranking_unit"] == "holder_instrument_pair"
+    assert frame.attrs["cross_instrument_share_counts_are_not_summed"] is True
+
+
+def test_accumulation_ranking_filters_direction_and_validates_metric():
+    frame = ownership.rank_shareholder_accumulation(
+        direction="distribution",
+        metric="shares",
+        enrich_identity=False,
+        progress=False,
+    )
+    assert frame["ActivityDirection"].tolist() == ["distribution"]
+    assert frame["Score"].tolist() == [10.0]
+
+    with pytest.raises(InvalidParameterError, match="metric"):
+        ownership.rank_shareholder_accumulation(
+            metric="value", enrich_identity=False, progress=False
+        )
+
+
+def test_shareholder_network_is_latest_bipartite_edge_list(monkeypatch):
+    payload = _payload()
+    payload["shareHoldersChanges"][0]["insList"].append(
+        {
+            "insCode": "33",
+            "name": "شرکت سوم",
+            "firstDay": 10,
+            "secondDay": 20,
+            "thirdDay": 30,
+            "fourthDay": 40,
+            "fifthDay": 50,
+        }
+    )
+    monkeypatch.setattr(ownership, "safe_get", lambda *_a, **_k: FakeResponse(payload))
+
+    frame = ownership.get_shareholder_network(
+        min_holdings=45, enrich_identity=False, progress=False
+    )
+
+    assert frame["GregorianDate"].nunique() == 1
+    assert frame["InsCode"].tolist() == ["11", "33"]
+    assert frame["HolderInstrumentCount"].tolist() == [2, 2]
+    assert frame["HolderNode"].nunique() == 1
+    assert frame.attrs["network_type"] == "bipartite_edge_list"
+    assert frame.attrs["holder_node_scope"] == "current provider response only"
+
+
+def test_ownership_concentration_reports_both_hhi_bases(monkeypatch):
+    snapshot = pd.DataFrame(
+        {
+            "percentage_of_shares": pd.array([20.0, 10.0, 5.0], dtype="Float64"),
+            "trade_date": ["20260909"] * 3,
+            "effective_date": ["20260912"] * 3,
+            "effective_date_jalali": ["1405-06-21"] * 3,
+        }
+    )
+    snapshot.attrs["source"] = "fixture_shareholders"
+    monkeypatch.setattr(
+        ownership,
+        "resolve_instrument",
+        lambda *_a, **_k: InstrumentRef("11", "نماد", "شرکت نمونه", "equity"),
+    )
+    monkeypatch.setattr(shareholders_module, "shareholders", lambda *_a, **_k: snapshot)
+
+    frame = ownership.get_ownership_concentration("نماد", top_n=2, progress=False)
+    row = frame.iloc[0]
+
+    assert row["MajorHolderCount"] == 3
+    assert row["DisclosedOwnershipPercent"] == 35.0
+    assert row["UndisclosedOrBelowThresholdPercent"] == 65.0
+    assert row["TopNPercent"] == 30.0
+    assert row["MajorHolderHHI"] == 525.0
+    assert row["NormalizedDisclosedHHI"] == pytest.approx(4285.7142857)
+    assert frame.attrs["is_full_ownership_register"] is False
+    assert frame.attrs["unreported_remainder_is_not_assumed_to_be_one_holder"] is True
+    assert frame.attrs["major_holder_hhi_is_lower_bound_on_full_hhi"] is True
+
+
+def test_ownership_concentration_rejects_impossible_percentages(monkeypatch):
+    snapshot = pd.DataFrame(
+        {
+            "percentage_of_shares": [70.0, 31.0],
+            "trade_date": ["20260909"] * 2,
+            "effective_date": ["20260912"] * 2,
+            "effective_date_jalali": ["1405-06-21"] * 2,
+        }
+    )
+    monkeypatch.setattr(
+        ownership,
+        "resolve_instrument",
+        lambda *_a, **_k: InstrumentRef("11", "نماد", "شرکت نمونه", "equity"),
+    )
+    monkeypatch.setattr(shareholders_module, "shareholders", lambda *_a, **_k: snapshot)
+
+    with pytest.raises(DataParsingError, match="cannot materially exceed 100"):
+        ownership.get_ownership_concentration("نماد", progress=False)
+
+
+@pytest.mark.parametrize(
+    "function, kwargs",
+    [
+        (ownership.rank_shareholder_accumulation, {"top": 0}),
+        (ownership.get_shareholder_network, {"min_holdings": -1}),
+        (ownership.get_ownership_concentration, {"top_n": True}),
+    ],
+)
+def test_derived_ownership_inputs_fail_closed(function, kwargs):
+    with pytest.raises(InvalidParameterError):
+        function(progress=False, **kwargs)

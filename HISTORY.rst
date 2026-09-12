@@ -2,6 +2,25 @@
 History
 =======
 
+1.5.1 (2026-09-13)
+------------------
+
+* Corrected dated ``get_shareholders()`` identity and change calculations;
+  the dated endpoint's zero-valued ``shareHolderID`` and ``changeAmount`` are
+  no longer treated as valid holder identity or daily change.
+* Added explicit trade-date/effective-date columns following TSETMC's rule
+  that post-close ownership is published under the next trading-session date.
+* Added ``get_shareholder_history()`` for daily, weekly or Jalali-monthly
+  point-in-time histories with pair-request optimization and a hard request
+  budget.
+* Added recent holder/instrument accumulation ranking without summing unlike
+  share counts, a bipartite shareholder-network edge list, and per-instrument
+  Top-N/HHI ownership-concentration metrics.
+* Preserved the provider's official caveats in metadata: changes may include
+  non-trade transfers, intraday data represents the previous completed
+  session, and the public list is not an authoritative ownership register.
+* Added deterministic regression fixtures and bounded live contract tests.
+
 1.5.0 (2026-09-12)
 ------------------
 

@@ -68,7 +68,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (
@@ -88,11 +88,14 @@ from algotik_tse.core.stock_detail import (
 )
 from algotik_tse.core.stock_list import stocklist
 from algotik_tse.core.stock import stock, stock_RI, stock_RL, stock_capital_increase
-from algotik_tse.core.shareholders import shareholders
+from algotik_tse.core.shareholders import shareholders, get_shareholder_history
 from algotik_tse.core.ownership import (
     get_major_shareholder_snapshots,
     get_major_shareholder_changes,
     get_active_shareholders,
+    rank_shareholder_accumulation,
+    get_shareholder_network,
+    get_ownership_concentration,
 )
 from algotik_tse.core.symbol_events import get_symbol_events
 from algotik_tse.core.currency import currency_coin
@@ -507,9 +510,13 @@ __all__ = [
     "get_introduction",
     "get_symbols",
     "get_shareholders",
+    "get_shareholder_history",
     "get_major_shareholder_snapshots",
     "get_major_shareholder_changes",
     "get_active_shareholders",
+    "rank_shareholder_accumulation",
+    "get_shareholder_network",
+    "get_ownership_concentration",
     "get_symbol_events",
     "get_currency",
     "get_market_snapshot",

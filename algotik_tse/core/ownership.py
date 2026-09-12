@@ -79,6 +79,71 @@ ACTIVE_SHAREHOLDER_COLUMNS = [
     "FetchedAt",
 ]
 
+SHAREHOLDER_ACCUMULATION_RANK_COLUMNS = [
+    "Rank",
+    "HolderRecord",
+    "HolderName",
+    "InsCode",
+    "Symbol",
+    "InstrumentName",
+    "FirstGregorianDate",
+    "FirstJalaliDate",
+    "LastGregorianDate",
+    "LastJalaliDate",
+    "InitialHoldings",
+    "LatestHoldings",
+    "NetChangeShares",
+    "NetChangePercent",
+    "GrossIncreaseShares",
+    "GrossDecreaseShares",
+    "ActiveDays",
+    "ActivityDirection",
+    "RankingMetric",
+    "Score",
+    "Source",
+    "FetchedAt",
+]
+
+SHAREHOLDER_NETWORK_COLUMNS = [
+    "EdgeRecord",
+    "HolderRecord",
+    "HolderNode",
+    "HolderName",
+    "InstrumentNode",
+    "InsCode",
+    "Symbol",
+    "InstrumentName",
+    "GregorianDate",
+    "JalaliDate",
+    "Holdings",
+    "HolderInstrumentCount",
+    "InstrumentHolderCount",
+    "Source",
+    "FetchedAt",
+]
+
+OWNERSHIP_CONCENTRATION_COLUMNS = [
+    "InsCode",
+    "Symbol",
+    "InstrumentName",
+    "TradeDate",
+    "EffectiveDate",
+    "EffectiveDateJalali",
+    "MajorHolderCount",
+    "DisclosedOwnershipPercent",
+    "UndisclosedOrBelowThresholdPercent",
+    "LargestHolderPercent",
+    "Top1Percent",
+    "Top3Percent",
+    "Top5Percent",
+    "Top10Percent",
+    "TopN",
+    "TopNPercent",
+    "MajorHolderHHI",
+    "NormalizedDisclosedHHI",
+    "Source",
+]
+
 
 def _positive_days(value):
     if isinstance(value, bool):
@@ -161,6 +226,10 @@ def _typed_empty(columns):
         "LastJalaliDate",
         "Direction",
         "ActivityDirection",
+        "RankingMetric",
+        "HolderNode",
+        "InstrumentNode",
+        "EffectiveDateJalali",
         "Source",
     }
     integer_columns = {
@@ -174,12 +243,34 @@ def _typed_empty(columns):
         "GrossIncreaseShares",
         "GrossDecreaseShares",
         "ActiveDays",
+        "Rank",
+        "EdgeRecord",
+        "HolderInstrumentCount",
+        "InstrumentHolderCount",
+        "MajorHolderCount",
+        "TopN",
+    }
+    float_columns = {
+        "NetChangePercent",
+        "Score",
+        "DisclosedOwnershipPercent",
+        "UndisclosedOrBelowThresholdPercent",
+        "LargestHolderPercent",
+        "Top1Percent",
+        "Top3Percent",
+        "Top5Percent",
+        "Top10Percent",
+        "TopNPercent",
+        "MajorHolderHHI",
+        "NormalizedDisclosedHHI",
     }
     for column in columns:
         if column in string_columns:
             frame[column] = pd.Series(dtype="string")
         elif column in integer_columns:
             frame[column] = pd.Series(dtype="Int64")
+        elif column in float_columns:
+            frame[column] = pd.Series(dtype="Float64")
         elif column == "FetchedAt":
             frame[column] = pd.Series(dtype="datetime64[ns, Asia/Tehran]")
         else:
@@ -583,11 +674,316 @@ def get_active_shareholders(
     return result
 
 
+def rank_shareholder_accumulation(
+    days=5,
+    symbol=None,
+    *,
+    ins_code=None,
+    holder=None,
+    direction="both",
+    metric="percent",
+    top=20,
+    enrich_identity=True,
+    progress=True,
+):
+    """Rank recent holder/instrument activity without merging unlike shares.
+
+    Each ranked row remains one holder/instrument pair. This avoids adding raw
+    share counts across instruments with different prices and capital bases.
+    ``metric`` is ``percent`` (relative to initial disclosed holdings) or
+    ``shares``. ``direction`` is ``both``, ``accumulation`` or ``distribution``.
+    """
+    requested_top = _positive_integer(top, "top")
+    direction_key = _choice(
+        direction,
+        "direction",
+        {"both", "accumulation", "distribution"},
+    )
+    metric_key = _choice(metric, "metric", {"percent", "shares"})
+    active = get_active_shareholders(
+        symbol=symbol,
+        days=days,
+        ins_code=ins_code,
+        holder=holder,
+        enrich_identity=enrich_identity,
+        progress=progress,
+    )
+    base_attrs = dict(active.attrs)
+    if active.empty:
+        result = _typed_empty(SHAREHOLDER_ACCUMULATION_RANK_COLUMNS)
+    else:
+        work = active.copy()
+        if direction_key != "both":
+            work = work.loc[work["ActivityDirection"] == direction_key].copy()
+        denominator = pd.to_numeric(work["InitialHoldings"], errors="coerce")
+        numerator = pd.to_numeric(work["NetChangeShares"], errors="coerce")
+        work["NetChangePercent"] = pd.array(
+            (numerator / denominator.where(denominator > 0) * 100), dtype="Float64"
+        )
+        score_source = (
+            work["NetChangePercent"]
+            if metric_key == "percent"
+            else work["NetChangeShares"].astype("Float64")
+        )
+        work["Score"] = score_source.abs()
+        work["RankingMetric"] = metric_key
+        work = work.sort_values(
+            ["Score", "GrossIncreaseShares", "InsCode", "HolderRecord"],
+            ascending=[False, False, True, True],
+            na_position="last",
+            kind="mergesort",
+        ).head(requested_top)
+        work["Rank"] = pd.array(range(1, len(work) + 1), dtype="Int64")
+        result = _cast(work, SHAREHOLDER_ACCUMULATION_RANK_COLUMNS)
+        result = result.reset_index(drop=True)
+    base_attrs.update(
+        {
+            "analysis": "shareholder_accumulation_ranking",
+            "direction": direction_key,
+            "ranking_metric": metric_key,
+            "top": requested_top,
+            "ranking_unit": "holder_instrument_pair",
+            "cross_instrument_share_counts_are_not_summed": True,
+            "score_semantics": "absolute magnitude of selected metric",
+        }
+    )
+    result.attrs.update(base_attrs)
+    return result
+
+
+def get_shareholder_network(
+    date=None,
+    symbol=None,
+    *,
+    ins_code=None,
+    holder=None,
+    min_holdings=0,
+    enrich_identity=True,
+    progress=True,
+):
+    """Return a bipartite holder-instrument edge list for one recent snapshot.
+
+    ``date`` must be one of the at-most-five dates currently published by the
+    market-wide feed. When omitted, only its latest date is used. Holder node
+    IDs are scoped to this response because TSETMC does not publish a stable
+    holder identifier in this feed.
+    """
+    minimum = _non_negative_integer(min_holdings, "min_holdings")
+    snapshots = get_major_shareholder_snapshots(
+        date=date,
+        days=1,
+        symbol=symbol,
+        ins_code=ins_code,
+        holder=holder,
+        enrich_identity=enrich_identity,
+        progress=progress,
+    )
+    base_attrs = dict(snapshots.attrs)
+    if snapshots.empty:
+        result = _typed_empty(SHAREHOLDER_NETWORK_COLUMNS)
+    else:
+        work = snapshots.loc[snapshots["Holdings"] >= minimum].copy()
+        work["HolderNode"] = work["HolderRecord"].map(
+            lambda value: "holder:{}".format(int(value))
+        )
+        work["InstrumentNode"] = work["InsCode"].map(
+            lambda value: "instrument:{}".format(value)
+        )
+        work["HolderInstrumentCount"] = work.groupby("HolderNode")[
+            "InstrumentNode"
+        ].transform("nunique")
+        work["InstrumentHolderCount"] = work.groupby("InstrumentNode")[
+            "HolderNode"
+        ].transform("nunique")
+        work = work.sort_values(
+            ["HolderInstrumentCount", "Holdings", "HolderRecord", "InsCode"],
+            ascending=[False, False, True, True],
+            kind="mergesort",
+        ).reset_index(drop=True)
+        work["EdgeRecord"] = pd.array(range(1, len(work) + 1), dtype="Int64")
+        result = _cast(work, SHAREHOLDER_NETWORK_COLUMNS)
+    base_attrs.update(
+        {
+            "analysis": "shareholder_instrument_network",
+            "network_type": "bipartite_edge_list",
+            "snapshot_only": True,
+            "min_holdings": minimum,
+            "holder_node_scope": "current provider response only",
+            "stable_shareholder_id_available": False,
+        }
+    )
+    result.attrs.update(base_attrs)
+    return result
+
+
+def get_ownership_concentration(
+    symbol="",
+    date=None,
+    *,
+    ins_code=None,
+    asset_type="auto",
+    top_n=5,
+    progress=True,
+):
+    """Summarize concentration within TSETMC's disclosed major-holder list.
+
+    The result is not a full ownership-register concentration measure. HHI is
+    calculated once on total-company percentage points (``MajorHolderHHI``)
+    and once after normalizing only the disclosed major-holder slice
+    (``NormalizedDisclosedHHI``).
+    """
+    requested_top = _positive_integer(top_n, "top_n")
+    _bool(progress, "progress")
+    identity = resolve_instrument(
+        symbol,
+        ins_code=ins_code,
+        asset_type=asset_type,
+        require_active=False,
+    )
+    from .shareholders import shareholders
+
+    snapshot = shareholders(
+        "",
+        date=date,
+        include_id=False,
+        ins_code=identity.ins_code,
+        # Identity and asset type have already been resolved above. Supplying
+        # only the canonical code avoids a second symbol/code reconciliation.
+        asset_type="auto",
+    )
+    if snapshot is None:
+        raise DataParsingError("shareholder snapshot could not be constructed")
+    percentages = pd.to_numeric(
+        snapshot.get("percentage_of_shares", pd.Series(dtype="float64")),
+        errors="coerce",
+    ).dropna()
+    if (percentages < 0).any():
+        raise DataParsingError("shareholder percentages must be non-negative")
+    if (percentages > 100).any():
+        raise DataParsingError("each shareholder percentage cannot exceed 100")
+    ordered = percentages.sort_values(ascending=False, kind="mergesort")
+    disclosed = float(ordered.sum())
+    if disclosed > 100.5:
+        raise DataParsingError(
+            "disclosed shareholder percentages cannot materially exceed 100"
+        )
+
+    def top_percent(count):
+        return float(ordered.head(count).sum())
+
+    major_hhi = float((ordered**2).sum())
+    normalized_hhi = (
+        float(((ordered / disclosed) ** 2).sum() * 10000)
+        if disclosed > 0
+        else float("nan")
+    )
+    effective_values = (
+        snapshot["effective_date"].dropna().astype(str).unique().tolist()
+        if "effective_date" in snapshot
+        else []
+    )
+    trade_values = (
+        snapshot["trade_date"].dropna().astype(str).unique().tolist()
+        if "trade_date" in snapshot
+        else []
+    )
+    jalali_values = (
+        snapshot["effective_date_jalali"].dropna().astype(str).unique().tolist()
+        if "effective_date_jalali" in snapshot
+        else []
+    )
+    row = {
+        "InsCode": identity.ins_code,
+        "Symbol": identity.symbol or pd.NA,
+        "InstrumentName": identity.name or pd.NA,
+        "TradeDate": trade_values[0] if len(trade_values) == 1 else pd.NA,
+        "EffectiveDate": (effective_values[0] if len(effective_values) == 1 else pd.NA),
+        "EffectiveDateJalali": (jalali_values[0] if len(jalali_values) == 1 else pd.NA),
+        "MajorHolderCount": len(snapshot),
+        "DisclosedOwnershipPercent": disclosed,
+        "UndisclosedOrBelowThresholdPercent": max(0.0, 100.0 - disclosed),
+        "LargestHolderPercent": top_percent(1),
+        "Top1Percent": top_percent(1),
+        "Top3Percent": top_percent(3),
+        "Top5Percent": top_percent(5),
+        "Top10Percent": top_percent(10),
+        "TopN": requested_top,
+        "TopNPercent": top_percent(requested_top),
+        "MajorHolderHHI": major_hhi,
+        "NormalizedDisclosedHHI": normalized_hhi,
+        "Source": snapshot.attrs.get("source", "tsetmc_major_shareholders"),
+    }
+    result = _cast(pd.DataFrame([row]), OWNERSHIP_CONCENTRATION_COLUMNS)
+    result.attrs.update(dict(snapshot.attrs))
+    result.attrs.update(
+        {
+            "analysis": "ownership_concentration",
+            "top_n": requested_top,
+            "hhi_scale": "0_to_10000",
+            "major_holder_hhi_basis": "reported percentages of total company",
+            "major_holder_hhi_is_lower_bound_on_full_hhi": True,
+            "normalized_disclosed_hhi_basis": (
+                "reported major-holder slice normalized to 100 percent"
+            ),
+            "is_full_ownership_register": False,
+            "unreported_remainder_is_not_assumed_to_be_one_holder": True,
+        }
+    )
+    if progress:
+        print(
+            "Done. Ownership concentration calculated for {}.".format(identity.ins_code)
+        )
+    return result
+
+
+def _positive_integer(value, name):
+    if isinstance(value, bool):
+        raise InvalidParameterError("{} must be a positive integer".format(name))
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise InvalidParameterError(
+            "{} must be a positive integer".format(name)
+        ) from exc
+    if not math.isfinite(number) or number <= 0 or not number.is_integer():
+        raise InvalidParameterError("{} must be a positive integer".format(name))
+    return int(number)
+
+
+def _non_negative_integer(value, name):
+    if isinstance(value, bool):
+        raise InvalidParameterError("{} must be a non-negative integer".format(name))
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise InvalidParameterError(
+            "{} must be a non-negative integer".format(name)
+        ) from exc
+    if not math.isfinite(number) or number < 0 or not number.is_integer():
+        raise InvalidParameterError("{} must be a non-negative integer".format(name))
+    return int(number)
+
+
+def _choice(value, name, choices):
+    key = str(value).strip().lower()
+    if key not in choices:
+        raise InvalidParameterError(
+            "{} must be one of: {}".format(name, ", ".join(sorted(choices)))
+        )
+    return key
+
+
 __all__ = [
     "MAJOR_SHAREHOLDER_SNAPSHOT_COLUMNS",
     "MAJOR_SHAREHOLDER_CHANGE_COLUMNS",
     "ACTIVE_SHAREHOLDER_COLUMNS",
+    "SHAREHOLDER_ACCUMULATION_RANK_COLUMNS",
+    "SHAREHOLDER_NETWORK_COLUMNS",
+    "OWNERSHIP_CONCENTRATION_COLUMNS",
     "get_major_shareholder_snapshots",
     "get_major_shareholder_changes",
     "get_active_shareholders",
+    "rank_shareholder_accumulation",
+    "get_shareholder_network",
+    "get_ownership_concentration",
 ]
