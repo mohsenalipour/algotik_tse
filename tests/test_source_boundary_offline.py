@@ -22,6 +22,10 @@ class Session:
         self.calls.append((url, kwargs))
         return self.responses.pop(0)
 
+    def post(self, url, **kwargs):
+        self.calls.append((url, kwargs))
+        return self.responses.pop(0)
+
 
 @pytest.fixture(autouse=True)
 def no_rate_delay(monkeypatch):
@@ -87,6 +91,8 @@ def test_unsupported_destinations_fail_before_sleep_or_session(monkeypatch, url)
         "https://old.tsetmc.com/test",
         "https://ifb.ir/ytm.aspx",
         "https://api.tgju.org/test",
+        "https://www.ime.co.ir/test",
+        "https://cdn.ime.co.ir/test",
     ],
 )
 def test_supported_provider_domains_are_exact_or_subdomain(monkeypatch, url):
@@ -110,6 +116,21 @@ def test_every_configured_http_endpoint_is_within_boundary():
     assert urls
     for url in urls:
         assert http_client._validate_outbound_url(url) == url
+
+
+def test_safe_post_supports_official_ime_read_services(monkeypatch):
+    fake = Session()
+    monkeypatch.setattr(http_client, "_session", fake)
+    response = http_client.safe_post(
+        "https://www.ime.co.ir/SubSystems/IME/Services/Home/imedata.asmx/Test",
+        json={"Language": 8},
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+    assert response.status_code == 200
+    assert fake.calls[0][1]["json"] == {"Language": 8}
+    assert fake.calls[0][1]["allow_redirects"] is False
+    with pytest.raises(att.UnsupportedDataSourceError):
+        http_client.safe_post("https://evil.example/post", json={})
 
 
 def test_relative_redirect_is_joined_and_each_hop_is_validated(monkeypatch):

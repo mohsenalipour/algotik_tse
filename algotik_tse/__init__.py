@@ -56,6 +56,14 @@ Quick Start
     # Bonds & treasury bills
     att.list_bonds()
 
+    # Iran Energy Exchange auctions and power contracts
+    att.get_energy_auctions(top=10)
+    att.list_power_instruments(market='green')
+
+    # Iran Mercantile Exchange live and physical markets
+    att.get_commodity_market(kind='certificate')
+    att.get_commodity_physical_history('1405-01-01')
+
     # Investment funds — NAV, returns, portfolio, manager
     att.list_funds()
     att.list_funds(fund_type='equity')
@@ -68,7 +76,7 @@ Quick Start
 
 __author__ = """Mohsen Alipour"""
 __email__ = "alipour@algotik.ir"
-__version__ = "1.5.1"
+__version__ = "1.6.0"
 
 from algotik_tse.settings import settings
 from algotik_tse.exceptions import (
@@ -228,6 +236,21 @@ from algotik_tse.core.market_reference import (
     get_instrument_changes,
     get_theoretical_opening_price,
     get_preopen_imbalance,
+)
+from algotik_tse.core.energy_commodity import (
+    get_energy_auctions,
+    get_energy_auction,
+    get_energy_market_overview,
+    list_power_instruments,
+    list_energy_securities,
+    get_energy_future_contract,
+    get_commodity_market,
+    get_commodity_physical_history,
+    get_commodity_physical_summary,
+    get_commodity_market_activity,
+    get_futures_curve,
+    get_calendar_spreads,
+    analyze_cash_and_carry,
 )
 
 # ── Standard API aliases (recommended) ────────────────────────
@@ -534,6 +557,20 @@ __all__ = [
     "get_instrument_changes",
     "get_theoretical_opening_price",
     "get_preopen_imbalance",
+    # ── Energy and commodity markets ──
+    "get_energy_auctions",
+    "get_energy_auction",
+    "get_energy_market_overview",
+    "list_power_instruments",
+    "list_energy_securities",
+    "get_energy_future_contract",
+    "get_commodity_market",
+    "get_commodity_physical_history",
+    "get_commodity_physical_summary",
+    "get_commodity_market_activity",
+    "get_futures_curve",
+    "get_calendar_spreads",
+    "analyze_cash_and_carry",
     "get_order_book",
     "get_live_market",
     "get_live_symbol",

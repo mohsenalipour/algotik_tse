@@ -31,9 +31,9 @@ README_PATH = ROOT / "README.md"
 FONT_DIR = ROOT / "fonts"
 LOGO_PATH = ROOT / "docs" / "assets" / "algotik_logo_stacked_1024.png"
 TMP_DIR = ROOT / "tmp" / "pdfs"
-DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.5.1_preview.pdf"
-VERSION = "1.5.1"
-RELEASE_DATE = "12 September 2026"
+DEFAULT_OUTPUT = ROOT / "output" / "pdf" / "AlgoTik_TSE_Guide_v1.6.0_preview.pdf"
+VERSION = "1.6.0"
+RELEASE_DATE = "13 September 2026"
 
 
 def parse_args():
@@ -373,7 +373,7 @@ def overlay_header_and_footer(pdf_path):
             "/Title": "AlgoTik TSE %s - Complete User Guide" % VERSION,
             "/Author": "Mohsen Alipour",
             "/Subject": "Bilingual user guide for algotik-tse",
-            "/Keywords": "TSETMC, Tehran Stock Exchange, Python, market data, options, bonds",
+            "/Keywords": "TSETMC, IME, Iran Energy Exchange, Python, market data, commodities, derivatives",
         }
     )
     staged = pdf_path.with_suffix(".numbered.pdf")

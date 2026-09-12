@@ -209,6 +209,38 @@ class Settings:
         # Official Iran Fara Bourse reference YTM tables (server-rendered).
         self.url_ifb_yield_table = "https://ifb.ir/ytm.aspx"
 
+        # Official Iran Energy Exchange / Iran Mercantile Exchange feeds.
+        self.url_energy_auction_list = (
+            "https://cdn.tsetmc.com/api/Energy/"
+            "GetGetAuctionListItemByType/{}/{}/{}"
+        )
+        self.url_energy_auction_detail = (
+            "https://cdn.tsetmc.com/api/Energy/GetAuctionById/{}"
+        )
+        self.url_energy_auction_trades = (
+            "https://cdn.tsetmc.com/api/Energy/GetAuctionTradeById/{}"
+        )
+        self.url_energy_instrument_auction_trades = (
+            "https://cdn.tsetmc.com/api/Energy/GetInstrumentTradeByAuctionId/{}"
+        )
+        self.url_energy_power_overview = (
+            "https://cdn.tsetmc.com/api/Energy/GetPowerOverview/{}"
+        )
+        self.url_energy_trade_top = (
+            "https://cdn.tsetmc.com/api/ClosingPrice/GetTradeTop/{}/{}/{}"
+        )
+        self.url_energy_future_detail = (
+            "https://cdn.tsetmc.com/api/Instrument/"
+            "GetInstrumentEnergyFutureByInsCode/{}"
+        )
+        self.url_ime_financial_market = (
+            "https://cdn.ime.co.ir/getFinancialMarketData?param={}"
+        )
+        self.url_ime_futures_market = "https://cdn.ime.co.ir/GetFMarketData"
+        self.url_ime_home_service = (
+            "https://www.ime.co.ir/SubSystems/IME/Services/Home/imedata.asmx/{}"
+        )
+
         self.fund_type_ids = {
             "fixed_income": 4,
             "commodity": 5,

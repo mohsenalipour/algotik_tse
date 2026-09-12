@@ -27,7 +27,7 @@ _session_lock = threading.RLock()
 _rate_lock = threading.Lock()
 _next_request_time = 0.0
 
-_ALLOWED_SOURCE_DOMAINS = ("tsetmc.com", "ifb.ir", "tgju.org")
+_ALLOWED_SOURCE_DOMAINS = ("tsetmc.com", "ifb.ir", "tgju.org", "ime.co.ir")
 _REDIRECT_STATUSES = frozenset((301, 302, 303, 307, 308))
 _DEFAULT_MAX_REDIRECTS = 5
 _MAX_PERCENT_DECODE_PASSES = 4
@@ -147,6 +147,24 @@ def _request_once(url, kwargs):
             return session.get(url, **kwargs)
 
 
+def _post_once(url, kwargs):
+    """Perform one already-validated POST with the shared rate scheduler."""
+    global _next_request_time
+    from algotik_tse.settings import settings
+
+    delay = max(float(settings.rate_limit_delay), 0.0)
+    with _rate_lock:
+        with _session_lock:
+            now = time.monotonic()
+            scheduled = max(now, _next_request_time)
+            while now < scheduled:
+                time.sleep(scheduled - now)
+                now = time.monotonic()
+            _next_request_time = now + delay
+            session = _get_session()
+            return session.post(url, **kwargs)
+
+
 def _build_retry_strategy(settings):
     """Build a GET-only retry policy across supported urllib3 APIs.
 
@@ -248,6 +266,61 @@ def safe_get(url, **kwargs):
             # duplicate the caller's original query parameters.
             request_kwargs.pop("params", None)
         response = _request_once(current_url, request_kwargs)
+        if (
+            not follow_redirects
+            or getattr(response, "status_code", None) not in _REDIRECT_STATUSES
+        ):
+            return response
+        location = getattr(response, "headers", {}).get("Location")
+        if not location:
+            return response
+        if hop >= max_redirects:
+            raise requests.exceptions.TooManyRedirects(
+                "exceeded {} validated redirects".format(max_redirects),
+                response=response,
+            )
+        next_url = _validate_outbound_url(urljoin(current_url, location))
+        if _url_origin(next_url) != pinned_origin:
+            raise UnsupportedDataSourceError(
+                "cross-origin redirects are not allowed for provider requests"
+            )
+        if next_url in visited:
+            raise requests.exceptions.TooManyRedirects(
+                "redirect loop detected", response=response
+            )
+        visited.add(next_url)
+        current_url = next_url
+
+
+def safe_post(url, **kwargs):
+    """Make a validated POST request for read-only official data services.
+
+    This companion to :func:`safe_get` exists for providers such as the Iran
+    Mercantile Exchange whose public read APIs use JSON POST requests.  POST
+    retries are intentionally not enabled because a generic POST cannot be
+    assumed idempotent. Redirect destinations are validated one hop at a time.
+    """
+    from algotik_tse.settings import settings
+
+    current_url = _validate_outbound_url(url)
+    follow_redirects = kwargs.pop("allow_redirects", True)
+    max_redirects = kwargs.pop("max_redirects", _DEFAULT_MAX_REDIRECTS)
+    if not isinstance(follow_redirects, bool):
+        raise TypeError("allow_redirects must be bool")
+    if isinstance(max_redirects, bool) or not isinstance(max_redirects, int):
+        raise TypeError("max_redirects must be a non-negative integer")
+    if max_redirects < 0:
+        raise ValueError("max_redirects must be a non-negative integer")
+
+    kwargs.setdefault("headers", settings.headers)
+    kwargs.setdefault("timeout", settings.timeout)
+    kwargs.setdefault("verify", settings.ssl_verify)
+    kwargs["allow_redirects"] = False
+
+    visited = {current_url}
+    pinned_origin = _url_origin(current_url)
+    for hop in range(max_redirects + 1):
+        response = _post_once(current_url, dict(kwargs))
         if (
             not follow_redirects
             or getattr(response, "status_code", None) not in _REDIRECT_STATUSES

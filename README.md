@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.5.1-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.6.0-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -8,13 +8,13 @@
 
 **A Python toolkit for historical, live and analytical data from Iran's capital market.**
 
-Fetch TSETMC prices, client type, trades, order books, market calendars, index impact, instrument reference data, funds, bonds, options and official subscriber TOP with Jalali date support, then use the built-in analytics for research and algorithmic trading.
+Fetch TSETMC prices, client type, trades, order books, market calendars, index impact, instrument reference data, funds, bonds, options, Iran Energy Exchange auctions, IME commodity markets and official subscriber TOP with Jalali date support, then use the built-in analytics for research and algorithmic trading.
 
 <div dir="rtl" align="right">
 
 ### 🇮🇷 معرفی فارسی
 
-`algotik-tse` برای دریافت و تحلیل داده‌های بورس و فرابورس ایران ساخته شده است. با نام فارسی نماد می‌توانید تاریخچهٔ قیمت، حقیقی/حقوقی، معاملات ریز، سفارش‌ها و اطلاعات لحظه‌ای بازار را بگیرید؛ شاخص‌های صنعت و اعضای دقیق آن‌ها را تحلیل کنید؛ فهرست صندوق‌ها، اوراق و اختیارها را بسازید؛ و تحلیل‌های تخصصی اخزا و اختیار معامله را روی همان داده‌ها انجام دهید.
+`algotik-tse` برای دریافت و تحلیل داده‌های بازار سرمایهٔ ایران ساخته شده است. با نام فارسی نماد می‌توانید تاریخچهٔ قیمت، حقیقی/حقوقی، معاملات ریز، سفارش‌ها و اطلاعات لحظه‌ای بازار را بگیرید؛ شاخص‌های صنعت و اعضای دقیق آن‌ها را تحلیل کنید؛ حراج و ابزارهای بورس انرژی و تابلوها و بازار فیزیکی بورس کالا را بخوانید؛ فهرست صندوق‌ها، اوراق و اختیارها را بسازید؛ و تحلیل‌های تخصصی اخزا، اختیار معامله و ساختار زمانی آتی را روی همان داده‌ها انجام دهید.
 
 بیشتر خروجی‌های جدولی به‌صورت **Pandas DataFrame** ارائه می‌شوند و تاریخ شمسی، تاریخ میلادی و داده‌های چندنمادی پشتیبانی می‌شوند. خروجی‌های ساختاریافته‌ای مانند snapshot بازار، زنجیرهٔ اختیار و منحنی بازده در بخش [نوع خروجی](#نوع-خروجی) توضیح داده شده‌اند.
 
@@ -35,6 +35,11 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 - صندوق‌های ثبت‌شده و بورسی با طبقه‌بندی چندمحوره، پوشش ابزارهای ۳۰۵ و ۳۸۰ و فیلتر مستقیم طلا، نقره، کالایی، اهرمی، بخشی و شاخصی
 - تحلیل اخزا شامل YTM، duration، convexity، DV01 و منحنی بازده زنده و تاریخی
 - تحلیل اختیار معامله شامل Black–Scholes، IV، Greeks، put-call parity، PCR و نقدشوندگی
+- حراج‌های بورس انرژی با شرایط پرداخت و تحویل، حجم، دامنهٔ قیمت، اندازهٔ lot، قیمت کشف‌شده و معاملات همان حراج
+- بازار برق استاندارد، سبز و آزاد؛ سلف، گواهی سپردهٔ انرژی، گواهی ظرفیت، گواهی صرفه‌جویی و قرارداد آتی انرژی
+- تابلوی رسمی بورس کالا برای گواهی سپرده، سلف استاندارد، صندوق کالایی و آتی همراه پنج سطح سفارش و حقیقی/حقوقی
+- تاریخچه و خلاصهٔ بازار فیزیکی بورس کالا، نسبت معامله به عرضه و آمار تجمیعی بازارهای فیزیکی، آتی، اختیار و مالی
+- منحنی سررسید آتی، calendar spread و تحلیل cash-and-carry با فرض‌های صریح نرخ، انبارداری و convenience yield
 - ارز و سکه، اینترادی، سهامداران، شاخص‌ها، ETFها، صندوق‌ها و اوراق بدهی
 - HTTPS و اعتبارسنجی TLS به‌صورت پیش‌فرض، retry، rate limiting و محدودسازی منبع داده
 
@@ -58,6 +63,13 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 | ⭐ `get_intraday()` | تیک یا کندل اینترادی | `DataFrame` یا `None` در API قدیمی |
 | ⭐ `get_symbols()` | فهرست نمادها بر اساس بازار و نوع ابزار | `DataFrame` یا فهرست |
 | ⭐ `get_currency()` | تاریخچهٔ ارز و سکه | `DataFrame` |
+| ⭐ `get_energy_auctions()` | حراج‌های بورس انرژی با شرایط کامل عرضه | `DataFrame` |
+| ⭐ `list_power_instruments()` | قراردادهای برق استاندارد، سبز و آزاد | `DataFrame` |
+| ⭐ `list_energy_securities()` | سلف، گواهی‌ها و آتی انرژی | `DataFrame` |
+| ⭐ `get_commodity_market()` | تابلوی گواهی، سلف، صندوق و آتی بورس کالا | `DataFrame` |
+| ⭐ `get_commodity_physical_history()` | حجم و ارزش روزانهٔ بازار فیزیکی بورس کالا | `DataFrame` |
+| ⭐ `get_commodity_physical_summary()` | خلاصهٔ تالارها و نسبت معامله به عرضه | `DataFrame` |
+| ⭐ `get_futures_curve()` | منحنی سررسید و basis قراردادهای آتی | `DataFrame` |
 | ⭐ `get_live_trades()` | معاملات ریز امروز یک نماد | `DataFrame` |
 | ⭐ `get_order_book()` | پنج سطح سفارش زنده | `DataFrame` |
 | ⭐ `get_trading_calendar()` | تقویم معاملاتی رسمی بورس و فرابورس | `DataFrame` |
@@ -193,6 +205,24 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 | `list_indices()`, `get_index_companies()` | API قدیمی شاخص‌ها و اعضای شاخص؛ برای صنعت APIهای بالا پیشنهاد می‌شوند |
 | `get_currency()` | ارز و سکه از API قدیمی TGJU |
 
+#### بورس انرژی و بورس کالا
+
+| تابع | کاربرد |
+|---|---|
+| `get_energy_auctions()` | فهرست عرضه‌های آماده، فعال، مازاد یا پایان‌یافته در تابلوهای فیزیکی و برق |
+| `get_energy_auction()` | جزئیات یک حراج، معاملات خود حراج و در صورت درخواست سابقهٔ همان ابزار |
+| `get_energy_market_overview()` | آمار روزانهٔ جریان‌های رسمی بورس انرژی و بازار برق |
+| `list_power_instruments()` | برق استاندارد، برق سبز و برق آزاد |
+| `list_energy_securities()` | سلف استاندارد، گواهی ظرفیت/صرفه‌جویی/سپرده و آتی انرژی |
+| `get_energy_future_contract()` | مشخصات قرارداد، سررسید، وجه تضمین، کارمزد و قواعد تحویل آتی انرژی |
+| `get_commodity_market()` | snapshot رسمی IME برای گواهی، سلف، صندوق کالایی و آتی |
+| `get_commodity_physical_history()` | سری روزانهٔ حجم و ارزش بازار فیزیکی در بازهٔ صریح |
+| `get_commodity_physical_summary()` | تجمیع تالارهای فیزیکی و نسبت معامله به عرضه |
+| `get_commodity_market_activity()` | فعالیت تجمیعی بازار فیزیکی، آتی، اختیار، مالی و گواهی |
+| `get_futures_curve()` | ساخت term structure از ردیف‌های صریح قرارداد |
+| `get_calendar_spreads()` | spread سررسیدهای مجاور و تشخیص contango/backwardation |
+| `analyze_cash_and_carry()` | مقایسهٔ قیمت آتی و ارزش منصفانه با فرض‌های صریح هزینهٔ حمل |
+
 #### اخزا و درآمد ثابت
 
 | تابع | کاربرد |
@@ -251,6 +281,7 @@ Fetch TSETMC prices, client type, trades, order books, market calendars, index i
 - [فاندامنتال، صندوق و تعدیل قیمت](#فاندامنتال-بازار،-صندوق-و-تعدیل-قیمت)
 - [اخزا و درآمد ثابت](#اخزا-و-درآمد-ثابت)
 - [اختیار معامله](#اختیار-معامله)
+- [بورس انرژی و بورس کالا](#بورس-انرژی-و-بورس-کالا)
 - [سایر APIهای بازار](#سایر-apiهای-بازار)
 - [تنظیمات و خطاها](#تنظیمات-و-خطاها)
 - [مرجع تفصیلی همهٔ توابع](#مرجع-تفصیلی-همهٔ-توابع)
@@ -310,6 +341,12 @@ import algotik_tse as att
 | صندوق‌های ETF با NAV | `att.list_etfs()` |
 | اخزا و YTM | `att.get_treasury_yields()` |
 | زنجیره و تحلیل اختیار | `att.get_option_market()` و `att.analyze_option_chain()` |
+| عرضه‌های بورس انرژی | `att.get_energy_auctions(top=10)` |
+| برق سبز، استاندارد و آزاد | `att.list_power_instruments()` |
+| سلف و گواهی‌های انرژی | `att.list_energy_securities()` |
+| تابلوی بورس کالا | `att.get_commodity_market(kind="certificate")` |
+| سابقهٔ بازار فیزیکی کالا | `att.get_commodity_physical_history("1405-01-01")` |
+| منحنی آتی و calendar spread | `att.get_futures_curve(...)` و `att.get_calendar_spreads(...)` |
 
 ### اولین دریافت: تاریخچهٔ قیمت
 
@@ -363,6 +400,17 @@ funds = att.list_funds(fund_type="fixed_income")
 treasuries = att.get_treasury_yields(min_volume=1)
 options = att.get_option_market(underlying="خودرو")
 analytics = att.analyze_option_chain(options, risk_free_rate=0.30)
+
+# بورس انرژی: عرضه‌های آماده و قراردادهای برق سبز
+auctions = att.get_energy_auctions(status="upcoming", board="physical", top=10)
+green_power = att.list_power_instruments(market="green")
+
+# بورس کالا: گواهی‌های سپرده با پنج سطح سفارش و حقیقی/حقوقی
+certificates = att.get_commodity_market(kind="certificate")
+
+# سابقهٔ بازار فیزیکی و نسبت معامله به عرضهٔ هر تالار
+physical = att.get_commodity_physical_history("1405-01-01", "1405-06-01")
+halls = att.get_commodity_physical_summary("1405-01-01", "1405-06-01")
 ```
 
 خروجی نمایندهٔ `get_live_symbol()` در زمان بازار:
@@ -2141,6 +2189,204 @@ Price, PriceSource, Source, AsOf, Stale, NoTrade, AnalyticsEligible
 
 attrsهایی مانند `prices_no_lookahead`, `underlying_prices_no_lookahead`, `rates_no_lookahead`, `valuation_date_source`, `curve_applied` و `source_coverage` را برای backtest بررسی کنید. فایل snapshot دارای `OPTION_SNAPSHOT_SCHEMA_VERSION`، قفل writer، write اتمیک و dedupe است.
 
+## بورس انرژی و بورس کالا
+
+نسخهٔ ۱.۶.۰ سه لایه را از هم جدا نگه می‌دارد: دادهٔ حراج و ابزارهای بورس انرژی از TSETMC، تابلوی مالی و گزارش‌های بازار فیزیکی از وب‌سایت رسمی بورس کالای ایران، و محاسبات مشتقه که فقط از ورودی صریح کاربر ساخته می‌شوند. بنابراین یک ستون با واحد «هزار ریال» هیچ‌گاه بدون اعلام به ریال تبدیل نمی‌شود و سررسید قرارداد از روی نام فارسی حدس زده نمی‌شود.
+
+### حراج‌های بورس انرژی
+
+```python
+auctions = att.get_energy_auctions(
+    status="upcoming",
+    board="physical",
+    top=20,
+)
+
+one = att.get_energy_auction(
+    auctions.iloc[0]["AuctionID"],
+    include_trades=True,
+    include_instrument_history=False,
+)
+details = one["auction"]
+trades = one["auction_trades"]
+```
+
+`get_energy_auctions(status='upcoming', board='physical', top=100)`:
+
+- `status`: یکی از `upcoming`/`ready`، `active`، `surplus`/`mazad`، `ended` یا `all`؛ معادل‌های فارسی `آماده`، `فعال`، `مازاد` و `پایان` نیز پذیرفته می‌شوند.
+- `board`: یکی از `physical`، `power`، `special`، `green`، `free` یا `all`. این انتخاب مستقیماً به دستهٔ رسمی منبع متصل است.
+- `top`: سقف محلی ردیف برای هر ترکیب وضعیت/تابلو، عدد صحیح ۱ تا ۱۰۰۰. چون منبع گاهی پارامتر تعداد را نادیده می‌گیرد، پکیج سقف را بعد از دریافت نیز اعمال می‌کند.
+
+خروجی شامل `AuctionID`, `Description`, `Volume`, `BasePrice`, `AuthorizedPriceMin`, `AuthorizedPriceMax`, `AuctionDateTime`, `Producer`, `PaymentTerms`, `DeliveryTerms`, `DeliveryPlace`, `VolumeUnit`, `PriceUnit`, `MinimumPurchase`, `MinimumPriceDiscoveryVolume`, `MaximumPurchase`, `TickSize`, `LotSize`, `Status`, `DiscoveredPrice`, `TradedVolume`, `SurplusTradedVolume` و `VWAP` است.
+
+`get_energy_auction(auction_id, include_trades=True, include_instrument_history=False)` یک `dict[str, DataFrame]` برمی‌گرداند:
+
+| کلید | معنا |
+|---|---|
+| `auction` | مشخصات کامل همان حراج |
+| `auction_trades` | فقط معاملات همان `AuctionID`؛ در صورت `include_trades=True` |
+| `instrument_history` | معاملات حراج‌های قبلی همان ابزار؛ فقط با `include_instrument_history=True` |
+
+`auction_id` باید شناسهٔ عددی مثبت حراج باشد. `include_trades` و `include_instrument_history` فقط `bool` می‌پذیرند. جداسازی دو جدول معامله ضروری است؛ endpoint تاریخچهٔ ابزار به معنای معاملهٔ همان عرضه نیست.
+
+### بازار برق و اوراق انرژی
+
+```python
+# برق استاندارد، سبز و آزاد
+power = att.list_power_instruments(market="all", top=100)
+
+# سلف، گواهی ظرفیت، گواهی صرفه‌جویی، سپرده و آتی
+securities = att.list_energy_securities(
+    kind="all",
+    active=True,
+    top=100,
+    enrich_futures=True,
+)
+
+# آمار روزانهٔ جریان‌های رسمی
+overview = att.get_energy_market_overview(market="all")
+```
+
+`list_power_instruments(market='all', top=100)` در `market` مقادیر `standard`، `green`، `free` یا `all` را می‌پذیرد. `top` سقف ۱ تا ۱۰۰۰ برای هر دسته است.
+
+`list_energy_securities(kind='all', active=True, top=100, enrich_futures=True)`:
+
+- `kind`: یکی از `standard_salaf`, `capacity_certificate`, `energy_saving_certificate`, `deposit_certificate`, `future` یا `all`.
+- `active`: در حالت `True` فقط دستهٔ جاری منبع خوانده می‌شود؛ در حالت `False` دسته‌های جاری و منقضی‌شدهٔ منتشرشده نیز خوانده می‌شوند. این پارامتر به معنی فیلتر تاریخ حدسی از نام نماد نیست.
+- `top`: سقف ردیف هر دسته، ۱ تا ۱۰۰۰.
+- `enrich_futures`: اگر `True` باشد برای هر آتی یک درخواست جزئیات زده می‌شود تا سررسید، اندازهٔ قرارداد و قیمت تسویه از endpoint رسمی پر شود. `DataFrame.attrs['request_count']` تعداد واقعی درخواست‌ها را نشان می‌دهد.
+
+ستون‌های مشترک این دو تابع شامل `Segment`, `InsCode`, `Symbol`, `Name`, `GregorianDate`, `JalaliDate`, `Close`, `Last`, `PreviousClose`, `Open`, `Low`, `High`, `TradeCount`, `Volume`, `Value`, `ValueUnit`, `ExpiryDate`, `ContractSize` و `SettlementPrice` است. در این feed، `ValueUnit='rial'` است.
+
+`get_energy_market_overview(market='all')` مقادیر زیر را می‌پذیرد:
+
+| `market` | جریان رسمی |
+|---|---|
+| `free_power` | برق آزاد، flow 60 |
+| `power` | جمع بازار برق، flow 62 |
+| `standard_salaf` | سلف استاندارد، flow 63 |
+| `standard_power` | برق استاندارد، flow 64 |
+| `securities` | سایر اوراق قابل معامله، flow 65 |
+| `future` | آتی انرژی، flow 67 |
+| `deposit_certificate` | گواهی سپردهٔ انرژی، flow 68 |
+| `green_power` | برق سبز، flow 69 |
+
+خروجی `TradeCount`, `Volume`, `Value`, `State`، تاریخ شمسی/میلادی و `ValueUnit='rial'` دارد. تاریخ کوتاه یا sentinel داخلی منبع به‌عنوان تاریخ معتبر گزارش نمی‌شود و مقدار آن خالی می‌ماند.
+
+### مشخصات آتی انرژی
+
+```python
+contract = att.get_energy_future_contract("13758785995633713")
+```
+
+`get_energy_future_contract(ins_code)` فقط `InsCode` ده‌دهی دقیق را می‌پذیرد و یک ردیف برمی‌گرداند. مشخصات شامل دارایی پایه، ISIN، اندازه و واحد قرارداد، شروع، آخرین روز معامله، تحویل و آماده‌سازی، قیمت‌های بازار، نسبت‌های وجه تضمین اولیه/نگهداری/اضافی، کارمزد خریدوفروش و تسویهٔ نقدی/فیزیکی، جریمه، سقف موقعیت باز، ساعات معامله و قواعد تسویه است. مقدار صفر رسمی در فیلد تسویه با قیمت پایانی جایگزین نمی‌شود.
+
+### تابلوی مالی بورس کالا
+
+```python
+certificates = att.get_commodity_market(kind="certificate")
+salaf = att.get_commodity_market(kind="standard_salaf")
+commodity_funds = att.get_commodity_market(kind="fund")
+futures = att.get_commodity_market(kind="future")
+all_rows = att.get_commodity_market(kind="all")
+```
+
+`get_commodity_market(kind='all')` یکی از `certificate`/`deposit_certificate`، `standard_salaf`/`salaf`، `fund`، `future` یا `all` را می‌پذیرد. معادل‌های فارسی `گواهی`، `سلف`، `صندوق` و `آتی` نیز معتبرند.
+
+برای گواهی، سلف و صندوق، خروجی این موارد را دارد:
+
+- هویت: `InsCode`, `ISIN`, `Symbol`, `Name`, `EnglishName`, `Segment`
+- بازار: `TradeCount`, `Volume`, `Value`, `Close`, `Last`, `PreviousClose`, `Open`, `Low`, `High`, `Change`, `ChangePct`
+- حقیقی/حقوقی: تعداد و حجم خریدوفروش در ستون‌های `Individual*` و `Legal*`
+- پنج سطح سفارش: `BidPrice1..5`, `BidCount1..5`, `BidVolume1..5` و ستون‌های متناظر `Ask*`
+- مشتقه: `ExpiryJalali`, `SettlementPrice`, `OpenInterest`, `ContractSize`, `ContractUnit` در صورت انتشار منبع
+
+بورس کالا مقدار `Value` این تابلو را با واحد **هزار ریال** منتشر می‌کند؛ بنابراین `ValueUnit='thousand_rial'` و `DataFrame.attrs['value_unit']` ثبت می‌شود. خالی بودن تابلوی آتی در یک روز، خروجی معتبر با schema کامل است و به خطای شبکه تبدیل نمی‌شود.
+
+> تابلوی جزئی قراردادهای اختیار کالایی در وب‌سایت رسمی IME از کانال realtime SignalR منتشر می‌شود و قرارداد HTTP پایدار و قابل بازپخش ندارد. نسخهٔ ۱.۶.۰ برای جلوگیری از دادهٔ ناقص یا حدسی، option chain کالایی نمی‌سازد؛ اما آمار تجمیعی رسمی بازار اختیار را از `get_commodity_market_activity()` ارائه می‌دهد.
+
+### بازار فیزیکی و نمای کل بورس کالا
+
+```python
+daily = att.get_commodity_physical_history(
+    start="1405-01-01",
+    end="1405-06-01",
+)
+
+halls = att.get_commodity_physical_summary(
+    start="1405-01-01",
+    end="1405-06-01",
+    hall="all",
+)
+
+markets = att.get_commodity_market_activity(
+    start="1405-01-01",
+    end="1405-06-01",
+    market="all",
+)
+```
+
+- `start`: تاریخ شروع الزامی؛ شمسی یا میلادی با قرارداد تاریخ عمومی پکیج.
+- `end`: تاریخ پایان؛ اگر `None` باشد تاریخ تقویم تهران در زمان فراخوانی استفاده می‌شود.
+- `hall`: در `get_commodity_physical_summary()` مقدار `all`، شناسهٔ تالار یا نام دقیق تالار رسمی.
+- `market`: در `get_commodity_market_activity()` مقدار `all`، شناسهٔ بازار یا نام دقیق رسمی؛ شناسهٔ ۱ فیزیکی، ۲ آتی، ۳ اختیار معامله، ۴ مالی و ۵ گواهی سپرده است.
+
+`get_commodity_physical_history(start, end=None)` سری روزانهٔ `Volume` و `Value` را می‌دهد. `get_commodity_physical_summary(start, end=None, hall='all')` برای هر تالار `Volume`, `OfferVolume`, `TradeToOfferRatio` و `Value` را می‌دهد. نسبت معامله به عرضه فقط وقتی مخرج رسمی غیرصفر باشد محاسبه می‌شود.
+
+`get_commodity_market_activity(start, end=None, market='all')` حجم و ارزش تجمیعی بازارهای رسمی را برمی‌گرداند؛ این تابع جزئیات قرارداد اختیار یا آتی نیست. در هر سه تابع تاریخی `ValueUnit='million_rial'` است و بازهٔ ورودی در attrs نیز ثبت می‌شود.
+
+### منحنی آتی، calendar spread و cash-and-carry
+
+```python
+# contracts می‌تواند خروجی آتی انرژی/کالا یا DataFrame خود کاربر باشد.
+curve = att.get_futures_curve(
+    contracts,
+    underlying="میعانات گازی",
+    valuation_date="1405-07-01",
+    price="settlement",
+    spot_price=100_000,
+)
+
+spreads = att.get_calendar_spreads(curve)
+
+carry = att.analyze_cash_and_carry(
+    curve,
+    annual_rate=0.30,
+    storage_rate=0.02,
+    convenience_yield=0.01,
+)
+```
+
+`get_futures_curve(contracts, underlying=None, valuation_date=None, price='settlement', spot_price=None)`:
+
+- `contracts`: `DataFrame` یا records با ستون سررسید `ExpiryDate`، `Expiry` یا `MaturityDate` و حداقل یکی از `SettlementPrice`, `Close`, `Last`.
+- `underlying`: فیلتر اختیاری روی `BaseAsset`/`Underlying`؛ اگر وجود نداشته باشد از نام ردیف استفاده می‌شود.
+- `valuation_date`: تاریخ ارزش‌گذاری؛ `None` یعنی تاریخ تقویم تهران و در attrs ثبت می‌شود.
+- `price`: اولویت قیمت `settlement`, `close` یا `last`. `PriceSource` ستونی را که انتخاب شده نشان می‌دهد.
+- `spot_price`: قیمت نقدی مثبت و صریح. بدون آن basis محاسبه نمی‌شود؛ پکیج spot را از نام یا قیمت دیگری حدس نمی‌زند.
+- `ValueUnit`: اگر در ورودی موجود باشد، در منحنی و calendar spread حفظ می‌شود؛ ترکیب قراردادهایی با واحدهای متفاوت با `InvalidParameterError` متوقف می‌شود.
+
+خروجی بر اساس سررسید مرتب است و `DaysToExpiry`, `AbsoluteBasis`, `BasisPct` و `AnnualizedBasis` دارد. قرارداد بدون سررسید معتبر حذف می‌شود.
+
+`get_calendar_spreads(curve)` به‌صورت deterministic سررسیدهای **مجاور** را جفت می‌کند و `Spread = FarPrice - NearPrice`، درصد spread، فاصلهٔ روز، spread سالانه و `Structure` با مقادیر `contango`, `backwardation` یا `flat` می‌سازد.
+
+`analyze_cash_and_carry(curve, annual_rate, storage_rate=0.0, convenience_yield=0.0)` نرخ‌ها را به‌صورت اعشاری و سالانهٔ effective می‌گیرد. فرمول ثبت‌شده در attrs برابر است با:
+
+```text
+FairValue = SpotPrice × (1 + annual_rate + storage_rate - convenience_yield) ** (DaysToExpiry / 365)
+```
+
+خروجی `FairValue`, `Mispricing`, `MispricingPct` و signal محاسباتی دارد. signal هزینهٔ معامله، وجه تضمین، مالیات، محدودیت تحویل و امکان اجرای واقعی آربیتراژ را مدل نمی‌کند و توصیهٔ معاملاتی نیست.
+
+### قرارداد منبع، تاریخ و کیفیت دادهٔ ۱.۶.۰
+
+- `Source` در هر ردیف و `source` در `DataFrame.attrs` منشأ را مشخص می‌کند.
+- `is_partial=False` یعنی پاسخ endpoint انتخاب‌شده کامل پردازش شده است، نه اینکه منبع همهٔ تاریخ بازار را نگهداری می‌کند.
+- `request_count` تعداد فراخوانی‌های همان تابع را نشان می‌دهد؛ enrichment آتی هزینهٔ درخواست جدا دارد.
+- `ValueUnit` را پیش از جمع‌زدن بررسی کنید: بورس انرژی `rial`، تابلوی مالی IME `thousand_rial` و گزارش‌های تاریخی IME `million_rial` هستند.
+- تاریخ‌های حراج timestamp میلادی منبع‌اند و تاریخ شمسی متناظر بدون تغییر روز تقویمی ساخته می‌شود. تاریخ‌های گزارش فیزیکی از تاریخ شمسی رسمی منبع به میلادی تبدیل می‌شوند.
+- دادهٔ حراج، snapshot تابلو و گزارش تجمیعی سه سطح پوشش متفاوت‌اند و نباید بدون کلید هویت/تاریخ و کنترل واحد با هم join شوند.
+
 ## سایر APIهای بازار
 
 این بخش قابلیت‌های قدیمی را در همان مرجع واحد نگه می‌دارد. APIهای legacy برای backward compatibility در دسترس‌اند و در بسیاری از خطاهای قدیمی `None`/پیام کنسول می‌دهند؛ APIهای جدید بیشتر از exceptionهای typed استفاده می‌کنند.
@@ -2584,6 +2830,15 @@ except att.UnsupportedDataSourceError as exc:
 | `get_option_market`, `analyze_option_chain`, `option_put_call_ratios` |
 | `get_option_history`, `save_option_snapshot`, `load_option_snapshots` |
 
+#### بورس انرژی و بورس کالا
+
+| Exportها |
+|---|
+| `get_energy_auctions`, `get_energy_auction`, `get_energy_market_overview` |
+| `list_power_instruments`, `list_energy_securities`, `get_energy_future_contract` |
+| `get_commodity_market`, `get_commodity_physical_history`, `get_commodity_physical_summary`, `get_commodity_market_activity` |
+| `get_futures_curve`, `get_calendar_spreads`, `analyze_cash_and_carry` |
+
 #### signatureهای پرکاربرد
 
 ```text
@@ -2596,6 +2851,21 @@ get_trades(symbol=None, *, ins_code=None, start=None, end=None,
 get_market_messages(flow=0, top=20, since_id=None, *, archive_to=None)
 get_instrument_state_changes(top=20, since_id=None, *, archive_to=None)
 get_market_overview(flow=0, *, archive_to=None)
+get_energy_auctions(status='upcoming', board='physical', top=100)
+get_energy_auction(auction_id, include_trades=True, include_instrument_history=False)
+get_energy_market_overview(market='all')
+list_power_instruments(market='all', top=100)
+list_energy_securities(kind='all', active=True, top=100, enrich_futures=True)
+get_energy_future_contract(ins_code)
+get_commodity_market(kind='all')
+get_commodity_physical_history(start, end=None)
+get_commodity_physical_summary(start, end=None, hall='all')
+get_commodity_market_activity(start, end=None, market='all')
+get_futures_curve(contracts, underlying=None, valuation_date=None,
+                  price='settlement', spot_price=None)
+get_calendar_spreads(curve)
+analyze_cash_and_carry(curve, annual_rate, storage_rate=0.0,
+                       convenience_yield=0.0)
 ```
 
 پارامترهایی که با `_` شروع می‌شوند seam داخلی تست‌اند و API کاربر محسوب نمی‌شوند، حتی اگر در `inspect.signature` دیده شوند.
@@ -2690,6 +2960,30 @@ Python/pandas.
 | `lower_volatility`, `upper_volatility`, `tolerance`, `max_iterations` | `0.0`, `5.0`, تابعی، تابعی | bracket و همگرایی solver؛ lower < upper و شمار iteration مثبت. |
 | `risk_free_rate`, `yield_curve` | scalar/curve یا `None` | نرخ ثابت یا `YieldCurve`; اگر هر دو داده شوند قرارداد تحلیل آن‌ها را اعتبارسنجی می‌کند. |
 | `parity_tolerance`, `liquidity_weights` | `float | mapping | None` | band parity و وزن‌های scoring؛ `None` یعنی default داخلی مستند. |
+
+#### پارامترهای بورس انرژی، کالا و term structure
+
+| نام | type/default | معنا و constraint |
+|---|---|---|
+| `status` | `str='upcoming'` | وضعیت حراج: `upcoming/ready`, `active`, `surplus/mazad`, `ended` یا `all`. |
+| `board` | `str='physical'` | تابلوی حراج: `physical`, `power`, `special`, `green`, `free` یا `all`. |
+| `auction_id` | `int` | شناسهٔ مثبت حراج رسمی بورس انرژی؛ سقف قراردادی `10**12`. |
+| `include_trades` | `bool=True` | افزودن معاملات خود همان حراج به dict خروجی. |
+| `include_instrument_history` | `bool=False` | افزودن سابقهٔ عرضه‌های قبلی همان ابزار؛ با معاملات حراج جاری یکی نیست. |
+| `market` در انرژی | `str='all'` | در برق: `standard/green/free/all`؛ در overview یکی از flow labelهای مستند؛ در activity کالا شناسه/نام بازار. |
+| `kind` در انرژی | `str='all'` | `standard_salaf`, `capacity_certificate`, `energy_saving_certificate`, `deposit_certificate`, `future` یا `all`. |
+| `kind` در کالا | `str='all'` | `certificate`, `standard_salaf`, `fund`, `future` یا `all`. |
+| `active` | `bool=True` | دستهٔ جاری؛ `False` دسته‌های جاری و expired منتشرشده را نیز می‌خواند. |
+| `enrich_futures` | `bool=True` | fan-out مشخصات رسمی آتی برای سررسید/اندازه/تسویه؛ هزینه در `request_count`. |
+| `hall` | `str|int='all'` | همه، ID تالار یا نام exact تالار رسمی بازار فیزیکی. |
+| `contracts` | `DataFrame | iterable[Mapping]` | ردیف‌های قرارداد با ستون سررسید و یکی از قیمت‌های settlement/close/last. |
+| `underlying` | `str|None` | فیلتر substring اختیاری روی دارایی پایه؛ fuzzy identity resolver نیست. |
+| `price` در curve | `str='settlement'` | اولویت ستون قیمت: `settlement`, `close` یا `last`; ستون انتخاب‌شده در `PriceSource`. |
+| `spot_price` | `float|None` | spot مثبت و صریح برای basis؛ `None` یعنی basis محاسبه نشود. |
+| `curve` | `DataFrame | iterable[Mapping]` | خروجی `get_futures_curve()` یا جدول هم‌قرارداد با ستون‌های لازم. |
+| `annual_rate` | `float` | نرخ مالی سالانهٔ effective به‌صورت اعشاری؛ مثلاً `0.30`. |
+| `storage_rate` | `float=0.0` | هزینهٔ انبارداری سالانهٔ effective به‌صورت اعشاری. |
+| `convenience_yield` | `float=0.0` | منفعت نگهداری کالای فیزیکی به‌صورت نرخ سالانهٔ اعشاری. |
 
 پارامترهای کم‌تکرار نیز بخشی از قراردادند:
 
@@ -3062,6 +3356,40 @@ get_index_companies(index_name, progress=True)
 | `list_indices` | فقط `progress`. | `DataFrame[Name,InsCode,Value,High,Low,Change,ChangePct]`؛ از 1.2.0 `Change` حرکت واحد شاخص و `ChangePct` درصد است. | مسیر legacy در خطای provider frame تهی/پیام؛ برای صنعت `list_industry_indices` پیشنهاد می‌شود. |
 | `get_index_companies` | `index_name: str` فارسی یا InsCode. | `DataFrame[Symbol,Name,InsCode,Close,Yesterday,Last]`. | index گم‌شده/provider در مسیر legacy frame تهی/پیام؛ مثال فصل شاخص. |
 
+### قرارداد API: بورس انرژی و بورس کالا
+
+```text
+get_energy_auctions(status='upcoming', board='physical', top=100)
+get_energy_auction(auction_id, include_trades=True, include_instrument_history=False)
+get_energy_market_overview(market='all')
+list_power_instruments(market='all', top=100)
+list_energy_securities(kind='all', active=True, top=100, enrich_futures=True)
+get_energy_future_contract(ins_code)
+get_commodity_market(kind='all')
+get_commodity_physical_history(start, end=None)
+get_commodity_physical_summary(start, end=None, hall='all')
+get_commodity_market_activity(start, end=None, market='all')
+get_futures_curve(contracts, underlying=None, valuation_date=None, price='settlement', spot_price=None)
+get_calendar_spreads(curve)
+analyze_cash_and_carry(curve, annual_rate, storage_rate=0.0, convenience_yield=0.0)
+```
+
+| تابع | ورودی‌ها و گزینه‌ها | خروجی/schema/attrs | خطا و مثال |
+|---|---|---|---|
+| `get_energy_auctions` | `status`, `board`, `top=1..1000`؛ `all` fan-out صریح. | `DataFrame` کامل عرضه با قیمت، حجم، شرایط پرداخت/تحویل، lot، وضعیت و معامله؛ attrs منبع/درخواست. | enum/top نامعتبر `InvalidParameterError`؛ شبکه/schema typed؛ مثال فصل انرژی. |
+| `get_energy_auction` | `auction_id` مثبت؛ `include_trades=True`؛ تاریخچهٔ ابزار opt-in. | `dict` با `auction` و کلیدهای معاملهٔ درخواستی؛ `TradeScope` تفاوت دامنه را ثبت می‌کند. | ID/bool نامعتبر یا پاسخ ناقص typed؛ مثال single auction. |
+| `get_energy_market_overview` | `market` یکی از هشت flow label مستند یا `all`. | `DataFrame[Market,Flow,GregorianDate,JalaliDate,Time,TradeCount,Volume,Value,ValueUnit,StateCode,State,Source]`. | market/provider/schema typed؛ مثال overview. |
+| `list_power_instruments` | `market∈{standard,green,free,all}`؛ `top=1..1000`. | schema مشترک ابزار انرژی، `ValueUnit='rial'`. | enum/top/provider typed؛ مثال برق سبز. |
+| `list_energy_securities` | `kind` پنج دسته/`all`؛ `active`; `top`; `enrich_futures`. | schema مشترک بازار؛ enrichment سررسید/اندازه/تسویه؛ attrs `request_count`. | enum/bool/top/provider/detail typed؛ مثال اوراق انرژی. |
+| `get_energy_future_contract` | `ins_code` دقیق. | یک ردیف مشخصات، تاریخ‌ها، قیمت‌ها، margin، fee، position limits و delivery rules. | InsCode/provider/schema typed؛ مثال فصل آتی. |
+| `get_commodity_market` | `kind∈{certificate,standard_salaf,fund,future,all}` و aliasهای مستند. | `DataFrame` هویت/قیمت/معامله/client type/پنج سطح سفارش و مشتقه؛ `ValueUnit='thousand_rial'`. | kind/provider/schema typed؛ بازار خالی frame معتبر است. |
+| `get_commodity_physical_history` | `start` الزامی، `end=None` یعنی امروز تهران. | روزانه `GregorianDate,JalaliDate,Volume,Value,ValueUnit,Source`؛ واحد میلیون ریال. | date order/provider/embedded JSON typed؛ مثال تاریخچه. |
+| `get_commodity_physical_summary` | بازه مانند بالا؛ `hall='all'` یا ID/نام exact. | `HallID,Hall,Volume,OfferVolume,TradeToOfferRatio,Value` و بازه؛ واحد میلیون ریال. | تاریخ/provider typed؛ no-match frame خالی معتبر. |
+| `get_commodity_market_activity` | بازه؛ `market='all'` یا ID/نام exact. | فعالیت تجمیعی فیزیکی/آتی/اختیار/مالی/گواهی؛ جزئیات قرارداد نیست. | تاریخ/provider typed؛ مثال market ID 3 برای اختیار. |
+| `get_futures_curve` | contracts صریح؛ فیلتر underlying؛ valuation؛ اولویت price؛ spot اختیاری مثبت. | term structure مرتب با tenor، basis مطلق/درصدی/سالانه و provenance قیمت. | ستون/date/price/spot نامعتبر `InvalidParameterError`؛ مثال curve. |
+| `get_calendar_spreads` | `curve` دارای `ExpiryDate,Price`. | جفت سررسید مجاور، spread، annualized spread و structure. | schema/date نامعتبر `InvalidParameterError`؛ مثال spread. |
+| `analyze_cash_and_carry` | curve با spot/price/tenor؛ نرخ‌های finite و base مثبت. | ورودی + `FairValue,Mispricing,MispricingPct,Signal` و فرض‌ها در attrs. | schema/rate نامعتبر `InvalidParameterError`؛ signal توصیهٔ معامله نیست. |
+
 ### قرارداد aliasها و wrapperهای backward-compatible
 
 aliasهای این جدول مدخل مستقل دارند تا signature قدیمی و تفاوت رفتاری مخفی نماند.
@@ -3179,6 +3507,8 @@ messages = att.get_market_messages_history(db, flow=0)
 | منبع | استفاده |
 |---|---|
 | TSETMC (`tsetmc.com` و subdomainهای رسمی) | قیمت، market watch، client type، سفارش، trades، پیام، وضعیت، ابزار، صندوق و اطلاعات بازار |
+| TSETMC / بورس انرژی | حراج‌ها، معاملات همان عرضه، تابلوهای برق و انرژی و مشخصات آتی انرژی |
+| بورس کالای ایران (`ime.co.ir` و `cdn.ime.co.ir`) | تابلوی گواهی/سلف/صندوق/آتی، بازار فیزیکی و آمار تجمیعی بازارها |
 | فرابورس ایران (`ifb.ir/ytm.aspx`) | جدول مرجع YTM برای مقایسه/دسته‌بندی اوراق؛ منبع مجاز و با provenance جدا |
 | TGJU (`api.tgju.org`) | فقط API legacy ارز و سکه |
 
@@ -3225,6 +3555,7 @@ python -m pytest -m "not online" -q
 
 این بخش در هر انتشار به‌روزرسانی می‌شود؛ جزئیات کامل‌تر در [HISTORY.rst](HISTORY.rst) ثبت شده است.
 
+- **1.6.0 — 2026-09-13:** افزودن حراج‌های بورس انرژی با شرایط کامل عرضه و تفکیک معاملات حراج از سابقهٔ ابزار؛ تابلوهای برق استاندارد/سبز/آزاد، سلف و گواهی‌ها و مشخصات آتی انرژی؛ تابلوی رسمی بورس کالا برای گواهی، سلف، صندوق و آتی با پنج سطح سفارش و حقیقی/حقوقی؛ تاریخچه و خلاصهٔ بازار فیزیکی و آمار تجمیعی بازارهای فیزیکی/آتی/اختیار/مالی؛ منحنی سررسید، calendar spread و cash-and-carry با فرض‌های صریح و ثبت دقیق واحد ریال/هزار ریال/میلیون ریال.
 - **1.5.1 — 2026-09-13:** اصلاح هویت و `change_amount` در `get_shareholders(date=...)` بر پایهٔ اختلاف دو snapshot و تطبیق exact؛ تفکیک صریح تاریخ معامله از تاریخ مؤثر روز معاملاتی بعد؛ افزودن `get_shareholder_history()` با فرکانس روزانه/هفتگی/ماه شمسی و بودجهٔ سخت درخواست؛ افزودن رتبه‌بندی انباشت/توزیع، edge list شبکهٔ سهامدار–نماد و سنجه‌های Top-N/HHI تمرکز مالکیت با metadata کامل محدودیت‌های رسمی منبع.
 - **1.5.0 — 2026-09-12:** تفکیک صریح تاریخچهٔ بلندمدت هر نماد از پنجرهٔ گردان حداکثر پنج‌تاریخهٔ بازار؛ افزودن snapshot، تغییرات متوالی و جمع‌بندی سهامداران فعال با اتصال دقیق `InsCode` و metadata محدودیت منبع؛ افزودن timeline بومی TSETMC برای پیام ناظر، تغییر سرمایه و تعدیل قیمت بدون برچسب‌گذاری ساختگی DPS یا ادغام دادهٔ کدال.
 - **1.4.0 — 2026-09-12:** تجمیع تقویم و نمای کلان بازار با ابزارهای پیش‌گشایش؛ تقویم رسمی بورس/فرابورس، ارزش بازار تاریخی، فعالیت روزانه، اثر نمادها بر شاخص، خلاصهٔ bulk روز، مستر کامل ابزارها و diff مبتنی بر `InsCode`، TOP رسمی مشترکان و عدم تعادل پیش‌گشایش.

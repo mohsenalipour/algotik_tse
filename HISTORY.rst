@@ -2,6 +2,26 @@
 History
 =======
 
+1.6.0 (2026-09-13)
+------------------
+
+* Added official Iran Energy Exchange auction notices, single-auction detail,
+  auction-only trades, and explicitly separate instrument auction history.
+* Added daily energy-market overviews plus standard, green and free-power
+  contracts, energy salaf, deposit/capacity/efficiency certificates and
+  energy-future specifications with exact ``InsCode`` identity.
+* Added the official IME live board for commodity certificates, standard
+  salaf, commodity funds and futures, including five order-book levels and
+  individual/institutional activity.
+* Added explicit-date IME physical-market history, hall summaries,
+  trade-to-offer coverage and aggregate activity for physical, futures,
+  options and financial markets.
+* Added deterministic futures term structures, adjacent calendar spreads and
+  cash-and-carry diagnostics based only on caller-supplied spot/rate inputs.
+* Preserved provider monetary units (rial, thousand rial and million rial),
+  source metadata and valid empty-market responses; added offline regression
+  and bounded live contract tests.
+
 1.5.1 (2026-09-13)
 ------------------
 

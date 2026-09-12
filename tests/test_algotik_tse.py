@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Comprehensive integration tests for algotik_tse v1.0.0.
+"""Comprehensive integration tests for algotik_tse.
 
 Usage:
     1. Turn off VPN
@@ -96,7 +96,7 @@ def run_test(test_id, description, func, *args, **kwargs):
 
 # ─── 0. Version & Settings ───────────────────────────────────
 def test_version():
-    assert att.__version__ == "1.5.1", "Expected 1.5.1, got {}".format(att.__version__)
+    assert att.__version__ == "1.6.0", "Expected 1.6.0, got {}".format(att.__version__)
     return pd.DataFrame(
         {
             "version": [att.__version__],
