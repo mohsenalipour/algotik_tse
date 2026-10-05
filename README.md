@@ -1744,7 +1744,7 @@ get_industry_relative_strength(industries, benchmark, start=None, end=None, limi
 get_industry_correlation(industries, start=None, end=None, limit=0, ascending=True, progress=True, max_workers=6)
 get_industry_membership_overlap(industries, progress=True, refresh=False, max_workers=6)
 get_industry_membership_events(industries, days=30, progress=True, refresh=False, max_workers=6)
-``` 
+```
 
 ### cache، پوشش و محدودیت داده
 

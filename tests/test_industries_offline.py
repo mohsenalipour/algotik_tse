@@ -14,7 +14,6 @@ from algotik_tse.core import instruments
 from algotik_tse.core.market_data import CLIENT_COLUMNS, ORDER_COLUMNS, STOCK_COLUMNS
 from algotik_tse.core.search import _INDUSTRY_RAW
 
-
 CODE = "32453344048876642"
 ALT_CODE = "34408080767216529"
 ALT_CODE_2 = "19219679288446732"
@@ -23,10 +22,7 @@ MEMBER = "12345678901234567"
 
 def test_industry_module_supports_python_38_syntax():
     source = (
-        Path(__file__).resolve().parents[1]
-        / "algotik_tse"
-        / "core"
-        / "industries.py"
+        Path(__file__).resolve().parents[1] / "algotik_tse" / "core" / "industries.py"
     ).read_text(encoding="utf-8")
     ast.parse(source, feature_version=(3, 8))
 
@@ -54,7 +50,9 @@ def _index_rows():
                 "xPbNivJIdx004": 990.0,
                 "xVarIdxJRfV": 10.0 if code == CODE else 1.0,
                 "indexChange": 100.0 if code == CODE else 10.0,
-                "lVal30": "27-فلزات اساسي" if code == CODE else "{:02d}-صنعت".format(number),
+                "lVal30": (
+                    "27-فلزات اساسي" if code == CODE else "{:02d}-صنعت".format(number)
+                ),
             }
         )
     return rows
@@ -435,9 +433,7 @@ def test_industry_daily_history_filters_then_limits(provider):
 
 
 def test_member_history_is_long_form_and_warns_about_survivorship(provider):
-    result = att.get_industry_members_history(
-        "فلزات", days=1, progress=False
-    )
+    result = att.get_industry_members_history("فلزات", days=1, progress=False)
     assert list(result.columns) == industries.INDUSTRY_MEMBER_HISTORY_COLUMNS
     assert len(result) == 1
     assert result.iloc[0]["TradeDate"] == pd.Timestamp("2026-08-31")
@@ -473,7 +469,9 @@ def test_compare_industries_builds_wide_panel_and_applies_limit_descending(monke
         "TradeDate",
         "JalaliDate",
         industries._compare_columns_label(industries._canonical_name(CODE), CODE),
-        industries._compare_columns_label(industries._canonical_name(ALT_CODE), ALT_CODE),
+        industries._compare_columns_label(
+            industries._canonical_name(ALT_CODE), ALT_CODE
+        ),
     ]
     assert list(result.columns) == expected_columns
     assert result.attrs["analysis"] == "compare_industries"
@@ -529,9 +527,9 @@ def test_relative_strength_uses_benchmark_and_limits_per_industry(monkeypatch):
         "RelativeStrength",
     ]
     assert len(result) == 2
-    assert result_price[["IndustryReturn", "BenchmarkReturn", "RelativeStrength"]].equals(
-        result[["IndustryReturn", "BenchmarkReturn", "RelativeStrength"]]
-    )
+    assert result_price[
+        ["IndustryReturn", "BenchmarkReturn", "RelativeStrength"]
+    ].equals(result[["IndustryReturn", "BenchmarkReturn", "RelativeStrength"]])
 
 
 def test_industry_correlation_generates_sorted_matrix_with_diagonal_one(monkeypatch):
@@ -557,7 +555,9 @@ def test_industry_correlation_generates_sorted_matrix_with_diagonal_one(monkeypa
     )
     expected_labels = [
         industries._compare_columns_label(industries._canonical_name(CODE), CODE),
-        industries._compare_columns_label(industries._canonical_name(ALT_CODE), ALT_CODE),
+        industries._compare_columns_label(
+            industries._canonical_name(ALT_CODE), ALT_CODE
+        ),
         industries._compare_columns_label(
             industries._canonical_name(ALT_CODE_2), ALT_CODE_2
         ),
@@ -572,7 +572,9 @@ def test_industry_correlation_generates_sorted_matrix_with_diagonal_one(monkeypa
 
 
 def test_new_industry_analytics_validate_inputs(monkeypatch):
-    monkeypatch.setattr(industries, "_industry_history_frames", lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        industries, "_industry_history_frames", lambda *args, **kwargs: {}
+    )
     with pytest.raises(att.InvalidParameterError):
         att.compare_industries(CODE, metric="invalid", progress=False)
     with pytest.raises(att.InvalidParameterError):
@@ -741,7 +743,9 @@ def test_industry_membership_churn_tracks_member_transitions(provider):
     assert result.attrs["analysis"] == "industry_membership_churn"
 
 
-def test_industry_membership_events_reports_added_and_dropped_rows(monkeypatch, provider):
+def test_industry_membership_events_reports_added_and_dropped_rows(
+    monkeypatch, provider
+):
     payload = copy.deepcopy(_member_payload(CODE))
     payload["relatedCompanyThirtyDayHistory"] = [
         {
@@ -846,7 +850,9 @@ def test_industry_concentration_from_membership_weights(provider):
 def test_industry_momentum_profile_creates_dynamic_windows(monkeypatch):
     def fake_frames(resolved, start_date=None, end_date=None, max_workers=6):
         return {
-            CODE: _extended_history_frame(CODE, industries._canonical_name(CODE), [1000, 1100, 1210]),
+            CODE: _extended_history_frame(
+                CODE, industries._canonical_name(CODE), [1000, 1100, 1210]
+            ),
             ALT_CODE: _extended_history_frame(
                 ALT_CODE, industries._canonical_name(ALT_CODE), [1000, 1040, 1120]
             ),
@@ -878,14 +884,18 @@ def test_industry_momentum_profile_creates_dynamic_windows(monkeypatch):
 def test_industry_correlation_neighborhood_and_top_selection(monkeypatch):
     def fake_frames(resolved, start_date=None, end_date=None, max_workers=6):
         return {
-            pair[0]: _extended_history_frame(
-                pair[0], pair[1], [1000, 1100, 1080, 1160]
-            )
-            if pair[0] == CODE
-            else _extended_history_frame(
-                pair[0],
-                pair[1],
-                [900, 980, 1060, 1030] if pair[0] == ALT_CODE else [750, 850, 820, 880],
+            pair[0]: (
+                _extended_history_frame(pair[0], pair[1], [1000, 1100, 1080, 1160])
+                if pair[0] == CODE
+                else _extended_history_frame(
+                    pair[0],
+                    pair[1],
+                    (
+                        [900, 980, 1060, 1030]
+                        if pair[0] == ALT_CODE
+                        else [750, 850, 820, 880]
+                    ),
+                )
             )
             for pair in resolved
         }
@@ -961,7 +971,9 @@ def test_industry_health_score_compose_from_parts(monkeypatch):
         ]
     )
 
-    monkeypatch.setattr(industries, "get_industry_snapshot", lambda *args, **kwargs: snapshot)
+    monkeypatch.setattr(
+        industries, "get_industry_snapshot", lambda *args, **kwargs: snapshot
+    )
     monkeypatch.setattr(
         industries,
         "get_industry_concentration",
@@ -970,7 +982,10 @@ def test_industry_health_score_compose_from_parts(monkeypatch):
     monkeypatch.setattr(
         industries,
         "get_industry_momentum_profile",
-        lambda industries, windows=(20, 60), start=None, end=None, progress=True, max_workers=6: momentum,
+        lambda industries, windows=(
+            20,
+            60,
+        ), start=None, end=None, progress=True, max_workers=6: momentum,
     )
     result = att.get_industry_health_score(
         [CODE, ALT_CODE],
@@ -982,6 +997,8 @@ def test_industry_health_score_compose_from_parts(monkeypatch):
     assert list(result.columns) == industries.INDUSTRY_HEALTH_SCORE_COLUMNS
     assert len(result) == 2
     assert (result["HealthScore"] >= result["HealthScore"].iloc[1]).all()
-    assert set(result["HealthBucket"]).issubset({"fragile", "weak", "mixed", "healthy", "strong"})
+    assert set(result["HealthBucket"]).issubset(
+        {"fragile", "weak", "mixed", "healthy", "strong"}
+    )
     assert result.attrs["analysis"] == "industry_health_score"
     assert result.attrs["top_concentration"] == 3
