@@ -25,7 +25,6 @@ from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as reportlab_canvas
 
-
 ROOT = Path(__file__).resolve().parent
 README_PATH = ROOT / "README.md"
 FONT_DIR = ROOT / "fonts"
@@ -272,10 +271,14 @@ img {{ max-width: 100%; }}
 def validate_internal_html_links(document):
     """Ensure every internal link has a concrete destination before printing."""
     element_ids = set(re.findall(r'\sid="([^"]+)"', document))
-    targets = [html.unescape(value) for value in re.findall(r'href="#([^"]+)"', document)]
+    targets = [
+        html.unescape(value) for value in re.findall(r'href="#([^"]+)"', document)
+    ]
     missing = sorted(set(targets) - element_ids)
     if missing:
-        raise RuntimeError("Internal PDF links have no destination: " + ", ".join(missing))
+        raise RuntimeError(
+            "Internal PDF links have no destination: " + ", ".join(missing)
+        )
     if len(targets) < 15:
         raise RuntimeError("The guide contains too few internal navigation links.")
     return len(targets)
@@ -283,8 +286,10 @@ def validate_internal_html_links(document):
 
 def find_edge():
     candidates = [
-        Path(os.environ.get("PROGRAMFILES(X86)", "")) / "Microsoft/Edge/Application/msedge.exe",
-        Path(os.environ.get("PROGRAMFILES", "")) / "Microsoft/Edge/Application/msedge.exe",
+        Path(os.environ.get("PROGRAMFILES(X86)", ""))
+        / "Microsoft/Edge/Application/msedge.exe",
+        Path(os.environ.get("PROGRAMFILES", ""))
+        / "Microsoft/Edge/Application/msedge.exe",
     ]
     for candidate in candidates:
         if candidate.is_file():
@@ -292,7 +297,9 @@ def find_edge():
     resolved = shutil.which("msedge")
     if resolved:
         return Path(resolved)
-    raise RuntimeError("Microsoft Edge was not found; it is required for Persian PDF rendering.")
+    raise RuntimeError(
+        "Microsoft Edge was not found; it is required for Persian PDF rendering."
+    )
 
 
 def html_to_pdf(html_path, pdf_path):
@@ -386,7 +393,9 @@ def overlay_header_and_footer(pdf_path):
 def validate_pdf(pdf_path):
     reader = PdfReader(str(pdf_path))
     if len(reader.pages) < 10:
-        raise RuntimeError("The guide is unexpectedly short: %d pages" % len(reader.pages))
+        raise RuntimeError(
+            "The guide is unexpectedly short: %d pages" % len(reader.pages)
+        )
     if pdf_path.stat().st_size < 200_000:
         raise RuntimeError("The generated PDF is unexpectedly small.")
     sample_pages = list(reader.pages[:8]) + list(reader.pages[-5:])
@@ -401,7 +410,9 @@ def validate_pdf(pdf_path):
         width = float(page.mediabox.width)
         height = float(page.mediabox.height)
         if not (590 <= width <= 600 and 837 <= height <= 846):
-            raise RuntimeError("A non-A4 page was generated: %.1f x %.1f" % (width, height))
+            raise RuntimeError(
+                "A non-A4 page was generated: %.1f x %.1f" % (width, height)
+            )
 
 
 def main():
@@ -423,7 +434,10 @@ def main():
     html_to_pdf(html_path, output_path)
     pages = overlay_header_and_footer(output_path)
     validate_pdf(output_path)
-    print("PDF ready: %s (%d pages, %.1f MB)" % (output_path, pages, output_path.stat().st_size / 1_048_576))
+    print(
+        "PDF ready: %s (%d pages, %.1f MB)"
+        % (output_path, pages, output_path.stat().st_size / 1_048_576)
+    )
 
     if not args.keep_html:
         html_path.unlink(missing_ok=True)

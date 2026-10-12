@@ -38,7 +38,6 @@ from .market_data import (
 )
 from .search import INDUSTRY_NAMES, _INDUSTRY_DICT, _INDUSTRY_RAW, _normalize_fa
 
-
 INDUSTRY_INDEX_COLUMNS = [
     "IndustryName",
     "IndustryNameEn",
@@ -635,7 +634,11 @@ def _live_frame(snapshot, include_client_type, include_orderbook):
         raise DataParsingError("MarketWatch snapshot is missing stocks")
     if not include_client_type and not include_orderbook:
         return _canonical_live_stocks(stocks)
-    client = market_client_type() if include_client_type else pd.DataFrame(columns=CLIENT_COLUMNS)
+    client = (
+        market_client_type()
+        if include_client_type
+        else pd.DataFrame(columns=CLIENT_COLUMNS)
+    )
     if not isinstance(client, pd.DataFrame):
         raise DataParsingError("client-type feed must return a DataFrame")
     order_book = snapshot.get("order_book", pd.DataFrame(columns=ORDER_COLUMNS))
@@ -663,7 +666,9 @@ def _combine_members_live(base, live, snapshot):
     result = result.set_index("InsCode", drop=False)
     live = live.set_index("InsCode", drop=False)
     new_columns = [
-        column for column in live.columns if column not in result and column != "InsCode"
+        column
+        for column in live.columns
+        if column not in result and column != "InsCode"
     ]
     if new_columns:
         result = pd.concat([result, live[new_columns].reindex(result.index)], axis=1)
@@ -725,7 +730,9 @@ def list_industry_indices(
     if progress:
         print("Fetching industry indices...")
     index_rows = _fetch_index_rows()
-    live_by_code = {str(row.get("insCode")): row for row in index_rows if isinstance(row, dict)}
+    live_by_code = {
+        str(row.get("insCode")): row for row in index_rows if isinstance(row, dict)
+    }
     resolved = _resolve_industries(None)
     counts = {}
     cache_hits = 0
@@ -733,7 +740,10 @@ def list_industry_indices(
         payloads, cache_hits = _get_membership_batch(
             resolved, refresh=refresh, max_workers=max_workers
         )
-        counts = {code: len(payload.get("indexCompany", [])) for code, payload in payloads.items()}
+        counts = {
+            code: len(payload.get("indexCompany", []))
+            for code, payload in payloads.items()
+        }
     output = []
     for code, name, name_en in resolved:
         item = live_by_code.get(code, {})
@@ -747,13 +757,19 @@ def list_industry_indices(
                 "IndustryGroupCode": _group_code(item.get("lVal30")),
                 "IndexInsCode": code,
                 "IndexValue": value,
-                "IndexPreviousValue": value - change if np.isfinite(value) and np.isfinite(change) else np.nan,
+                "IndexPreviousValue": (
+                    value - change
+                    if np.isfinite(value) and np.isfinite(change)
+                    else np.nan
+                ),
                 "DayHigh": _numeric(item.get("xPhNivJIdx004")),
                 "DayLow": _numeric(item.get("xPbNivJIdx004")),
                 "IndexChange": change,
                 "IndexChangePct": _numeric(item.get("xVarIdxJRfV")),
                 "MemberCount": member_count,
-                "HasMembers": (member_count > 0) if member_count is not pd.NA else pd.NA,
+                "HasMembers": (
+                    (member_count > 0) if member_count is not pd.NA else pd.NA
+                ),
                 "ExchangeTime": _time_text(item.get("hEven")),
             }
         )
@@ -761,7 +777,9 @@ def list_industry_indices(
     result.attrs.update(
         {
             "source": "TSETMC",
-            "membership_source": "GetIndexCompany" if include_member_count else "not_requested",
+            "membership_source": (
+                "GetIndexCompany" if include_member_count else "not_requested"
+            ),
             "member_count_requested": include_member_count,
             "cache_hits": cache_hits,
             "industry_count": len(result),
@@ -856,30 +874,84 @@ def _snapshot_record(
         close = pd.to_numeric(frame.get("Close"), errors="coerce")
         price = last.where(last.gt(0), close)
         previous = pd.to_numeric(frame.get("PreviousClose"), errors="coerce")
-        traded = pd.to_numeric(frame.get("TradeCount"), errors="coerce").gt(0) & pd.to_numeric(
-            frame.get("Volume"), errors="coerce"
-        ).gt(0)
+        traded = pd.to_numeric(frame.get("TradeCount"), errors="coerce").gt(
+            0
+        ) & pd.to_numeric(frame.get("Volume"), errors="coerce").gt(0)
     valid = price.gt(0) & previous.gt(0)
-    returns = (price.loc[valid] / previous.loc[valid] - 1.0) * 100 if len(frame) else pd.Series(dtype="float64")
+    returns = (
+        (price.loc[valid] / previous.loc[valid] - 1.0) * 100
+        if len(frame)
+        else pd.Series(dtype="float64")
+    )
     advances = int((valid & price.gt(previous)).sum()) if len(frame) else 0
     declines = int((valid & price.lt(previous)).sum()) if len(frame) else 0
     unchanged = int((valid & price.eq(previous)).sum()) if len(frame) else 0
-    total_value = pd.to_numeric(frame.get("Value"), errors="coerce").sum(min_count=1) if len(frame) else np.nan
-    upper = pd.to_numeric(frame.get("MaxAllowed"), errors="coerce") if len(frame) else pd.Series(dtype="float64")
-    lower = pd.to_numeric(frame.get("MinAllowed"), errors="coerce") if len(frame) else pd.Series(dtype="float64")
+    total_value = (
+        pd.to_numeric(frame.get("Value"), errors="coerce").sum(min_count=1)
+        if len(frame)
+        else np.nan
+    )
+    upper = (
+        pd.to_numeric(frame.get("MaxAllowed"), errors="coerce")
+        if len(frame)
+        else pd.Series(dtype="float64")
+    )
+    lower = (
+        pd.to_numeric(frame.get("MinAllowed"), errors="coerce")
+        if len(frame)
+        else pd.Series(dtype="float64")
+    )
 
     client_covered = pd.Series(False, index=frame.index)
     if include_client_type and len(frame):
-        client_covered = frame.get(
-            "client_snapshot_consistent", pd.Series(False, index=frame.index)
-        ).fillna(False).astype(bool)
+        client_covered = (
+            frame.get("client_snapshot_consistent", pd.Series(False, index=frame.index))
+            .fillna(False)
+            .astype(bool)
+        )
     covered = frame.loc[client_covered] if len(frame) else frame
-    net_volume = pd.to_numeric(covered.get("NetIndividualVolume"), errors="coerce").sum(min_count=1) if len(covered) else np.nan
-    net_value = pd.to_numeric(covered.get("EstimatedNetIndividualFlow"), errors="coerce").sum(min_count=1) if len(covered) else np.nan
-    buy_volume = pd.to_numeric(covered.get("IndividualBuyVolume"), errors="coerce").sum(min_count=1) if len(covered) else np.nan
-    sell_volume = pd.to_numeric(covered.get("IndividualSellVolume"), errors="coerce").sum(min_count=1) if len(covered) else np.nan
-    buy_count = pd.to_numeric(covered.get("IndividualBuyCount"), errors="coerce").sum(min_count=1) if len(covered) else np.nan
-    sell_count = pd.to_numeric(covered.get("IndividualSellCount"), errors="coerce").sum(min_count=1) if len(covered) else np.nan
+    net_volume = (
+        pd.to_numeric(covered.get("NetIndividualVolume"), errors="coerce").sum(
+            min_count=1
+        )
+        if len(covered)
+        else np.nan
+    )
+    net_value = (
+        pd.to_numeric(covered.get("EstimatedNetIndividualFlow"), errors="coerce").sum(
+            min_count=1
+        )
+        if len(covered)
+        else np.nan
+    )
+    buy_volume = (
+        pd.to_numeric(covered.get("IndividualBuyVolume"), errors="coerce").sum(
+            min_count=1
+        )
+        if len(covered)
+        else np.nan
+    )
+    sell_volume = (
+        pd.to_numeric(covered.get("IndividualSellVolume"), errors="coerce").sum(
+            min_count=1
+        )
+        if len(covered)
+        else np.nan
+    )
+    buy_count = (
+        pd.to_numeric(covered.get("IndividualBuyCount"), errors="coerce").sum(
+            min_count=1
+        )
+        if len(covered)
+        else np.nan
+    )
+    sell_count = (
+        pd.to_numeric(covered.get("IndividualSellCount"), errors="coerce").sum(
+            min_count=1
+        )
+        if len(covered)
+        else np.nan
+    )
     industry_power = _safe_divide(
         _safe_divide(buy_volume, buy_count), _safe_divide(sell_volume, sell_count)
     )
@@ -889,8 +961,16 @@ def _snapshot_record(
         bid = pd.to_numeric(frame.get("BidPrice1"), errors="coerce")
         ask = pd.to_numeric(frame.get("AskPrice1"), errors="coerce")
         order_covered = bid.gt(0) | ask.gt(0)
-    buy_queue = pd.to_numeric(frame.get("EstimatedBuyQueueValue"), errors="coerce") if len(frame) else pd.Series(dtype="float64")
-    sell_queue = pd.to_numeric(frame.get("EstimatedSellQueueValue"), errors="coerce") if len(frame) else pd.Series(dtype="float64")
+    buy_queue = (
+        pd.to_numeric(frame.get("EstimatedBuyQueueValue"), errors="coerce")
+        if len(frame)
+        else pd.Series(dtype="float64")
+    )
+    sell_queue = (
+        pd.to_numeric(frame.get("EstimatedSellQueueValue"), errors="coerce")
+        if len(frame)
+        else pd.Series(dtype="float64")
+    )
 
     index_value = _numeric(index_item.get("xDrNivJIdx004"))
     index_change = _numeric(index_item.get("indexChange"))
@@ -900,7 +980,11 @@ def _snapshot_record(
         "IndustryGroupCode": _group_code(index_item.get("lVal30")),
         "IndustryIndexCode": code,
         "IndexValue": index_value,
-        "IndexPreviousValue": index_value - index_change if np.isfinite(index_value) and np.isfinite(index_change) else np.nan,
+        "IndexPreviousValue": (
+            index_value - index_change
+            if np.isfinite(index_value) and np.isfinite(index_change)
+            else np.nan
+        ),
         "IndexChange": index_change,
         "IndexChangePct": _numeric(index_item.get("xVarIdxJRfV")),
         "IndexDayHigh": _numeric(index_item.get("xPhNivJIdx004")),
@@ -912,26 +996,56 @@ def _snapshot_record(
         "Unchanged": unchanged,
         "NoTrade": int((~traded).sum()) if len(frame) else member_count,
         "AdvanceDeclineDifference": advances - declines,
-        "AdvanceDeclineRatio": advances / declines if declines else (np.inf if advances else np.nan),
+        "AdvanceDeclineRatio": (
+            advances / declines if declines else (np.inf if advances else np.nan)
+        ),
         "AdvancePct": advances / member_count * 100 if member_count else np.nan,
         "DeclinePct": declines / member_count * 100 if member_count else np.nan,
         "EqualWeightReturn": returns.mean() if len(returns) else np.nan,
         "MedianReturn": returns.median() if len(returns) else np.nan,
         "ReturnDispersion": returns.std(ddof=0) if len(returns) else np.nan,
-        "TotalTradeCount": pd.to_numeric(frame.get("TradeCount"), errors="coerce").sum(min_count=1) if len(frame) else np.nan,
-        "TotalVolume": pd.to_numeric(frame.get("Volume"), errors="coerce").sum(min_count=1) if len(frame) else np.nan,
+        "TotalTradeCount": (
+            pd.to_numeric(frame.get("TradeCount"), errors="coerce").sum(min_count=1)
+            if len(frame)
+            else np.nan
+        ),
+        "TotalVolume": (
+            pd.to_numeric(frame.get("Volume"), errors="coerce").sum(min_count=1)
+            if len(frame)
+            else np.nan
+        ),
         "TotalValue": total_value,
         "MarketValueSharePct": _safe_divide(total_value, market_total_value) * 100,
-        "UpperLimitCount": int((traded & price.eq(upper) & upper.gt(0)).sum()) if len(frame) else 0,
-        "LowerLimitCount": int((traded & price.eq(lower) & lower.gt(0)).sum()) if len(frame) else 0,
-        "ClientCoveredCount": int(client_covered.sum()) if include_client_type else pd.NA,
-        "ClientCoverage": float(client_covered.mean()) if include_client_type and member_count else np.nan,
+        "UpperLimitCount": (
+            int((traded & price.eq(upper) & upper.gt(0)).sum()) if len(frame) else 0
+        ),
+        "LowerLimitCount": (
+            int((traded & price.eq(lower) & lower.gt(0)).sum()) if len(frame) else 0
+        ),
+        "ClientCoveredCount": (
+            int(client_covered.sum()) if include_client_type else pd.NA
+        ),
+        "ClientCoverage": (
+            float(client_covered.mean())
+            if include_client_type and member_count
+            else np.nan
+        ),
         "NetIndividualVolume": net_volume,
         "EstimatedNetIndividualValue": net_value,
         "IndividualPower": industry_power,
-        "FlowValueMethod": "market_vwap_estimate" if np.isfinite(_numeric(net_value)) else "unavailable",
-        "OrderBookCoveredCount": int(order_covered.sum()) if include_orderbook else pd.NA,
-        "OrderBookCoverage": float(order_covered.mean()) if include_orderbook and member_count else np.nan,
+        "FlowValueMethod": (
+            "market_vwap_estimate"
+            if np.isfinite(_numeric(net_value))
+            else "unavailable"
+        ),
+        "OrderBookCoveredCount": (
+            int(order_covered.sum()) if include_orderbook else pd.NA
+        ),
+        "OrderBookCoverage": (
+            float(order_covered.mean())
+            if include_orderbook and member_count
+            else np.nan
+        ),
         "BuyQueueCount": int(buy_queue.gt(0).sum()) if include_orderbook else pd.NA,
         "BuyQueueValue": buy_queue.sum(min_count=1) if include_orderbook else np.nan,
         "SellQueueCount": int(sell_queue.gt(0).sum()) if include_orderbook else pd.NA,
@@ -972,13 +1086,17 @@ def get_industry_snapshot(
     if progress:
         print("Fetching industry snapshot for {} industries...".format(len(resolved)))
     index_rows = _fetch_index_rows()
-    index_by_code = {str(row.get("insCode")): row for row in index_rows if isinstance(row, dict)}
+    index_by_code = {
+        str(row.get("insCode")): row for row in index_rows if isinstance(row, dict)
+    }
     payloads, cache_hits = _get_membership_batch(
         resolved, refresh=refresh, max_workers=max_workers
     )
     snapshot = market_watch()
     live = _live_frame(snapshot, include_client_type, include_orderbook)
-    market_total_value = pd.to_numeric(live.get("Value"), errors="coerce").sum(min_count=1)
+    market_total_value = pd.to_numeric(live.get("Value"), errors="coerce").sum(
+        min_count=1
+    )
     rows = []
     empty = []
     for code, name, name_en in resolved:
@@ -1028,7 +1146,9 @@ def _validate_limit(limit, name="limit", maximum=None):
     limit = int(limit)
     if limit < 0 or (maximum is not None and limit > maximum):
         suffix = " no greater than {}".format(maximum) if maximum is not None else ""
-        raise InvalidParameterError("{} must be a non-negative integer{}".format(name, suffix))
+        raise InvalidParameterError(
+            "{} must be a non-negative integer{}".format(name, suffix)
+        )
     return limit
 
 
@@ -1042,7 +1162,9 @@ def _date_bounds(start, end):
         start_date = pd.Timestamp(fixed_start).normalize() if fixed_start else None
         end_date = pd.Timestamp(fixed_end).normalize() if fixed_end else None
     except (TypeError, ValueError, OverflowError) as exc:
-        raise InvalidParameterError("start/end must be valid Jalali/Gregorian dates") from exc
+        raise InvalidParameterError(
+            "start/end must be valid Jalali/Gregorian dates"
+        ) from exc
     if start_date is not None and end_date is not None and start_date > end_date:
         raise InvalidParameterError("start cannot be after end")
     return start_date, end_date
@@ -1050,11 +1172,15 @@ def _date_bounds(start, end):
 
 def _industry_metric_column(metric):
     if not isinstance(metric, str):
-        raise InvalidParameterError("metric must be one of close, change_pct, log_return")
+        raise InvalidParameterError(
+            "metric must be one of close, change_pct, log_return"
+        )
     key = metric.strip().replace(" ", "").replace("-", "").lower()
     column = _INDUSTRY_COMPARE_METRICS.get(key)
     if column is None:
-        raise InvalidParameterError("metric must be one of close, change_pct, log_return")
+        raise InvalidParameterError(
+            "metric must be one of close, change_pct, log_return"
+        )
     return column
 
 
@@ -1092,17 +1218,24 @@ def _industry_cumulative_return_frame(history, code, name, metric_col):
                 cumulative = (close / base - 1.0) * 100
     elif metric_col == "LogReturn":
         cumulative = (
-            np.exp(pd.to_numeric(typed["LogReturn"], errors="coerce").fillna(0).cumsum()) - 1
+            np.exp(
+                pd.to_numeric(typed["LogReturn"], errors="coerce").fillna(0).cumsum()
+            )
+            - 1
         ) * 100
     else:
-        return_rates = pd.to_numeric(typed["ChangePct"], errors="coerce").fillna(0) / 100
+        return_rates = (
+            pd.to_numeric(typed["ChangePct"], errors="coerce").fillna(0) / 100
+        )
         cumulative = (1 + return_rates).cumprod() - 1
         cumulative = cumulative * 100
     return pd.DataFrame(
         {
             "TradeDate": typed["TradeDate"],
             "JalaliDate": typed["JalaliDate"],
-            "CumulativeReturn": pd.Series(cumulative, dtype="float64", index=typed.index),
+            "CumulativeReturn": pd.Series(
+                cumulative, dtype="float64", index=typed.index
+            ),
         }
     )
 
@@ -1136,7 +1269,9 @@ def _industry_history_from_payload(code, industry_name, start_date=None, end_dat
             }
         )
     result = (
-        pd.DataFrame(rows).sort_values("TradeDate").reset_index(drop=True) if rows else pd.DataFrame()
+        pd.DataFrame(rows).sort_values("TradeDate").reset_index(drop=True)
+        if rows
+        else pd.DataFrame()
     )
     if not result.empty:
         result["Change"] = result["Close"].diff()
@@ -1157,7 +1292,9 @@ def _industry_history_frames(resolved, start_date=None, end_date=None, max_worke
     frames = {}
     with ThreadPoolExecutor(max_workers=min(max_workers, len(resolved))) as executor:
         futures = {
-            executor.submit(_industry_history_from_payload, code, name, start_date, end_date): (
+            executor.submit(
+                _industry_history_from_payload, code, name, start_date, end_date
+            ): (
                 code,
                 name,
             )
@@ -1216,7 +1353,11 @@ def get_industry_history(
                 "Close": _numeric(item.get("xNivInuClMresIbs")),
             }
         )
-    result = pd.DataFrame(rows).sort_values("TradeDate").reset_index(drop=True) if rows else pd.DataFrame()
+    result = (
+        pd.DataFrame(rows).sort_values("TradeDate").reset_index(drop=True)
+        if rows
+        else pd.DataFrame()
+    )
     if not result.empty:
         result["Change"] = result["Close"].diff()
         result["ChangePct"] = result["Close"].pct_change(fill_method=None) * 100
@@ -1226,7 +1367,9 @@ def get_industry_history(
             result = result.loc[result["TradeDate"] <= end_date]
         if limit:
             result = result.tail(limit)
-        result = result.sort_values("TradeDate", ascending=ascending).reset_index(drop=True)
+        result = result.sort_values("TradeDate", ascending=ascending).reset_index(
+            drop=True
+        )
     result = _typed_frame(result, INDUSTRY_HISTORY_COLUMNS)
     result.attrs.update(
         {
@@ -1257,7 +1400,11 @@ def get_industry_members_history(
     days = _validate_limit(days, name="days", maximum=30)
     if days == 0:
         raise InvalidParameterError("days must be between 1 and 30")
-    for name, value in (("ascending", ascending), ("progress", progress), ("refresh", refresh)):
+    for name, value in (
+        ("ascending", ascending),
+        ("progress", progress),
+        ("refresh", refresh),
+    ):
         if not isinstance(value, bool):
             raise InvalidParameterError("{} must be bool".format(name))
     code, industry_name, _ = _resolve_industry(industry)
@@ -1302,7 +1449,10 @@ def get_industry_members_history(
     if not result.empty:
         result = result.sort_values(["InsCode", "TradeDate"]).reset_index(drop=True)
         result["Change"] = result.groupby("InsCode", sort=False)["Close"].diff()
-        result["ChangePct"] = result.groupby("InsCode", sort=False)["Close"].pct_change(fill_method=None) * 100
+        result["ChangePct"] = (
+            result.groupby("InsCode", sort=False)["Close"].pct_change(fill_method=None)
+            * 100
+        )
         dates = sorted(result["TradeDate"].dropna().unique())[-days:]
         result = result.loc[result["TradeDate"].isin(dates)]
         result = result.sort_values(
@@ -1363,7 +1513,9 @@ def compare_industries(
             history,
             INDUSTRY_HISTORY_COLUMNS + ["Change", "ChangePct", "LogReturn"],
         )
-        series = _industry_metric_series(history.set_index("TradeDate"), code, name, metric_col)
+        series = _industry_metric_series(
+            history.set_index("TradeDate"), code, name, metric_col
+        )
         if series.empty:
             series = pd.Series(dtype="float64")
         aligned = (
@@ -1372,9 +1524,10 @@ def compare_industries(
             else aligned.join(series.to_frame(series.name), how="outer")
         )
     if aligned.empty:
-        return pd.DataFrame(columns=["TradeDate", "JalaliDate"] + [
-            _compare_columns_label(name, code) for code, name, _ in resolved
-        ])
+        return pd.DataFrame(
+            columns=["TradeDate", "JalaliDate"]
+            + [_compare_columns_label(name, code) for code, name, _ in resolved]
+        )
     aligned = aligned.sort_index()
     aligned = aligned.reset_index().rename(columns={"index": "TradeDate"})
     aligned["JalaliDate"] = aligned["TradeDate"].map(_jalali)
@@ -1387,11 +1540,12 @@ def compare_industries(
     if ascending:
         aligned = aligned.sort_values("TradeDate").reset_index(drop=True)
     else:
-        aligned = aligned.sort_values("TradeDate", ascending=False).reset_index(drop=True)
-    result_columns = (
-        ["TradeDate", "JalaliDate"]
-        + [_compare_columns_label(name, code) for code, name, _ in resolved]
-    )
+        aligned = aligned.sort_values("TradeDate", ascending=False).reset_index(
+            drop=True
+        )
+    result_columns = ["TradeDate", "JalaliDate"] + [
+        _compare_columns_label(name, code) for code, name, _ in resolved
+    ]
     result = aligned[result_columns].copy()
     result.attrs.update(
         {
@@ -1505,12 +1659,14 @@ def get_industry_relative_strength(
     result = pd.concat(result_rows, ignore_index=True).copy()
     result = result.sort_values("TradeDate").reset_index(drop=True)
     if limit:
-        result = result.groupby(
-            "IndustryIndexCode", group_keys=False
-        ).tail(limit)
-        result = result.sort_values("TradeDate", ascending=ascending).reset_index(drop=True)
+        result = result.groupby("IndustryIndexCode", group_keys=False).tail(limit)
+        result = result.sort_values("TradeDate", ascending=ascending).reset_index(
+            drop=True
+        )
     else:
-        result = result.sort_values("TradeDate", ascending=ascending).reset_index(drop=True)
+        result = result.sort_values("TradeDate", ascending=ascending).reset_index(
+            drop=True
+        )
     result = result[
         [
             "TradeDate",
@@ -1578,7 +1734,9 @@ def get_industry_correlation(
             frames.get(code, pd.DataFrame()),
             INDUSTRY_HISTORY_COLUMNS + ["Change", "ChangePct", "LogReturn"],
         )
-        series = pd.to_numeric(history.set_index("TradeDate")["ChangePct"], errors="coerce")
+        series = pd.to_numeric(
+            history.set_index("TradeDate")["ChangePct"], errors="coerce"
+        )
         if not series.empty:
             series = series / 100.0
         series.name = _compare_columns_label(name, code)
@@ -1597,14 +1755,18 @@ def get_industry_correlation(
     return_series = aligned.drop(columns=["JalaliDate"], errors="ignore")
     return_series = return_series.dropna(axis=1, how="all")
     if return_series.shape[1] < 2:
-        raise InvalidParameterError("at least two overlapping return series are required")
+        raise InvalidParameterError(
+            "at least two overlapping return series are required"
+        )
     return_frame = return_series.corr(method="pearson", min_periods=1)
     # In some short windows returns can be constant and pandas returns NaN on
     # the diagonal due zero variance; treat a series with itself as correlation 1.
     if not return_frame.empty:
         for label in return_frame.index:
             return_frame.loc[label, label] = 1.0
-    return_frame = return_frame.reindex(index=ordered_labels).reindex(columns=ordered_labels)
+    return_frame = return_frame.reindex(index=ordered_labels).reindex(
+        columns=ordered_labels
+    )
     if ascending is False:
         ordered_labels_desc = list(reversed(ordered_labels))
         return_frame = return_frame.reindex(index=ordered_labels_desc).reindex(
@@ -1775,18 +1937,32 @@ def get_industry_intraday(industry, interval="1min", progress=True):
                 "ChangePct": _numeric(item.get("xVarIdxJRfV")),
             }
         )
-    raw = pd.DataFrame(raw_rows).dropna(subset=["Value"]).sort_values("Timestamp") if raw_rows else pd.DataFrame()
+    raw = (
+        pd.DataFrame(raw_rows).dropna(subset=["Value"]).sort_values("Timestamp")
+        if raw_rows
+        else pd.DataFrame()
+    )
     output = []
     if not raw.empty:
         if _INTERVALS[requested] is None:
             grouped = [
-                (row.Timestamp, row.Value, row.Value, row.Value, row.Value, row.Change, row.ChangePct)
+                (
+                    row.Timestamp,
+                    row.Value,
+                    row.Value,
+                    row.Value,
+                    row.Value,
+                    row.Change,
+                    row.ChangePct,
+                )
                 for row in raw.itertuples(index=False)
             ]
         else:
             indexed = raw.set_index("Timestamp")
             ohlc = indexed["Value"].resample(_INTERVALS[requested]).ohlc()
-            changes = indexed[["Change", "ChangePct"]].resample(_INTERVALS[requested]).last()
+            changes = (
+                indexed[["Change", "ChangePct"]].resample(_INTERVALS[requested]).last()
+            )
             merged = ohlc.join(changes).dropna(subset=["close"])
             grouped = [
                 (idx, row.open, row.high, row.low, row.close, row.Change, row.ChangePct)
@@ -1890,7 +2066,9 @@ def rank_industries(
         refresh=refresh,
         max_workers=max_workers,
     )
-    result = snapshot.loc[pd.to_numeric(snapshot[column], errors="coerce").notna()].copy()
+    result = snapshot.loc[
+        pd.to_numeric(snapshot[column], errors="coerce").notna()
+    ].copy()
     result = result.sort_values(column, ascending=ascending, kind="mergesort")
     if top is not None:
         result = result.head(top)
@@ -2160,7 +2338,9 @@ def get_industry_concentration(
             concentration_top3 = _top_concentration(sorted_weights, total_weight, 3)
             concentration_top5 = _top_concentration(sorted_weights, total_weight, 5)
             concentration_top10 = _top_concentration(sorted_weights, total_weight, 10)
-            concentration_top_n = _top_concentration(sorted_weights, total_weight, top_n)
+            concentration_top_n = _top_concentration(
+                sorted_weights, total_weight, top_n
+            )
             hhi = ((weights / total_weight) ** 2).sum() if total_weight else np.nan
         rows.append(
             {
@@ -2296,16 +2476,16 @@ def get_industry_momentum_profile(
         payload["IndustryIndexCode"] = code
         payload["TradeDate"] = non_na_history["TradeDate"].iloc[-1]
         payload["JalaliDate"] = non_na_history["JalaliDate"].iloc[-1]
-        payload["LastClose"] = (
-            latest_close if np.isfinite(latest_close) else np.nan
-        )
-        payload["ReturnVolatility"] = pd.to_numeric(history["ChangePct"], errors="coerce").std(
-            ddof=0
-        )
+        payload["LastClose"] = latest_close if np.isfinite(latest_close) else np.nan
+        payload["ReturnVolatility"] = pd.to_numeric(
+            history["ChangePct"], errors="coerce"
+        ).std(ddof=0)
         payload["MomentumWindowDays"] = max(windows)
         payload["MomentumWindowReturns"] = metrics
         momentum_for_score = [value for value in metrics if pd.notna(value)]
-        payload["MomentumScore"] = float(np.nanmean(momentum_for_score)) if momentum_for_score else np.nan
+        payload["MomentumScore"] = (
+            float(np.nanmean(momentum_for_score)) if momentum_for_score else np.nan
+        )
         if pd.notna(payload["MomentumScore"]):
             if payload["MomentumScore"] > 2:
                 payload["TrendSignal"] = "bullish"
@@ -2446,9 +2626,7 @@ def get_industry_correlation_neighborhood(
         }
     )
     if progress:
-        print(
-            "Done. {} neighborhood rows returned for {}".format(len(result), code)
-        )
+        print("Done. {} neighborhood rows returned for {}".format(len(result), code))
     return result
 
 
@@ -2465,10 +2643,11 @@ def get_industry_health_score(
     """Compute a composite health score from breadth, momentum and concentration."""
     top_concentration = _validate_limit(top_concentration, name="top_concentration")
     if not isinstance(momentum_windows, (list, tuple)) or not momentum_windows:
-        raise InvalidParameterError("momentum_windows must be a non-empty list or tuple")
+        raise InvalidParameterError(
+            "momentum_windows must be a non-empty list or tuple"
+        )
     momentum_windows = tuple(
-        _normalize_positive_int(value, "momentum_window")
-        for value in momentum_windows
+        _normalize_positive_int(value, "momentum_window") for value in momentum_windows
     )
     if top_concentration == 0:
         raise InvalidParameterError("top_concentration must be a positive integer")
@@ -2527,17 +2706,17 @@ def get_industry_health_score(
         how="outer",
     )
     # Deterministic percentile normalization (0..100), with missing values mapped to bottom.
-    merged["BreadthScore"] = merged["AdvancePct"].rank(pct=True, na_option="bottom").mul(
-        100
+    merged["BreadthScore"] = (
+        merged["AdvancePct"].rank(pct=True, na_option="bottom").mul(100)
     )
     merged["ConcentrationScore"] = 100 - merged[
         "ConcentrationTop{}".format(top_concentration)
     ].rank(pct=True, na_option="bottom").mul(100)
-    merged["LiquidityScore"] = merged["TotalWeight"].rank(
-        pct=True, na_option="bottom"
-    ).mul(100)
-    merged["MomentumScore"] = merged["MomentumScore"].rank(pct=True, na_option="bottom").mul(
-        100
+    merged["LiquidityScore"] = (
+        merged["TotalWeight"].rank(pct=True, na_option="bottom").mul(100)
+    )
+    merged["MomentumScore"] = (
+        merged["MomentumScore"].rank(pct=True, na_option="bottom").mul(100)
     )
     merged["HealthScore"] = (
         merged["BreadthScore"].astype(float) * 0.35
@@ -2560,7 +2739,10 @@ def get_industry_health_score(
         ),
     )
     merged["IndustryName"] = merged["IndustryIndexCode"].map(
-        {industry_code: _canonical_name(industry_code) for industry_code, _, _ in resolved}
+        {
+            industry_code: _canonical_name(industry_code)
+            for industry_code, _, _ in resolved
+        }
     )
     merged = merged.merge(
         snapshot[["IndustryIndexCode", "IndustryName"]].drop_duplicates(),
