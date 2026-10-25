@@ -21,11 +21,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_version_is_synchronized():
-    assert att.__version__ == "1.8.0"
-    assert 'version="1.8.0"' in (ROOT / "setup.py").read_text(encoding="utf-8")
-    assert "current_version = 1.8.0" in (ROOT / "setup.cfg").read_text(encoding="utf-8")
+    assert att.__version__ == "1.8.1"
+    assert 'version="1.8.1"' in (ROOT / "setup.py").read_text(encoding="utf-8")
+    assert "current_version = 1.8.1" in (ROOT / "setup.cfg").read_text(encoding="utf-8")
     history = (ROOT / "HISTORY.rst").read_text(encoding="utf-8")
-    assert "1.8.0 (2026-09-13)" in history
+    assert "1.8.1 (2026-10-25)" in history
     assert "1.7.0 (2026-09-13)" in history
     assert "1.6.0 (2026-09-13)" in history
     assert "1.5.0 (2026-09-12)" in history
@@ -339,8 +339,8 @@ def test_build_metadata_declares_supported_python_and_primary_readme():
 def test_pdf_guide_generator_tracks_release_and_rtl_layout():
     generator = (ROOT / "generate_pdf.py").read_text(encoding="utf-8")
     logo = ROOT / "docs" / "assets" / "algotik_logo_stacked_1024.png"
-    assert 'VERSION = "1.8.0"' in generator
-    assert "AlgoTik_TSE_Guide_v1.8.0_preview.pdf" in generator
+    assert 'VERSION = "1.8.1"' in generator
+    assert "AlgoTik_TSE_Guide_v1.8.1_preview.pdf" in generator
     assert 'class="rtl-content" dir="rtl"' in generator
     assert "table:has(thead th:nth-child(4))" in generator
     assert "TocExtension(slugify=unicode_slugify" in generator
@@ -356,7 +356,7 @@ def test_markdown_is_single_authoritative_reference_and_covers_public_exports():
     assert readme.count('<div dir="rtl" align="right">') == 1
     assert readme.rstrip().endswith("</div>")
     for badge in (
-        "img.shields.io/badge/pypi-v1.8.0-blue.svg",
+        "img.shields.io/badge/pypi-v1.8.1-blue.svg",
         "img.shields.io/pypi/pyversions/algotik-tse.svg",
         "static.pepy.tech/personalized-badge/algotik-tse",
         "img.shields.io/pypi/l/algotik-tse.svg",

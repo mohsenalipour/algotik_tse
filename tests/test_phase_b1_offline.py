@@ -732,6 +732,11 @@ def test_list_funds_default_signature_and_registry_behavior_unchanged(monkeypatc
         )
 
     monkeypatch.setattr(instrument_module, "safe_get", request)
+    monkeypatch.setattr(
+        instrument_module,
+        "safe_post",
+        lambda *args, **kwargs: Response({"status": 200, "items": []}),
+    )
     monkeypatch.setattr(instrument_module.time, "sleep", lambda _: None)
     result = att.list_funds(progress=False)
     assert len(calls) == len(att.settings.fund_type_ids)

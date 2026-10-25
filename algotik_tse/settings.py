@@ -206,6 +206,9 @@ class Settings:
             "https://cdn.tsetmc.com/api/Instrument/GetInstrumentOptionMarketWatch/{}"
         )
         self.url_fund_list = "https://cdn.tsetmc.com/api/Fund/GetFunds/{}"
+        self.url_fund_compare = (
+            "https://www.fipiran.com/services/fund/fundcompare/"
+        )
         # Official Iran Fara Bourse reference YTM tables (server-rendered).
         self.url_ifb_yield_table = "https://ifb.ir/ytm.aspx"
 

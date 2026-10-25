@@ -125,8 +125,9 @@ def test_exact_mapping_requires_matching_isin_and_supports_multi_commodity(monke
 
 
 class _Response:
-    def __init__(self, payload):
+    def __init__(self, payload, status_code=200):
         self.payload = payload
+        self.status_code = status_code
 
     def json(self):
         return self.payload
@@ -141,6 +142,11 @@ def test_registry_rows_expose_auditable_axes_and_gold_filter(monkeypatch):
         )
 
     monkeypatch.setattr(instruments, "safe_get", request)
+    monkeypatch.setattr(
+        instruments,
+        "safe_post",
+        lambda *args, **kwargs: _Response({"status": 200, "items": []}),
+    )
     monkeypatch.setattr(instruments.time, "sleep", lambda _: None)
     result = att.list_funds("commodity", commodity_underlying="gold", progress=False)
     assert result["registry_type_id"].tolist() == [5]
@@ -157,6 +163,11 @@ def test_registry_type_disagreement_fails_closed(monkeypatch):
             {"funds": [{"mfName": "صندوق نمونه", "regNo": "1", "fixIncome": 999}]}
         ),
     )
+    monkeypatch.setattr(
+        instruments,
+        "safe_post",
+        lambda *args, **kwargs: _Response({"status": 200, "items": []}),
+    )
     result = att.list_funds("equity", progress=False)
     row = result.iloc[0]
     assert row["registry_type_id"] == 999
@@ -164,6 +175,140 @@ def test_registry_type_disagreement_fails_closed(monkeypatch):
     assert row["classification_status"] == "unknown"
     assert bool(row["needs_review"]) is True
     assert result.attrs["discovery_signals"] == 1
+
+
+def test_registry_cash_uses_fipiran_exact_reg_no_and_preserves_deposit(monkeypatch):
+    monkeypatch.setattr(
+        instruments,
+        "safe_get",
+        lambda _: _Response(
+            {
+                "funds": [
+                    {
+                        "mfName": "خاتم ایساتیس پویا",
+                        "regNo": 11753.0,
+                        "fixIncome": 4,
+                        "recordDate": "2026-10-23T00:00:00",
+                        "portfolioDeposit": 30.26,
+                        "portfolioCash": 30.26,
+                    }
+                ]
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        instruments,
+        "safe_post",
+        lambda *args, **kwargs: _Response(
+            {
+                "status": 200,
+                "items": [
+                    {
+                        "regNo": "11753",
+                        "name": "خاتم ایساتیس پویا",
+                        "cash": 0.05,
+                        "deposit": 30.26,
+                    }
+                ],
+            }
+        ),
+    )
+
+    result = att.list_funds("fixed_income", progress=False)
+    row = result.iloc[0]
+    assert row["pct_deposit"] == pytest.approx(30.26)
+    assert row["pct_cash"] == pytest.approx(0.05)
+    assert row["record_date"] == "2026-10-23T00:00:00"
+    assert result.attrs["pct_cash_source"] == "fipiran_fund_compare_exact_reg_no"
+    assert result.attrs["pct_cash_source_status"] == "available"
+    assert result.attrs["pct_cash_inferred"] is False
+    assert result.attrs["pct_cash_registry_matches"] == 1
+    assert result.attrs["pct_cash_values_available"] == 1
+    assert result.attrs["pct_cash_missing"] == 0
+
+
+def test_registry_cash_fails_closed_without_exact_fipiran_match(monkeypatch):
+    monkeypatch.setattr(
+        instruments,
+        "safe_get",
+        lambda _: _Response(
+            {
+                "funds": [
+                    {
+                        "mfName": "نام تکراری",
+                        "regNo": "1",
+                        "fixIncome": 4,
+                        "portfolioDeposit": 40,
+                        "portfolioCash": 40,
+                    }
+                ]
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        instruments,
+        "safe_post",
+        lambda *args, **kwargs: _Response(
+            {
+                "status": 200,
+                "items": [{"regNo": "2", "name": "نام تکراری", "cash": 3}],
+            }
+        ),
+    )
+
+    result = att.list_funds("fixed_income", progress=False)
+    assert pd.isna(result.iloc[0]["pct_cash"])
+    assert result.iloc[0]["pct_deposit"] == 40
+    assert result.attrs["pct_cash_registry_matches"] == 0
+    assert result.attrs["pct_cash_missing"] == 1
+
+
+def test_registry_cash_is_missing_when_fipiran_is_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        instruments,
+        "safe_get",
+        lambda _: _Response(
+            {
+                "funds": [
+                    {
+                        "mfName": "صندوق نمونه",
+                        "regNo": "1",
+                        "fixIncome": 4,
+                        "portfolioDeposit": 20,
+                        "portfolioCash": 20,
+                    }
+                ]
+            }
+        ),
+    )
+
+    def unavailable(*args, **kwargs):
+        raise OSError("provider unavailable")
+
+    monkeypatch.setattr(instruments, "safe_post", unavailable)
+    monkeypatch.setattr(instruments.time, "sleep", lambda _: None)
+    result = att.list_funds("fixed_income", progress=False)
+    assert pd.isna(result.iloc[0]["pct_cash"])
+    assert result.attrs["pct_cash_source_status"] == "unavailable"
+    assert result.attrs["pct_cash_inferred"] is False
+
+
+def test_fipiran_cash_read_retries_transient_failure(monkeypatch):
+    calls = []
+
+    def request(*args, **kwargs):
+        calls.append(args[0])
+        if len(calls) == 1:
+            raise OSError("temporary failure")
+        return _Response({"status": 200, "items": [{"regNo": "11753", "cash": 0.05}]})
+
+    delays = []
+    monkeypatch.setattr(instruments, "safe_post", request)
+    monkeypatch.setattr(instruments.time, "sleep", delays.append)
+    result = instruments._fetch_fipiran_cash_allocations(max_attempts=2)
+    assert result == {"11753": 0.05}
+    assert len(calls) == 2
+    assert len(delays) == 1
 
 
 def test_filter_validation_is_typed(monkeypatch):

@@ -27,7 +27,13 @@ _session_lock = threading.RLock()
 _rate_lock = threading.Lock()
 _next_request_time = 0.0
 
-_ALLOWED_SOURCE_DOMAINS = ("tsetmc.com", "ifb.ir", "tgju.org", "ime.co.ir")
+_ALLOWED_SOURCE_DOMAINS = (
+    "tsetmc.com",
+    "fipiran.com",
+    "ifb.ir",
+    "tgju.org",
+    "ime.co.ir",
+)
 _REDIRECT_STATUSES = frozenset((301, 302, 303, 307, 308))
 _DEFAULT_MAX_REDIRECTS = 5
 _MAX_PERCENT_DECODE_PASSES = 4

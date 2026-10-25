@@ -1,6 +1,6 @@
 # AlgoTik TSE
 
-[![PyPI](https://img.shields.io/badge/pypi-v1.8.0-blue.svg)](https://pypi.org/project/algotik-tse/)
+[![PyPI](https://img.shields.io/badge/pypi-v1.8.1-blue.svg)](https://pypi.org/project/algotik-tse/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
 [![Downloads](https://static.pepy.tech/personalized-badge/algotik-tse?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/algotik-tse)
 [![PyPI - License](https://img.shields.io/pypi/l/algotik-tse.svg)](https://pypi.org/project/algotik-tse/)
@@ -690,6 +690,14 @@ get_options_chain(underlying, fetch_oi=False, progress=True)
 | `fetch_oi` | در زنجیرهٔ اختیار، دریافت Open Interest و metadata تکمیلی را فعال می‌کند و ممکن است درخواست‌های بیشتری بسازد. |
 
 **خروجی:** همه `DataFrame` هستند، به‌جز `get_options_chain()` که `dict` شامل `calls`, `puts`, `underlying_price`, `expiry_dates` و `market_time` می‌دهد.
+
+در `list_funds()` ستون `pct_cash` از سرویس FIPIRAN و فقط با اتصال دقیق
+`reg_no` گرفته می‌شود؛ `pct_deposit` همان سپردهٔ بانکی است و این دو ستون
+معادل هم نیستند. اگر مقدار معتبر وجه نقد برای یک شناسه منتشر نشده باشد یا
+FIPIRAN در دسترس نباشد، `pct_cash` خالی می‌ماند و از سپرده یا باقیماندهٔ
+سایر درصدها حدس زده نمی‌شود. وضعیت پوشش در `DataFrame.attrs` با کلیدهای
+`pct_cash_source_status`, `pct_cash_values_available`, `pct_cash_missing` و
+`pct_cash_inferred=False` ثبت می‌شود.
 
 ---
 
@@ -2771,6 +2779,11 @@ etfs = att.list_etfs(progress=False)
 bonds = att.list_bonds(progress=False)
 debt = att.list_debt_instruments(["erad", "gam"], active_only=True, progress=False)
 funds = att.list_funds(fund_type="fixed_income", progress=False)
+print(funds.loc[
+    funds["fund_name"].eq("خاتم ایساتیس پویا"),
+    ["record_date", "pct_bond", "pct_deposit", "pct_cash"],
+])
+print(funds.attrs["pct_cash_source"], funds.attrs["pct_cash_missing"])
 listed_funds = att.list_listed_funds(progress=False)
 options = att.list_options(underlying="خودرو", progress=False)
 indices = att.list_indices(progress=False)
@@ -2781,7 +2794,7 @@ industry_snapshot = att.get_industry_snapshot("بانک", progress=False)
 
 `get_symbols(output="list")` فقط نام نمادها را می‌دهد؛ `dataframe` metadata بازار/نوع ابزار را نگه می‌دارد. `payeh_color` یکی از `زرد`, `نارنجی`, `قرمز` است. برای جلوگیری از universe اشتباه، asset-type flagها را صریح تنظیم کنید.
 
-`list_etfs()` برای سازگاری قبلی فقط صندوق‌های بورسی عمومی نوع ۳۰۵ و NAV/discount را می‌دهد. `list_bonds()` metadata اوراق و سررسید را با امضای قدیمی فهرست می‌کند؛ `list_debt_instruments()` ستون `DebtType` و فیلتر مستقیم اخزا/اراد/گام را اضافه می‌کند. analytics محاسباتی اخزا و YTM مرجع سایر اوراق در فصل درآمد ثابت آمده است. `list_funds()` registry صندوق‌هاست؛ `list_listed_funds()` ابزارهای واقعاً قابل معاملهٔ نوع ۳۰۵ و ۳۸۰ را با InsCode/ISIN دقیق و طبقه‌بندی قابل فیلتر می‌دهد.
+`list_etfs()` برای سازگاری قبلی فقط صندوق‌های بورسی عمومی نوع ۳۰۵ و NAV/discount را می‌دهد. `list_bonds()` metadata اوراق و سررسید را با امضای قدیمی فهرست می‌کند؛ `list_debt_instruments()` ستون `DebtType` و فیلتر مستقیم اخزا/اراد/گام را اضافه می‌کند. analytics محاسباتی اخزا و YTM مرجع سایر اوراق در فصل درآمد ثابت آمده است. `list_funds()` registry صندوق‌هاست؛ ترکیب دارایی اصلی از TSETMC می‌آید اما `pct_cash` به‌دلیل تکرار نادرست فیلد خام TSETMC، از FIPIRAN و با اتصال دقیق `reg_no` جایگزین می‌شود. مقدار وجه نقد هرگز از `pct_deposit` یا جمع باقیماندهٔ اجزا ساخته نمی‌شود. `list_listed_funds()` ابزارهای واقعاً قابل معاملهٔ نوع ۳۰۵ و ۳۸۰ را با InsCode/ISIN دقیق و طبقه‌بندی قابل فیلتر می‌دهد.
 
 ### شاخص‌ها
 
@@ -3584,7 +3597,7 @@ get_index_companies(index_name, progress=True)
 | `list_etfs` | فقط `progress`. | `DataFrame[InsCode,ISIN,Symbol,Name,Last,Close,Yesterday,Volume,Value,TradeCount,Low,High,NAV,NAV_Discount,Change,ChangePct,MarketCode]`. | provider typed/empty؛ مثال `list_etfs().query("NAV_Discount < -1")`. |
 | `list_bonds` | فقط `progress`؛ signature قدیمی ثابت است. | `DataFrame[InsCode,ISIN,Symbol,Name,BondType,Ticker,MaturityJalali,MaturityGregorian,DaysToMaturity,Last,Close,Yesterday,Volume,Value,TradeCount,Change,ChangePct]`؛ `BondType='gam'` نیز پشتیبانی می‌شود. | parse/provider؛ maturity نامعلوم nullable؛ `att.list_bonds(progress=False)`. |
 | `list_debt_instruments` | `debt_type=None` یا str/sequence از `treasury,erad,gam,murabaha,ijara,salaf,other`؛ `active_only=False`؛ `progress`. | schema `list_bonds` + `DebtType`؛ attrs منبع، coverage و فیلترها. | فیلتر/bool `InvalidParameterError` و خطاهای provider؛ `att.list_debt_instruments("gam", active_only=True)`. |
-| `list_funds` | `fund_type: str|list|None` از ۱۵ دستهٔ ثبتی؛ `listed_only=False`؛ فیلترهای keyword-only: `strategy`, `commodity_underlying`, `classification_status`؛ نام قدیمی `venture` alias است. | registry rich funds با NAV/returns/composition/manager و محورهای `registry_category,asset_exposure,strategy_tags` و شواهد طبقه‌بندی؛ بدون تضمین InsCode. | type/category/combo/filter نامعتبر `InvalidParameterError` یا رفتار سازگار legacy؛ provider خطادار کنار گذاشته می‌شود؛ مثال فصل صندوق. |
+| `list_funds` | `fund_type: str|list|None` از ۱۵ دستهٔ ثبتی؛ `listed_only=False`؛ فیلترهای keyword-only: `strategy`, `commodity_underlying`, `classification_status`؛ نام قدیمی `venture` alias است. | registry rich funds با NAV/returns/composition/manager؛ `pct_cash` از FIPIRAN با exact `reg_no` و بدون inference؛ `record_date` تاریخ گزارش منبع؛ attrs شامل وضعیت/پوشش وجه نقد و `pct_cash_inferred=False`؛ بدون تضمین InsCode. | type/category/combo/filter نامعتبر `InvalidParameterError` یا رفتار سازگار legacy؛ خطای FIPIRAN، `pct_cash` را خالی می‌کند و مقدار تکراری TSETMC استفاده نمی‌شود؛ مثال فصل صندوق. |
 | `list_listed_funds` | یک MarketWatch bulk؛ `fund_category`, `strategy`, `commodity_underlying`, `classification_status`; `include_unknown=True`. | `LISTED_FUND_COLUMNS` شامل `InstrumentType` و تمام محورهای taxonomy؛ هر دو نوع ۳۰۵ و ۳۸۰؛ attrs `no_fuzzy_join=True,registry_joined=False,taxonomy_version`. | فیلتر نامعتبر `InvalidParameterError`؛ connection/parsing؛ مثال `list_listed_funds(commodity_underlying="gold")`. |
 | `list_indices` | فقط `progress`. | `DataFrame[Name,InsCode,Value,High,Low,Change,ChangePct]`؛ از 1.2.0 `Change` حرکت واحد شاخص و `ChangePct` درصد است. | مسیر legacy در خطای provider frame تهی/پیام؛ برای صنعت `list_industry_indices` پیشنهاد می‌شود. |
 | `get_index_companies` | `index_name: str` فارسی یا InsCode. | `DataFrame[Symbol,Name,InsCode,Close,Yesterday,Last]`. | index گم‌شده/provider در مسیر legacy frame تهی/پیام؛ مثال فصل شاخص. |
@@ -3758,6 +3771,7 @@ messages = att.get_market_messages_history(db, flow=0)
 | منبع | استفاده |
 |---|---|
 | TSETMC (`tsetmc.com` و subdomainهای رسمی) | قیمت، market watch، client type، سفارش، trades، پیام، وضعیت، ابزار، صندوق و اطلاعات بازار |
+| FIPIRAN (`fipiran.com/services`) | مقدار تفکیک‌شدهٔ وجه نقد صندوق‌ها در `list_funds()` با اتصال دقیق شمارهٔ ثبت؛ بدون fuzzy join یا inference |
 | TSETMC / بورس انرژی | حراج‌ها، معاملات همان عرضه، تابلوهای برق و انرژی و مشخصات آتی انرژی |
 | بورس کالای ایران (`ime.co.ir` و `cdn.ime.co.ir`) | تابلوی گواهی/سلف/صندوق/آتی، بازار فیزیکی و آمار تجمیعی بازارها |
 | فرابورس ایران (`ifb.ir/ytm.aspx`) | جدول مرجع YTM برای مقایسه/دسته‌بندی اوراق؛ منبع مجاز و با provenance جدا |
@@ -3806,6 +3820,7 @@ python -m pytest -m "not online" -q
 
 این بخش در هر انتشار به‌روزرسانی می‌شود؛ جزئیات کامل‌تر در [HISTORY.rst](HISTORY.rst) ثبت شده است.
 
+- **1.8.1 — 2026-10-25:** اصلاح `pct_cash` در `list_funds()` با منبع مستقل FIPIRAN و اتصال دقیق `reg_no`؛ حذف fallback نادرست `portfolioCash` تکرارشدهٔ TSETMC؛ ثبت پوشش و وضعیت منبع در attrs؛ اصلاح `record_date` از `recordDate` رسمی و افزودن تست‌های عدم تطبیق نامی، عدم inference و قطع منبع.
 - **1.8.0 — 2026-09-13:** افزودن شناسایی و فیلتر مستقیم اراد/گام و سررسیدهای شش/هشت‌رقمی، YTM مرجع رسمی همهٔ اوراق بدون حدس جریان نقدی، و توسعهٔ TGJU به کاتالوگ ۸۷ سری شامل ۳۶ ارز آزاد، ۲۴ نرخ رسمی، طلای ۱۸/۲۴ عیار و سایر طلاها، نقره، سکه/حباب و فلزات جهانی با alias فارسی، slug رسمی، واحد و خطاهای typed.
 - **1.7.0 — 2026-09-13:** افزودن مقایسهٔ چندنمادی بازده/ریسک/افت/بتا/نقدشوندگی و جریان حقیقی؛ سنجه‌های نقدشوندگی تاریخی و زنده با Amihud، گردش، spread و عمق پنج‌سطحی؛ رژیم توضیح‌پذیر بازار از پنج مؤلفه با confidence و رفتار صریح دادهٔ مفقود؛ داده و treemap نقشهٔ بازار با گروه‌بندی و معیارهای اندازه/رنگ قابل انتخاب؛ پشتیبانی ورودی DataFrame صریح برای replay، schema/attrs پایدار، واحدهای روشن و Plotly اختیاری.
 - **1.6.0 — 2026-09-13:** افزودن حراج‌های بورس انرژی با شرایط کامل عرضه و تفکیک معاملات حراج از سابقهٔ ابزار؛ تابلوهای برق استاندارد/سبز/آزاد، سلف و گواهی‌ها و مشخصات آتی انرژی؛ تابلوی رسمی بورس کالا برای گواهی، سلف، صندوق و آتی با پنج سطح سفارش و حقیقی/حقوقی؛ تاریخچه و خلاصهٔ بازار فیزیکی و آمار تجمیعی بازارهای فیزیکی/آتی/اختیار/مالی؛ منحنی سررسید، calendar spread و cash-and-carry با فرض‌های صریح و ثبت دقیق واحد ریال/هزار ریال/میلیون ریال.

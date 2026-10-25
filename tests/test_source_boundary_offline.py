@@ -89,6 +89,7 @@ def test_unsupported_destinations_fail_before_sleep_or_session(monkeypatch, url)
     [
         "https://cdn.tsetmc.com/api/ClosingPrice/GetPriceAdjustList/1",
         "https://old.tsetmc.com/test",
+        "https://www.fipiran.com/services/fund/fundcompare/",
         "https://ifb.ir/ytm.aspx",
         "https://api.tgju.org/test",
         "https://www.ime.co.ir/test",

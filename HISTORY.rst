@@ -2,6 +2,21 @@
 History
 =======
 
+1.8.1 (2026-10-25)
+------------------
+
+* Corrected ``list_funds`` cash allocation by sourcing ``pct_cash`` from the
+  official FIPIRAN comparison service and joining only on exact fund registry
+  numbers.
+* Removed the known-bad TSETMC ``portfolioCash`` fallback, which duplicated
+  bank deposits for almost every fund; unavailable cash is now missing rather
+  than copied or inferred.
+* Added cash-source status, exact-match coverage and no-inference metadata to
+  ``DataFrame.attrs`` and populated ``record_date`` from the published
+  ``recordDate`` field.
+* Added deterministic regression tests for exact identity, provider failure,
+  source boundaries and the fixed-income allocation scenario.
+
 1.8.0 (2026-09-13)
 ------------------
 

@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from algotik_tse.settings import settings
-from algotik_tse.http_client import safe_get
+from algotik_tse.http_client import safe_get, safe_post
 from algotik_tse.exceptions import InvalidParameterError
 from algotik_tse.core.market_data import market_watch
 from algotik_tse.core.resolver import normalize_instrument_text
@@ -262,7 +262,9 @@ def _classify_registry_fund(raw, requested_type_id, requested_category):
             "raw_fixIncome": raw_type,
         },
         "taxonomy_version": FUND_TAXONOMY_VERSION,
-        "record_date": raw.get("updateDate") or raw.get("modifyDate"),
+        "record_date": (
+            raw.get("recordDate") or raw.get("updateDate") or raw.get("modifyDate")
+        ),
         "needs_review": not type_matches,
     }
     if category == "commodity":
@@ -286,6 +288,87 @@ def _classify_registry_fund(raw, requested_type_id, requested_category):
         elif type_matches:
             classification["needs_review"] = True
     return classification
+
+
+def _normalize_registry_number(value):
+    """Return a stable exact-match key for numeric fund registry numbers."""
+    if value is None or isinstance(value, bool):
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        number = float(text)
+    except (TypeError, ValueError):
+        return text
+    if not np.isfinite(number) or not number.is_integer():
+        return None
+    return str(int(number))
+
+
+def _portfolio_percentage(value):
+    """Validate a published portfolio percentage without inferring a value."""
+    if value in (None, "") or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(number) or number < 0 or number > 100:
+        return None
+    return number
+
+
+def _fetch_fipiran_cash_allocations(max_attempts=3):
+    """Fetch accurate cash allocations keyed by the exact SEO registry number."""
+    if isinstance(max_attempts, bool) or not isinstance(max_attempts, int):
+        raise TypeError("max_attempts must be a positive integer")
+    if max_attempts < 1:
+        raise ValueError("max_attempts must be a positive integer")
+    headers = dict(settings.headers)
+    headers["Referer"] = "https://www.fipiran.com/"
+    last_error = None
+    for attempt in range(max_attempts):
+        try:
+            response = safe_post(
+                settings.url_fund_compare,
+                json={"regNos": [], "showMarketMakers": False},
+                headers=headers,
+            )
+            status_code = getattr(response, "status_code", 200)
+            if status_code >= 400:
+                raise RuntimeError(
+                    "FIPIRAN fund comparison returned HTTP {}".format(status_code)
+                )
+            payload = response.json()
+            if not isinstance(payload, dict) or not isinstance(
+                payload.get("items"), list
+            ):
+                raise ValueError("FIPIRAN fund comparison payload has no items list")
+            if payload.get("status") not in (None, 200):
+                raise ValueError(
+                    "FIPIRAN fund comparison returned status {}".format(
+                        payload.get("status")
+                    )
+                )
+            break
+        except Exception as exc:
+            last_error = exc
+            if attempt + 1 >= max_attempts:
+                raise
+            time.sleep(float(settings.retry_backoff_factor) * (2**attempt))
+    else:  # pragma: no cover - the loop always breaks or raises
+        raise RuntimeError("FIPIRAN fund comparison failed") from last_error
+
+    allocations = {}
+    for item in payload["items"]:
+        if not isinstance(item, dict):
+            continue
+        registry_number = _normalize_registry_number(item.get("regNo"))
+        if registry_number is None:
+            continue
+        allocations[registry_number] = _portfolio_percentage(item.get("cash"))
+    return allocations
 
 
 def _cast_listed_funds(frame):
@@ -1142,7 +1225,7 @@ def list_funds(
         - ``pct_stock``         — Equity allocation
         - ``pct_bond``          — Bond allocation
         - ``pct_deposit``       — Bank deposit allocation
-        - ``pct_cash``          — Cash & equivalents
+        - ``pct_cash``          — Cash allocation from FIPIRAN, matched by exact ``reg_no``
         - ``pct_other``         — Other assets
         - ``pct_top5``          — Top-5 holding concentration
 
@@ -1268,7 +1351,11 @@ def list_funds(
                     "pct_stock": f.get("portfolioStock"),
                     "pct_bond": f.get("portfolioBond"),
                     "pct_deposit": f.get("portfolioDeposit"),
-                    "pct_cash": f.get("portfolioCash"),
+                    # TSETMC currently duplicates ``portfolioDeposit`` into
+                    # ``portfolioCash`` for almost every registry row.  Never
+                    # expose that known-bad value; an exact-regNo FIPIRAN join
+                    # below supplies cash without fuzzy matching or inference.
+                    "pct_cash": None,
                     "pct_other": f.get("portfolioOther"),
                     "pct_top5": f.get("portfolioFiveBest"),
                     # Managers
@@ -1295,6 +1382,29 @@ def list_funds(
             print("No funds found.")
         return pd.DataFrame()
 
+    try:
+        cash_allocations = _fetch_fipiran_cash_allocations()
+        cash_source_status = "available"
+    except Exception as exc:
+        cash_allocations = {}
+        cash_source_status = "unavailable"
+        if progress:
+            print(
+                "    Warning: accurate FIPIRAN cash allocations are unavailable: {}".format(
+                    exc
+                )
+            )
+
+    cash_registry_matches = 0
+    cash_values_available = 0
+    for row in all_rows:
+        registry_number = _normalize_registry_number(row.get("reg_no"))
+        if registry_number in cash_allocations:
+            cash_registry_matches += 1
+            row["pct_cash"] = cash_allocations[registry_number]
+            if row["pct_cash"] is not None:
+                cash_values_available += 1
+
     df = pd.DataFrame(all_rows)
 
     if strategy is not None:
@@ -1318,11 +1428,17 @@ def list_funds(
 
     df.attrs.update(
         {
-            "source": "tsetmc_fund_registry",
+            "source": "tsetmc_fund_registry+fipiran_fund_compare",
             "taxonomy_version": FUND_TAXONOMY_VERSION,
             "no_fuzzy_join": True,
             "registry_joined": False,
             "discovery_signals": int((df["classification_status"] == "unknown").sum()),
+            "pct_cash_source": "fipiran_fund_compare_exact_reg_no",
+            "pct_cash_source_status": cash_source_status,
+            "pct_cash_inferred": False,
+            "pct_cash_registry_matches": cash_registry_matches,
+            "pct_cash_values_available": cash_values_available,
+            "pct_cash_missing": int(df["pct_cash"].isna().sum()),
         }
     )
     return df
